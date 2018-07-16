@@ -1,0 +1,68 @@
+{
+  "name": "mc-deobfuscator",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "env BABEL_ENV=test nyc ava"
+  },
+  "author": "",
+  "license": "ISC",
+  "ava": {
+    "babel": "inherit"
+  },
+  "nyc": {
+    "check-coverage": true,
+    "exclude": [
+      "node_modules/**/*",
+      "test/**/*"
+    ],
+    "reporter": [
+      "text",
+      "json",
+      "html"
+    ],
+    "sourceMap": false,
+    "instrument": false,
+    "require": [
+      "babel-register"
+    ]
+  },
+  "dependencies": {
+    "@babel/cli": "^7.0.0-beta.47",
+    "@babel/core": "^7.0.0-beta.47",
+    "@babel/node": "^7.0.0-beta.47",
+    "@babel/plugin-proposal-class-properties": "^7.0.0-beta.47",
+    "@babel/plugin-proposal-decorators": "^7.0.0-beta.47",
+    "@babel/plugin-proposal-object-rest-spread": "^7.0.0-beta.47",
+    "@babel/plugin-syntax-dynamic-import": "^7.0.0-beta.47",
+    "@babel/preset-env": "^7.0.0-beta.47",
+    "@babel/preset-flow": "^7.0.0-beta.51",
+    "babel-plugin-transform-dirname-filename": "^1.1.0",
+    "debug": "^2.6.8",
+    "java": "^0.9.1",
+    "mz": "^2.6.0",
+    "node-java-maven": "^0.0.12",
+    "request": "^2.81.0",
+    "request-promise-native": "^1.0.3",
+    "rimraf": "^2.6.1",
+    "standard": "^10.0.1"
+  },
+  "devDependencies": {
+    "ava": "^0.19.1",
+    "babel-plugin-istanbul": "^4.1.3",
+    "nyc": "^10.3.2"
+  },
+  "java": {
+    "dependencies": [
+      {
+        "groupId": "org.apache.bcel",
+        "artifactId": "bcel",
+        "version": "6.0"
+      }
+    ]
+  },
+  "standard": {
+    "ignore": []
+  }
+}
