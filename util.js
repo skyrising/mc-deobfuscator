@@ -66,3 +66,14 @@ export function getDefaultName (clsInfo) {
   if (clsInfo.isInterface) return 'If' + ucFirst(clsInfo.obfName)
   return 'Cls' + ucFirst(clsInfo.obfName)
 }
+
+export function sortObfClassName (a, b) {
+  const topA = a.includes('$') ? a.slice(0, a.indexOf('$')) : a
+  const topB = b.includes('$') ? b.slice(0, b.indexOf('$')) : b
+  if (topA.length !== topB.length) return topA.length - topB.length
+  if (topA > topB) return 1
+  if (topA < topB) return -1
+  if (a > b) return 1
+  if (a < b) return -1
+  return 0
+}

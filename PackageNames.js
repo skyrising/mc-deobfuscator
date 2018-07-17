@@ -52,6 +52,8 @@ export const GUI = CLIENT + '.gui'
 export const GUI_ADVANCEMENTS = GUI + '.advancements'
 export const MENU = GUI + '.menu'
 
+export const INVENTORY = BASE + '.inventory'
+
 export const RENDER = CLIENT + '.render'
 export const RENDER_ENTITY = RENDER + '.entity'
 export const RENDER_BLOCK = RENDER + '.block'

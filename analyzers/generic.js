@@ -436,7 +436,8 @@ function getClassNameForConstant (c, line, cls, method, code, methodInfo, clsInf
     case 'summoned_entity': return CLASS.ADVANCEMENT_TRIGGER_SUMMONED_ENTITY
     case 'tame_animal': return CLASS.ADVANCEMENT_TRIGGER_TAME_ANIMAL
     case 'tick':
-      if (method.getName() !== '<clinit>' && !code.consts.includes('functions/')) return
+      if (method.getName() !== '<clinit>') return
+      if (code.consts.includes('functions/')) return CLASS.FUNCTION_MANAGER
       return CLASS.ADVANCEMENT_TRIGGER_TICK
     case 'used_ender_eye': return CLASS.ADVANCEMENT_TRIGGER_USED_ENDER_EYE
     case 'used_totem':
@@ -447,6 +448,11 @@ function getClassNameForConstant (c, line, cls, method, code, methodInfo, clsInf
     case 'AbstractCriterionInstance{criterion=': return CLASS.ADVANCEMENT_ABSTRACT_CRITERION_INSTANCE
     case 'interact_with_brewingstand': return CLASS.STATISTICS
     case 'RequiredPlayerRange': return CLASS.SPAWNER_LOGIC
+    case 'Enchant':
+      info.class[cls.getSuperclassName()].name = CLASS.CONTAINER
+      return CLASS.CONTAINER_ENCHANTMENT
+    case '10387319': return CLASS.STRUCTURE_WOODLAND_MANSION
+    case 'Skipping Structure with id {}': return CLASS.STRUCTURES
   }
   if (c === 'PigZombie' && /^[a-z]{1,3}$/.test(line.previous.const)) return CLASS.ENTITY_LIST
   if (c === 'Bad packet id' && sig.startsWith('(Ljava/io/DataInputStream;)L')) {
@@ -551,6 +557,7 @@ function getEnumName (names, cls, clsInfo, info) {
     case 'GROWING,SHRINKING,STATIONARY': return CLASS.BORDER_STATUS
     case 'SAVE,LOAD,CORNER,DATA': return CLASS.STRUCTURE_BLOCK_MODE
     case 'PROTOCHUNK,LEVELCHUNK': return CLASS.CHUNK_STAGE$TYPE
+    case 'DEFAULT,STICKY': return CLASS.PISTON_TYPE
     case 'NONE,TAIGA,EXTREME_HILLS,JUNGLE,MESA':
       info.class[clsInfo.outerClassName].name = CLASS.BIOME
       return CLASS.BIOME$CATEGORY

@@ -23,4 +23,4 @@ export async function downloadJar (version, download = 'server') {
   return request(versionManifest.downloads[download].url).pipe(out)
 }
 
-downloadJar('1.13-pre8').then(console.log)
+downloadJar(process.argv[2]).then(console.log)

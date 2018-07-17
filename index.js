@@ -1,13 +1,12 @@
 import fs from 'mz/fs'
 import path from 'path'
-import cp from 'child_process'
 import util from 'util'
 import java from 'java'
 import mvn from 'node-java-maven'
-import {sync as rmrf} from 'rimraf'
-import * as PKG from './PackageNames'
 // import {graph} from './graphviz'
 import {getDefaultName} from './util'
+import {getCode} from './code'
+import {specialSource, extractJar} from './tools'
 import * as renameGetterSetter from './analyzers/getterSetter'
 
 const debug = require('debug')('mc:deobf')
@@ -70,7 +69,11 @@ async function analyzeJar (jarFile, classPath) {
   const slash = s => s.replace(/\./g, '/')
   const classNames = getAllClasses(jarFile).filter(name => !name.includes('/') || name.startsWith('net/minecraft'))
   console.log(classNames.length + ' classes, ' + classNames.filter(name => !name.includes('$')).length + ' outer classes')
+  const side = jarFile.includes('server') ? 'server' : 'client'
+  const version = path.basename(jarFile, '.jar').split('.').filter(p => /\d/.test(p)).join('.')
   const info = {
+    side,
+    version,
     running: 0,
     pass: 0,
     maxParallel: 0,
@@ -327,136 +330,6 @@ function getAllClasses (jarFileName) {
   return names
 }
 
-/*
-function renderGraph (info) {
-  if (fs.existsSync('temp/graph.dot')) fs.unlinkSync('temp/graph.dot')
-  const g = graph({
-    fontname: 'sans-serif',
-    overlap: false
-  })
-  const sgs = {}
-  const getSubgraph = name => {
-    if (!name) return g
-    if (name in sgs) return sgs[name]
-    const p = name.indexOf('.') === -1 ? g : getSubgraph(name.slice(0, name.lastIndexOf('.')))
-    const sg = p.subgraph({name: JSON.stringify(name)})
-    sgs[name] = sg
-    return sg
-  }
-  for (const c of Object.values(info.class)) {
-    let s = c.name && c.name.indexOf('.') > 0 ? getSubgraph(c.name.slice(0, c.name.lastIndexOf('.'))) : g
-    s.node({name: JSON.stringify(c.obfName), label: c.name || c.obfName})
-    if (c.superClassName) {
-      g.edge(JSON.stringify(c.obfName), JSON.stringify(c.superClassName), {})
-    }
-  }
-  fs.writeFileSync('temp/graph.dot', g.toString())
-}
-*/
-
-function generateSrg (info, srgFile) {
-  const slash = s => s.replace(/\./g, '/')
-  const srg = []
-  const getClassName = from => {
-    const to = info.class[from]
-    if (from.indexOf('$') < 0) {
-      if (to.name) return to.name
-      if (from.length >= 6) return from
-      return slash(PKG.DEFAULT) + '/' + getDefaultName(to)
-    }
-    const toEnd = (to.name || from).slice((to.name || from).lastIndexOf('$') + 1)
-    return getClassName(from.slice(0, from.lastIndexOf('$'))) + '$' + toEnd
-  }
-  for (const from in info.class) {
-    const to = info.class[from]
-    const toName = getClassName(from)
-    if (toName) srg.push(`CL: ${slash(from)} ${slash(toName)}`)
-    for (const fd in to.field) srg.push(`FD: ${slash(from)}/${fd} ${slash(toName)}/${to.field[fd]}`)
-    for (const mdFrom in to.method) {
-      const md = to.method[mdFrom]
-      if (md.name) srg.push(`MD: ${slash(from)}/${md.origName} ${md.sig} ${slash(toName)}/${md.name} ${md.sig}`)
-    }
-  }
-  const pkgSrg = [
-    'PK: . ' + slash(PKG.DEFAULT),
-    'PK: net net',
-    'PK: ' + slash(PKG.BASE) + ' ' + slash(PKG.BASE),
-    'PK: ' + slash(PKG.CLIENT) + ' ' + slash(PKG.CLIENT),
-    'PK: net/minecraft/client/main net/minecraft/client/main',
-    'PK: net/minecraft/realms net/minecraft/realms',
-    'PK: net/minecraft/server net/minecraft/server'
-  ]
-  fs.writeFileSync(srgFile, pkgSrg.concat(srg.sort()).join('\n'))
-}
-
-function specialSource (inFile, outFile, info) {
-  generateSrg(info, 'temp/mapping.srg')
-  console.log('Deobfuscating with SpecialSource')
-  cp.spawnSync('java', ['-jar', 'specialsource.jar', '-i', inFile, '-o', outFile, '-m', 'temp/mapping.srg', '--kill-lvt'], {
-    stdio: ['ignore', 'inherit', fs.openSync('./temp/specialsource.warn', 'w')]
-  })
-}
-
-function retroguard (inFile, outFile, info, classPath) {
-  if (fs.existsSync('temp/clientrg.log')) fs.unlinkSync('temp/clientrg.log')
-  if (fs.existsSync('temp/deobfrg.log')) fs.unlinkSync('temp/deobfrg.log')
-  if (fs.existsSync(outFile)) fs.unlinkSync(outFile)
-  fs.writeFileSync('temp/retroguard.cfg', [
-    'input = ' + inFile,
-    'output = ' + outFile,
-    'script = temp/client.cfg',
-    'log = temp/clientrg.log',
-    'deob = temp/mapping.srg',
-    'nplog = temp/deobfrg.log',
-    'verbose = 0',
-    'quiet = 1',
-    'fullmap = 0',
-    'startindex = 0',
-    '',
-    'protectedpackage = paulscode',
-    'protectedpackage = com/jcraft',
-    'protectedpackage = isom',
-    'protectedpackage = ibxm',
-    'protectedpackage = de/matthiasmann/twl',
-    'protectedpackage = org/xmlpull',
-    'protectedpackage = javax/xml'
-  ].join('\n'))
-  generateSrg(info, 'temp/mapping.srg')
-  console.log('Deobfuscating with RetroGuard')
-  cp.spawnSync('java', ['-cp', 'retroguard.jar:' + classPath.join(':'), 'RetroGuard', '-searge', 'temp/retroguard.cfg'], {
-    stdio: ['ignore', 'inherit', fs.openSync('./temp/rg.warn', 'w')]
-  })
-}
-
-async function extractJar (jar, dir) {
-  rmrf(dir)
-  fs.mkdirSync(dir)
-  console.log('Extracting ' + jar)
-  cp.spawnSync('jar', ['xf', jar], {cwd: dir})
-}
-
-async function fernflower (jar, to) {
-  const binDir = path.resolve('./work/bin/')
-  await extractJar(jar, binDir)
-  rmrf(to)
-  fs.mkdirSync(to)
-  console.log('Decompiling with fernflower')
-  const mcp = true
-  const args = ['-din=1', '-rbr=1', '-dgs=1', '-asc=1', '-rsy=1', '-iec=1', '-log=WARN', binDir, to]
-  if (mcp) {
-    cp.spawnSync('java', ['-jar', 'fernflower.jar'].concat(args), {stdio: 'inherit'})
-  } else {
-    cp.spawnSync('fernflower', args, {stdio: 'inherit'})
-  }
-}
-
-async function procyon (jar, to) {
-  rmrf(to)
-  fs.mkdirSync(to)
-  console.log('Decompiling with procyon')
-  cp.spawnSync('procyon-decompiler', ['-v', 0, '-jar', jar, '-r', '-o', to], {stdio: 'inherit'})
-}
-
 async function findAnalyzer (name) {
   debugSearch('Searching for analyzer for %s', name)
   const parts = name.split('.')
@@ -611,10 +484,11 @@ async function runAnalyzer (analyzer, cls, clsInfo, info, genericAnalyzer) {
   if (analyzer.cls) {
     if (analyzer !== genericAnalyzer) debug('%s: Running analyzer.cls', (clsInfo.name || className))
     setStatus(`${clsInfo.name || className}`)
-    const name = await analyzer.cls(cls, clsInfo, info)
-    if (name) {
-      clsInfo.name = name
-      info.genericAnalyzed[className] = -1
+    try {
+      const name = await analyzer.cls(cls, clsInfo, info)
+      if (name) clsInfo.name = name
+    } catch (e) {
+      console.error(e)
     }
   }
   if (analyzer.field) {
@@ -623,13 +497,17 @@ async function runAnalyzer (analyzer, cls, clsInfo, info, genericAnalyzer) {
       if (clsInfo.field[obfName]) continue
       if (analyzer !== genericAnalyzer) debug('%s.%s: Running analyzer.field', (clsInfo.name || className), obfName)
       setStatus(`${clsInfo.name || className}.${obfName}`)
-      const deobfName = await analyzer.field(field, clsInfo, info, cls)
-      if (deobfName) {
-        clsInfo.field[obfName] = deobfName
-        clsInfo.done = false
-      } else if (genericAnalyzer && analyzer !== genericAnalyzer) {
-        const deobfName = await genericAnalyzer.field(field, clsInfo, info, cls)
-        if (deobfName) clsInfo.field[obfName] = deobfName
+      try {
+        const deobfName = await analyzer.field(field, clsInfo, info, cls)
+        if (deobfName) {
+          clsInfo.field[obfName] = deobfName
+          clsInfo.done = false
+        } else if (genericAnalyzer && analyzer !== genericAnalyzer) {
+          const deobfName = await genericAnalyzer.field(field, clsInfo, info, cls)
+          if (deobfName) clsInfo.field[obfName] = deobfName
+        }
+      } catch (e) {
+        console.error(e)
       }
     }
   }
@@ -654,100 +532,23 @@ async function runAnalyzer (analyzer, cls, clsInfo, info, genericAnalyzer) {
     for (const c of code.consts) if (typeof c === 'string') clsInfo.consts.add(c)
     // for (const call of code.internalCalls) if (call.fullClassName !== className) info.queue = call.fullClassName
     // for (const field of code.internalFields) if (field.fullClassName !== className) info.queue = field.fullClassName
-    if (analyzer.method) {
-      methodInfo.done = true
-      const name = await analyzer.method(cls, method, code, methodInfo, clsInfo, info)
-      if (name) methodInfo.name = name
-      else if (genericAnalyzer && analyzer !== genericAnalyzer) {
+    try {
+      if (analyzer.method) {
+        methodInfo.done = true
+        const name = await analyzer.method(cls, method, code, methodInfo, clsInfo, info)
+        if (name) methodInfo.name = name
+        else if (genericAnalyzer && analyzer !== genericAnalyzer) {
+          const name = await genericAnalyzer.method(cls, method, code, methodInfo, clsInfo, info)
+          if (name) methodInfo.name = name
+        }
+      } else if (genericAnalyzer && analyzer !== genericAnalyzer) {
         const name = await genericAnalyzer.method(cls, method, code, methodInfo, clsInfo, info)
         if (name) methodInfo.name = name
       }
-    } else if (genericAnalyzer && analyzer !== genericAnalyzer) {
-      const name = await genericAnalyzer.method(cls, method, code, methodInfo, clsInfo, info)
-      if (name) methodInfo.name = name
+    } catch (e) {
+      console.error(e)
     }
   }
-}
-
-async function getCode (method) {
-  let code
-  try {
-    code = await method.getCodeAsync().then(c => c.toStringAsync())
-  } catch (e) {
-    return {code: '', lines: [], calls: [], internalCalls: [], fields: [], internalFields: [], consts: []}
-  }
-  const calls = []
-  const fields = []
-  const consts = []
-  const internalCalls = []
-  const internalFields = []
-  const lines = code.split('\n').filter(l => /^\d+:/.test(l)).map(l => {
-    const match = l.match(/^(\d+):\s+([^\t]+)\s*(.*?)(?: \(\d+\))?$/)
-    if (!match) return
-    const [, offset, op, arg] = match
-    const line = {offset: +offset, op, arg, [util.inspect.custom]: () => op + ' ' + arg}
-    if (op === 'invokestatic' || op === 'invokevirtual' || op === 'invokespecial' || op === 'invokeinterface') {
-      const fullSig = arg
-      const [, pkg, className, methodName, signature] = fullSig.match(/(?:((?:.*\.)*(?:.*))\.)?(.*)\.(.*):(.*)$/)
-      const call = {fullSig, pkg, className, methodName, signature, [util.inspect.custom]: () => op + ' ' + fullSig}
-      call.fullClassName = pkg ? pkg + '.' + className : className
-      line.call = call
-      calls.push(call)
-      if ((!pkg || pkg.startsWith('net.minecraft')) && className[0] !== '[') internalCalls.push(call)
-    } else if (op === 'getfield' || op === 'getstatic') {
-      const [, pkg, className, fieldName, type] = arg.match(/(?:((?:.*\.)*(?:.*))\.)?(.*)\.(.*):(.*)$/)
-      const field = {fullSig: arg, pkg, className, fieldName, type, [util.inspect.custom]: () => op + ' ' + arg}
-      field.fullClassName = pkg ? pkg + '.' + className : className
-      line.field = field
-      fields.push(field)
-      if ((!pkg || pkg.startsWith('net.minecraft')) && className[0] !== '[') internalFields.push(field)
-    } else if (op === 'putfield' || op === 'putstatic') {
-      const [, pkg, className, fieldName, type] = arg.match(/(?:((?:.*\.)*(?:.*))\.)?(.*)\.(.*):(.*)$/)
-      const field = {fullSig: arg, pkg, className, fieldName, type, [util.inspect.custom]: () => op + ' ' + arg}
-      field.fullClassName = pkg ? pkg + '.' + className : className
-      line.field = field
-      fields.push(field)
-      if ((!pkg || pkg.startsWith('net.minecraft')) && className[0] !== '[') internalFields.push(field)
-    } else if (op === 'ldc_w' || op === 'ldc' || op === 'bipush' || op === 'sipush' || op === 'ipush') {
-      try {
-        line.const = JSON.parse(arg)
-      } catch (e) {
-        line.const = arg
-      }
-      consts.push(line.const)
-    } else if (op.startsWith('iconst_')) {
-      line.const = +op[7]
-      consts.push(line.const)
-    } else if (op === 'new') {
-      line.className = arg.slice(1, -1)
-    } else if (/^[ilfda]load_\d$/.test(op)) {
-      line.load = +op[6]
-      line.loadType = op[0]
-    } else if (/^[ilfda]load$/.test(op)) {
-      line.load = +arg.slice(1)
-      line.loadType = op[0]
-    }
-    Object.assign(line, {
-      nextOp (line, includeSelf = false) {
-        const [op, arg] = line.split(' ')
-        if (includeSelf && this.op === op && (!arg || this.arg === arg)) return this
-        if (!this.next) return
-        if (this.next.op === op && (!arg || this.next.arg === arg)) return this.next
-        return this.next.nextOp(line)
-      },
-      prevOp (line, includeSelf = false) {
-        const [op, arg] = line.split(' ')
-        if (includeSelf && this.op === op && (!arg || this.arg === arg)) return this
-        if (!this.previous) return
-        if (this.previous.op === op && (!arg || this.previous.arg === arg)) return this.previous
-        return this.previous.prevOp(line)
-      }
-    })
-    return line
-  }).filter(l => !!l)
-  for (let i = 0; i < lines.length - 1; i++) lines[i].next = lines[i + 1]
-  for (let i = 1; i < lines.length; i++) lines[i].previous = lines[i - 1]
-  return {code, lines, calls, internalCalls, fields, internalFields, consts}
 }
 
 async function initMaven () {
