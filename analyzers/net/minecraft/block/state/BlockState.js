@@ -1,4 +1,4 @@
-import * as CLASS from '../../../../ClassNames'
+import * as CLASS from '../../../../../ClassNames'
 
 export function cls (cls, clsInfo, info) {
   const ifs = cls.getInterfaces()

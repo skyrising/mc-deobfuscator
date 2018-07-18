@@ -1,5 +1,6 @@
 import * as CLASS from '../../../../ClassNames'
 import * as PKG from '../../../../PackageNames'
+import {toUpperCamelCase} from '../../../../util'
 
 const ENTITY_PKG = {
   Arrow: PKG.ENTITY_PROJECTILE,
@@ -83,10 +84,11 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
     for (const line of code.lines) {
       if (typeof line.const !== 'string') continue
       if (!/^[A-Z][A-Za-z_\d]+$/.test(line.const)) continue
-      const name = line.const
-      const entClass = line.previous.const
+      const name = toUpperCamelCase(line.const)
+      const entClass = line.previous.const || line.next.context
+      if (!entClass.startsWith('L') || !entClass.endsWith(';')) continue
       const pkg = name in ENTITY_PKG ? ENTITY_PKG[name] : PKG.ENTITY
-      info.class[entClass].name = pkg + '.' + name
+      info.class[entClass.slice(1, -1)].name = pkg + '.' + name
     }
   }
   const sig = method.getSignature()

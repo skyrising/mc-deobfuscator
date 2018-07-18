@@ -108,7 +108,7 @@ function getClassNameForConstant (c, line, cls, method, code, methodInfo, clsInf
     case 'falling_block':
       methodInfo.name = 'init'
       info.method[line.nextOp('invokestatic').call.fullSig].name = 'registerEntity'
-      return CLASS.ENTITY_LIST
+      return CLASS.ENTITIES
     case 'mobBaseTick': return CLASS.ENTITY_MOB
     case 'HurtTime':
     case 'livingEntityBaseTick': return CLASS.ENTITY_LIVING_BASE
@@ -215,13 +215,15 @@ function getClassNameForConstant (c, line, cls, method, code, methodInfo, clsInf
       info.class[cls.getSuperClasses().slice(-2)[0].getClassName()].name = CLASS.GUI
       methodInfo.name = 'initGui'
       return CLASS.GUI_MAIN_MENU
-    case 'selectWorld.title':
-      if (line.next.call) {
-        info.class[line.next.call.fullClassName].name = CLASS.I18N
-        info.method[line.next.call.fullSig].name = 'format'
+    case 'selectWorld.title': {
+      const {call} = line.nextOp('invokestatic') || {}
+      if (call) {
+        info.class[call.fullClassName].name = CLASS.I18N
+        info.method[call.fullSig].name = 'format'
       }
       clsInfo.field[line.nextOp('putfield').field.fieldName] = 'title'
       return CLASS.GUI_SELECT_WORLD
+    }
     case 'selectWorld.edit.title': return 'net.minecraft.client.gui.world.GuiEditWorld'
     case 'options.customizeTitle': return 'net.minecraft.client.gui.world.GuiCustomizeWorld'
     case 'createWorld.customize.flat.title': return 'net.minecraft.client.gui.world.GuiCustomizeWorldFlat'
@@ -410,6 +412,8 @@ function getClassNameForConstant (c, line, cls, method, code, methodInfo, clsInf
     case 'construct_beacon': return CLASS.ADVANCEMENT_TRIGGER_CONSTRUCT_BEACON
     case 'consume_item': return CLASS.ADVANCEMENT_TRIGGER_CONSUME_ITEM
     case 'cured_zombie_villager': return CLASS.ADVANCEMENT_TRIGGER_CURED_ZOMBIE_VILLAGER
+    case 'source_entity':
+      return code.consts.includes('is_fire') ? CLASS.ADVANCEMENT_TRIGGER_DAMAGE_SOURCE : CLASS.ADVANCEMENT_TRIGGER_DAMAGE
     case 'effects_changed': return CLASS.ADVANCEMENT_TRIGGER_EFFECTS_CHANGED
     case 'enchanted_item':
       if (method.getName() !== '<clinit>') return
@@ -453,8 +457,12 @@ function getClassNameForConstant (c, line, cls, method, code, methodInfo, clsInf
       return CLASS.CONTAINER_ENCHANTMENT
     case '10387319': return CLASS.STRUCTURE_WOODLAND_MANSION
     case 'Skipping Structure with id {}': return CLASS.STRUCTURES
+    case 'World optimizaton finished after {} ms': return CLASS.WORLD_OPTIMIZER
+    case 'optimizeWorld.info.converted': return CLASS.GUI_SCREEN_OPTIMIZE_WORLD
+    case 'ThreadedAnvilChunkStorage ({}): All chunks are saved': return CLASS.THREADED_ANVIL_CHUNK_STORAGE
+    case 'lang/%s.lang': case 'lang/%s.json': return CLASS.I18N_LOCALE
   }
-  if (c === 'PigZombie' && /^[a-z]{1,3}$/.test(line.previous.const)) return CLASS.ENTITY_LIST
+  if (c === 'PigZombie' && /^[a-z]{1,3}$/.test(line.previous.const)) return CLASS.ENTITIES
   if (c === 'Bad packet id' && sig.startsWith('(Ljava/io/DataInputStream;)L')) {
     methodInfo.name = 'decode'
     return 'net.minecraft.network.Packet'
@@ -500,12 +508,17 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
     if (name) clsInfo.name = name
   }
   const NBTBase = info.classReverse[CLASS.NBT_BASE]
+  const Locale = info.classReverse[CLASS.I18N_LOCALE]
   if (sig === '()B' && NBTBase && hasSuperClass(cls, NBTBase)) {
     const id = code.consts[0]
     const type = ([
       'End', 'Byte', 'Short', 'Int', 'Long', 'Float', 'Double', 'ByteArray', 'String', 'List', 'Compound', 'IntArray', 'LongArray'
     ])[id]
     if (id !== undefined && type) clsInfo.name = PKG.NBT + '.NBT' + type
+  }
+  if (Locale && sig === '(L' + Locale + ';)V') {
+    methodInfo.name = 'setLocale'
+    clsInfo.name = CLASS.I18N
   }
   if (clsInfo.name) clsInfo.done = false
 }

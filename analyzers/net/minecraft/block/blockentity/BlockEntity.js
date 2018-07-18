@@ -1,5 +1,5 @@
-import {toUpperCamelCase} from '../../../../util'
-import * as CLASS from '../../../../ClassNames'
+import {toUpperCamelCase} from '../../../../../util'
+import * as CLASS from '../../../../../ClassNames'
 
 export function method (cls, method, code, methodInfo, clsInfo, info) {
   if (method.getName() === '<clinit>') {

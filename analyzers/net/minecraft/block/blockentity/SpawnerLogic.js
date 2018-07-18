@@ -1,5 +1,5 @@
-import * as CLASS from '../../../../ClassNames'
-import {toLowerCamelCase} from '../../../../util'
+import * as CLASS from '../../../../../ClassNames'
+import {toLowerCamelCase} from '../../../../../util'
 
 export function method (cls, method, code, methodInfo, clsInfo, info) {
   const sig = method.getSignature()

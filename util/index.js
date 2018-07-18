@@ -1,3 +1,5 @@
+import * as PKG from '../PackageNames'
+
 export function hasSuperClass (cls, name) {
   const scName = cls.getSuperclassName()
   if (scName === name) return true
@@ -76,4 +78,34 @@ export function sortObfClassName (a, b) {
   if (a > b) return 1
   if (a < b) return -1
   return 0
+}
+
+export function waiter () {
+  const p = new Promise((resolve, reject) => {
+    process.nextTick(() => {
+      if (p.waitingFor) p.waitingFor.then(resolve).catch(reject)
+      p._waitingFor = p.waitingFor
+      Object.assign(p, {
+        set waitingFor (wf) {
+          wf.then(resolve).catch(reject)
+          this._waitingFor = wf
+        },
+        get waitingFor () {
+          return this._waitingFor
+        }
+      })
+    })
+  })
+  return p
+}
+
+export function getMappedClassName (info, from) {
+  const to = info.class[from]
+  if (from.indexOf('$') < 0) {
+    if (to.name) return to.name.replace(/\./g, '/')
+    if (from.length >= 6) return from.replace(/\./g, '/')
+    return PKG.DEFAULT.replace(/\./g, '/') + '/' + getDefaultName(to)
+  }
+  const toEnd = (to.name || from).slice((to.name || from).lastIndexOf('$') + 1)
+  return getMappedClassName(info, from.slice(0, from.lastIndexOf('$'))) + '$' + toEnd
 }

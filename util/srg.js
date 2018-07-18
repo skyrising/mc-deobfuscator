@@ -1,10 +1,10 @@
-import * as PKG from './PackageNames'
+import * as PKG from '../PackageNames'
 import fs from 'fs'
 import path from 'path'
-import {getDefaultName, sortObfClassName} from './util'
+import {getMappedClassName, sortObfClassName} from './index'
 
 export function generateSrgs (info) {
-  const dataDir = path.resolve(__dirname, 'data')
+  const dataDir = path.resolve(__dirname, '../data')
   if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir)
   const versionDir = path.resolve(dataDir, info.version)
   if (!fs.existsSync(versionDir)) fs.mkdirSync(versionDir)
@@ -12,18 +12,17 @@ export function generateSrgs (info) {
   if (!fs.existsSync(sideDir)) fs.mkdirSync(sideDir)
   const srg = path.resolve(sideDir, 'mapping.srg')
   generateSrg(info, srg)
-  return {srg}
+  const obfClasses = path.resolve(sideDir, 'classes-obf.txt')
+  const deobfClasses = path.resolve(sideDir, 'classes-deobf.txt')
+  generateClassLists(info, obfClasses, deobfClasses)
+  return {srg, obfClasses, deobfClasses}
 }
 
-function getClassName (info, from) {
-  const to = info.class[from]
-  if (from.indexOf('$') < 0) {
-    if (to.name) return to.name
-    if (from.length >= 6) return from
-    return PKG.DEFAULT.replace(/\./g, '/') + '/' + getDefaultName(to)
-  }
-  const toEnd = (to.name || from).slice((to.name || from).lastIndexOf('$') + 1)
-  return getClassName(info, from.slice(0, from.lastIndexOf('$'))) + '$' + toEnd
+export function generateClassLists (info, obfFile, deobfFile) {
+  const obfClasses = info.classNames.sort(sortObfClassName)
+  const deobfClasses = obfClasses.map(cls => getMappedClassName(info, cls)).filter(Boolean)
+  fs.writeFileSync(obfFile, obfClasses.map(cls => cls + '\n').join(''))
+  fs.writeFileSync(deobfFile, deobfClasses.map(cls => cls + '\n').join(''))
 }
 
 export function generateSrg (info, srgFile) {
@@ -40,7 +39,7 @@ export function generateSrg (info, srgFile) {
   ]
   for (const from in info.class) {
     const to = info.class[from]
-    const toName = getClassName(info, from)
+    const toName = getMappedClassName(info, from)
     if (toName) srg.push(`CL: ${slash(from)} ${slash(toName)}`)
     for (const fd in to.field) srg.push(`FD: ${slash(from)}/${fd} ${slash(toName)}/${to.field[fd]}`)
     for (const mdFrom in to.method) {

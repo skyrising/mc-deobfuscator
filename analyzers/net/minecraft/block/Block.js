@@ -54,18 +54,22 @@ export function field (field, clsInfo, info) {
   const sig = field.getType().getSignature()
   const MapColor = info.classReverse[CLASS.MAP_COLOR]
   const DefaultedMappedRegistry = info.classReverse[CLASS.DEFAULTED_MAPPED_REGISTRY]
-  if (!MapColor || !DefaultedMappedRegistry) clsInfo.done = false
+  const BlockState = info.classReverse[CLASS.BLOCK_STATE]
+  if (!MapColor || !DefaultedMappedRegistry || !BlockState) clsInfo.done = false
   if (MapColor && sig === 'L' + MapColor + ';') return 'mapColor'
   if (DefaultedMappedRegistry && sig === 'L' + DefaultedMappedRegistry + ';') return 'REGISTRY'
+  if (BlockState && sig === 'L' + BlockState + ';') return 'defaultBlockState'
   switch (sig) {
     case 'Ljava/lang/String;': return 'name'
+    case 'I': return 'lightOpacity'
   }
 }
 
 const classNames = {
   grass_block: 'GrassBlock',
   podzol: 'Podzol',
-  water: 'Fluid',
+  bedrock: 'Bedrock',
+  water: 'Liquid',
   sand: 'Sand',
   gravel: 'Gravel',
   gold_ore: 'Ore',

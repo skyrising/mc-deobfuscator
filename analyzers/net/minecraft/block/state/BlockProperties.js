@@ -1,4 +1,4 @@
-import * as CLASS from '../../../../ClassNames'
+import * as CLASS from '../../../../../ClassNames'
 
 export function method (cls, method, code, methodInfo, clsInfo, info) {
   const sig = method.getSignature()

@@ -1,20 +1,18 @@
 import fs from 'mz/fs'
 import path from 'path'
-import util from 'util'
 import java from 'java'
-import mvn from 'node-java-maven'
 // import {graph} from './graphviz'
-import {getDefaultName} from './util'
-import {getCode} from './code'
-import {specialSource, extractJar} from './tools'
+import {getDefaultName, waiter, getMappedClassName} from './util'
+import {getCode} from './util/code'
+import {startStatus, endStatus, setStatus, printStatus} from './util/status'
+import {specialSource, extractJar} from './util/tools'
+import {getAllClasses, initMaven} from './util/java'
+import {findAnalyzer} from './util/analyzers'
 import * as renameGetterSetter from './analyzers/getterSetter'
 
 const debug = require('debug')('mc:deobf')
-const debugSearch = require('debug')('mc:deobf:search')
 const debugMd = require('debug')('deobf:md')
 const debugCl = require('debug')('deobf:cl')
-
-const {getPromiseDetails} = process.binding('util')
 
 const MAX_GENERIC_PASSES = 3
 const MAX_SPECIAL_PASSES = 3
@@ -79,6 +77,7 @@ async function analyzeJar (jarFile, classPath) {
     maxParallel: 0,
     numAnalyzed: 0,
     classAnalyzeAvg: 0,
+    classNames,
     _queue: [...classNames],
     genericAnalyzed: {},
     specialAnalyzed: {},
@@ -251,6 +250,7 @@ async function analyzeJar (jarFile, classPath) {
     await Promise.all(Object.values(ps))
     if (!info.hasWork) break
   }
+  console.log('Queue empty')
   console.log('Renaming getters & setters')
   await Promise.all(classNames.map(async name => {
     try {
@@ -262,7 +262,6 @@ async function analyzeJar (jarFile, classPath) {
     }
   }))
   endStatus()
-  console.log('Queue empty')
   const deobfJar = path.resolve(__dirname, './work/' + path.basename(jarFile, '.jar') + '-deobf.jar')
   const srcDir = path.resolve('./work/src/')
   // await renderGraph(info)
@@ -315,57 +314,6 @@ async function analyzeJar (jarFile, classPath) {
   // await fernflower(deobfJar, srcDir)
 }
 
-function getAllClasses (jarFileName) {
-  const FileInputStream = java.import('java.io.FileInputStream')
-  const JarInputStream = java.import('java.util.jar.JarInputStream')
-  const stream = new JarInputStream(new FileInputStream(jarFileName))
-  const names = []
-  while (true) {
-    const entry = stream.getNextJarEntry()
-    if (!entry) break
-    const name = entry.getName()
-    if (!name.endsWith('.class')) continue
-    names.push(name.slice(0, name.lastIndexOf('.')))
-  }
-  return names
-}
-
-async function findAnalyzer (name) {
-  debugSearch('Searching for analyzer for %s', name)
-  const parts = name.split('.')
-  for (let i = 1; i <= parts.length; i++) {
-    const fname = parts.slice(-i).join('.') + '.js'
-    const file = path.resolve(__dirname, 'analyzers', parts.slice(0, -i).join('/'), fname)
-    debugSearch('Checking %s', file)
-    if (await fs.exists(file)) {
-      try {
-        return require(file)
-      } catch (e) {
-        console.log(e.message)
-      }
-    }
-  }
-}
-
-const waiter = () => {
-  const p = new Promise((resolve, reject) => {
-    process.nextTick(() => {
-      if (p.waitingFor) p.waitingFor.then(resolve).catch(reject)
-      p._waitingFor = p.waitingFor
-      Object.assign(p, {
-        set waitingFor (wf) {
-          wf.then(resolve).catch(reject)
-          this._waitingFor = wf
-        },
-        get waitingFor () {
-          return this._waitingFor
-        }
-      })
-    })
-  })
-  return p
-}
-
 async function analyzeClassWrapper (next, info, Repository) {
   let w = waiter()
   const start = Date.now()
@@ -402,7 +350,7 @@ async function analyzeClass (cls, info) {
   if (pkg.startsWith('net.minecraft')) clsInfo.name = className
   const genericAnalyzer = require('./analyzers/generic')
   let analyzer = genericAnalyzer
-  const special = clsInfo.name && (clsInfo.analyzer || await findAnalyzer(clsInfo.name || className))
+  const special = clsInfo.name && (clsInfo.analyzer || await findAnalyzer(getMappedClassName(info, className)))
   if (special) {
     console.log('Special analyzer for %s: %s', clsInfo.name, Object.keys(analyzer))
     clsInfo.analyzer = analyzer = special
@@ -416,67 +364,6 @@ async function analyzeClass (cls, info) {
     console.error('Error while analyzing %s:\n%s', (clsInfo.name || className), e.stack)
   }
   setStatus(`Done with ${clsInfo.name || className}`)
-}
-
-let status = ''
-let statusInterval
-let statusInfo
-let lastStatus
-let statusCount = 0
-
-function startStatus (info) {
-  statusInfo = info
-  statusInterval = setInterval(printStatus, 100)
-}
-
-function endStatus () {
-  clearInterval(statusInterval)
-  statusInterval = undefined
-}
-
-function printStatus (s) {
-  if (s) status = s
-  if (!statusInfo || !statusInterval) return
-  if (status === lastStatus) {
-    statusCount++
-  } else {
-    lastStatus = status
-    statusCount = 0
-  }
-  const done = statusInfo.numAnalyzed
-  const total = done + statusInfo._queue.length
-  const perc = (done * 100 / total).toFixed(2) + '%'
-  process.stdout.write(`[Pass ${statusInfo.pass} ${perc} ${done}/${total}] ${status}\x1b[K\r`)
-  if (statusCount === 50) {
-    const mapped = {}
-    for (const key in statusInfo.analyzing) {
-      const details = getPromiseDetails(statusInfo.analyzing[key])
-      if (details[0] === 1) continue
-      mapped[key] = details
-    }
-    console.warn(mapped)
-  }
-}
-
-function setStatus (s) {
-  status = s
-}
-
-function printLine (sgr, ...args) {
-  process.stdout.write(`\x1b[${sgr}m${util.format(...args).replace('\n', '\x1b[K\n')}\x1b[0m\x1b[K\n`)
-}
-function log (...args) {
-  printLine(0, ...args)
-  printStatus()
-}
-console.log = log
-console.warn = (...args) => {
-  printLine(33, ...args)
-  printStatus()
-}
-console.error = (...args) => {
-  printLine(31, ...args)
-  printStatus()
 }
 
 async function runAnalyzer (analyzer, cls, clsInfo, info, genericAnalyzer) {
@@ -511,13 +398,7 @@ async function runAnalyzer (analyzer, cls, clsInfo, info, genericAnalyzer) {
       }
     }
   }
-  /*
-  const scl = cls.getSuperclassName()
-  if (scl.length <= 5) info.queue = scl
-  for (const inf of cls.getInterfaces()) {
-    info.queue = inf.getClassName()
-  }
-  */
+
   for (const method of await cls.getMethodsAsync()) {
     const name = await method.getNameAsync()
     const sig = await method.getSignatureAsync()
@@ -549,17 +430,4 @@ async function runAnalyzer (analyzer, cls, clsInfo, info, genericAnalyzer) {
       console.error(e)
     }
   }
-}
-
-async function initMaven () {
-  return new Promise((resolve, reject) => {
-    const cLog = console.log
-    console.log = require('debug')('maven')
-    mvn((err, results) => {
-      console.log = cLog
-      if (err) return reject(err)
-      results.classpath.forEach(c => java.classpath.push(c))
-      resolve()
-    })
-  })
 }

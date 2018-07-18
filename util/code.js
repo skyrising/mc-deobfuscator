@@ -57,6 +57,9 @@ export async function getCode (method) {
     } else if (/^[ilfda]load$/.test(op)) {
       line.load = +arg.slice(1)
       line.loadType = op[0]
+    } else if (/^[ilfda]return$/.test(op)) {
+      line.return = true
+      line.returnType = op[0]
     }
     Object.assign(line, {
       nextOp (line, includeSelf = false) {
