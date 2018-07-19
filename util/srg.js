@@ -37,7 +37,7 @@ export function generateSrg (info, srgFile) {
     'PK: net/minecraft/server net/minecraft/server',
     'PK: net/minecraft/data net/minecraft/data'
   ]
-  for (const from in info.class) {
+  for (const from of info.classNames) {
     const to = info.class[from]
     const toName = getMappedClassName(info, from)
     if (toName) srg.push(`CL: ${slash(from)} ${slash(toName)}`)
