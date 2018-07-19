@@ -69,15 +69,22 @@ export function getDefaultName (clsInfo) {
   return 'Cls' + ucFirst(clsInfo.obfName)
 }
 
+export function sortObfClassNamePart (a, b) {
+  const numA = +a
+  const numB = +b
+  if (isFinite(numA) && isFinite(numB)) return numA - numB
+  if (a.length !== b.length) return a.length - b.length
+  return a === b ? 0 : a > b ? 1 : -1
+}
+
 export function sortObfClassName (a, b) {
-  const topA = a.includes('$') ? a.slice(0, a.indexOf('$')) : a
-  const topB = b.includes('$') ? b.slice(0, b.indexOf('$')) : b
-  if (topA.length !== topB.length) return topA.length - topB.length
-  if (topA > topB) return 1
-  if (topA < topB) return -1
-  if (a > b) return 1
-  if (a < b) return -1
-  return 0
+  const partsA = a.split('$')
+  const partsB = b.split('$')
+  for (let i = 0; i < partsA.length && i < partsB.length; i++) {
+    const cmp = sortObfClassNamePart(partsA[i], partsB[i])
+    if (cmp) return cmp
+  }
+  return partsA.length - partsB.length
 }
 
 export function waiter () {
