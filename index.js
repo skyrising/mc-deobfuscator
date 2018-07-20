@@ -171,7 +171,12 @@ async function analyzeJar (jarFile, classPath) {
             get numLines () {
               return Object.values(this.method).reduce((sum, m) => sum + (m.code ? m.code.lines.length : 0), 0)
             },
-            field: {},
+            field: new Proxy({}, {
+              /*
+              set (base, key, value) {
+              }
+              */
+            }),
             reverseMethod: {},
             method: new Proxy({}, {
               get (mds, fullSig) {
@@ -382,6 +387,7 @@ async function runAnalyzer (analyzer, cls, clsInfo, info, genericAnalyzer) {
     for (const field of await cls.getFieldsAsync()) {
       const obfName = await field.getNameAsync()
       if (clsInfo.field[obfName]) continue
+      clsInfo.field[obfName] = null
       if (analyzer !== genericAnalyzer) debug('%s.%s: Running analyzer.field', (clsInfo.name || className), obfName)
       setStatus(`${clsInfo.name || className}.${obfName}`)
       try {
