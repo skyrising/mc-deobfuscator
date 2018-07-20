@@ -42,6 +42,12 @@ export function toUpperCamelCase (underScoreCase) {
   return (Array.isArray(underScoreCase) ? underScoreCase : underScoreCase.split('_')).map(ucFirst).join('')
 }
 
+export function toUnderScoreCase (camelCase) {
+  const usc = camelCase.replace(/[A-Z]/g, c => '_' + c)
+  if (usc.startsWith('_')) return usc.slice(1)
+  return usc
+}
+
 export function getReturnType (sig) {
   if (typeof sig !== 'string') sig = sig.getSignature()
   const t = sig.slice(sig.lastIndexOf(')') + 1)

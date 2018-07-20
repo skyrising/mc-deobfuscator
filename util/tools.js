@@ -8,11 +8,12 @@ import {generateSrgs} from './srg'
 export function specialSource (inFile, outFile, info) {
   const {srg} = generateSrgs(info)
   console.log('Deobfuscating with SpecialSource')
-  cp.spawnSync('java', ['-jar', 'specialsource.jar', '-i', inFile, '-o', outFile, '-m', srg, '--kill-lvt'], {
+  cp.spawnSync('java', ['-jar', 'work/specialsource.jar', '-i', inFile, '-o', outFile, '-m', srg, '--kill-lvt'], {
     stdio: ['ignore', 'inherit', fs.openSync('./temp/specialsource.warn', 'w')]
   })
 }
 
+/*
 export function retroguard (inFile, outFile, info, classPath) {
   if (fs.existsSync('temp/clientrg.log')) fs.unlinkSync('temp/clientrg.log')
   if (fs.existsSync('temp/deobfrg.log')) fs.unlinkSync('temp/deobfrg.log')
@@ -39,10 +40,11 @@ export function retroguard (inFile, outFile, info, classPath) {
   ].join('\n'))
   generateSrg(info, 'temp/mapping.srg')
   console.log('Deobfuscating with RetroGuard')
-  cp.spawnSync('java', ['-cp', 'retroguard.jar:' + classPath.join(':'), 'RetroGuard', '-searge', 'temp/retroguard.cfg'], {
+  cp.spawnSync('java', ['-cp', 'work/retroguard.jar:' + classPath.join(':'), 'RetroGuard', '-searge', 'temp/retroguard.cfg'], {
     stdio: ['ignore', 'inherit', fs.openSync('./temp/rg.warn', 'w')]
   })
 }
+*/
 
 export async function extractJar (jar, dir) {
   rmrf(dir)
@@ -60,7 +62,7 @@ export async function fernflower (jar, to) {
   const mcp = true
   const args = ['-din=1', '-rbr=1', '-dgs=1', '-asc=1', '-rsy=1', '-iec=1', '-log=WARN', binDir, to]
   if (mcp) {
-    cp.spawnSync('java', ['-jar', 'fernflower.jar'].concat(args), {stdio: 'inherit'})
+    cp.spawnSync('java', ['-jar', 'work/fernflower.jar'].concat(args), {stdio: 'inherit'})
   } else {
     cp.spawnSync('fernflower', args, {stdio: 'inherit'})
   }

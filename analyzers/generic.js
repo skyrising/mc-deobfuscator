@@ -42,90 +42,479 @@ export function cls (cls, clsInfo, info) {
   if (hasSuperClass(cls, 'com.mojang.datafixers.schemas.Schema')) return PKG.DATAFIX_SCHEMAS + '.' + getDefaultName(clsInfo)
   if (clsInfo.isInnerClass) {
     if (clsInfo.outerClassName === info.classReverse[CLASS.PROFILER]) return 'Result'
+    if (clsInfo.outerClassName === info.classReverse[CLASS.BLOCK_POS] && hasSuperClass(cls, info.classReverse[CLASS.BLOCK_POS])) {
+      return cls.getSuperclassName() === info.classReverse[CLASS.BLOCK_POS]
+        ? CLASS.BLOCK_POS$MUTABLE_BLOCK_POS
+        : CLASS.BLOCK_POS$POOLED_MUTABLE_BLOCK_POS
+    }
   }
 }
 
+const simpleConstToClass = Object.freeze({
+  'box[': CLASS.AABB,
+  'Using ARB_multitexture.\n': CLASS.OPENGL_HELPER,
+  '{} was kicked for floating too long!': CLASS.NET_PLAYER_HANDLER,
+  'MpServer': CLASS.WORLD_CLIENT,
+  'unlimitedTracking': CLASS.MAP_DATA,
+  'Error starting SoundSystem. Turning off sounds & music': CLASS.SOUND_SYSTEM,
+  'selectWorld.load_folder_access': CLASS.ANVIL_SAVE_CONVERTER,
+  'Invalid font->characters: expected object, was ': CLASS.FONT_METADATA_SECTION_SERIALIZER,
+  'Villages': CLASS.VILLAGE_COLLECTION,
+  'Golems': CLASS.VILLAGE,
+  'Unable to resolve BlockEntity for ItemInstance: {}': CLASS.DATAFIX_BLOCK_ENTITY_TAG,
+  'shaders/post/creeper.json': CLASS.ENTITY_RENDERER,
+  'Map colour ID must be between 0 and 63 (inclusive)': CLASS.MAP_COLOR,
+  'Detected infinite loop in loot tables': CLASS.LOOT_TABLE,
+  'Unknown loot entry type \'': CLASS.LOOT_ENTRY,
+  'default_1_1': CLASS.WORLD_TYPE,
+  'Duplicate packet id:': CLASS.PACKET,
+  'ByteArray with size ': CLASS.PACKET_BUFFER,
+  'Not tesselating!': CLASS.TESSELATOR,
+  'Already tesselating!': CLASS.TESSELATOR,
+  '/environment/clouds.png': CLASS.RENDER_GLOBAL,
+  'minecraft:blocks/destroy_stage_': CLASS.RENDER_GLOBAL,
+  'Rendering item': CLASS.RENDER_ITEM,
+  'Unable to load variant: {} from {}': CLASS.BLOCK_MODEL_BAKERY,
+  'livingEntityBaseTick': CLASS.ENTITY_LIVING_BASE,
+  'HurtTime': CLASS.ENTITY_LIVING_BASE,
+  'DeathLootTableSeed': CLASS.ENTITY_LIVING,
+  'playerGameType': CLASS.ENTITY_PLAYER,
+  'ChestedHorse': CLASS.ENTITY_CHESTED_HORSE,
+  'HorseChest': CLASS.ENTITY_ABSTRACT_HORSE,
+  'ownerName': CLASS.ENTITY_THROWABLE,
+  'CustomDisplayTile': CLASS.ENTITY_MINECART,
+  'PushX': CLASS.ENTITY_MINECART_FURNACE,
+  'TNTFuse': CLASS.ENTITY_MINECART_TNT,
+  'ForcedAge': CLASS.ENTITY_AGING,
+  'Fleeing speed bonus': CLASS.ENTITY_CREATURE,
+  'Sitting': CLASS.ENTITY_TAMEABLE,
+  'InLove': CLASS.ENTITY_BREEDABLE,
+  'OMPenthouse': CLASS.OCEAN_MONUMENT_PIECES,
+  'An Objective with the name \'': CLASS.SCOREBOARD,
+  'X90_Y180': CLASS.MODEL_ROTATION,
+  'Resource download thread': CLASS.RESOURCE_DOWNLOAD_THREAD,
+  'textures/gui/options_background.png': CLASS.GUI,
+  'Invalid Item!': CLASS.GUI_SCREEN,
+  'selectWorld.edit.title': 'net.minecraft.client.gui.world.GuiEditWorld',
+  'options.customizeTitle': 'net.minecraft.client.gui.world.GuiCustomizeWorld',
+  'createWorld.customize.flat.title': 'net.minecraft.client.gui.world.GuiCustomizeWorldFlat',
+  'multiplayer.title': CLASS.GUI_MULTIPLAYER,
+  'options.title': 'net.minecraft.client.gui.menu.GuiOptions',
+  'options.skinCustomisation.title': 'net.minecraft.client.gui.menu.GuiOptionsSkinCustomisation',
+  'constrols.resetAll': 'net.minecraft.client.gui.menu.GuiOptionsControls',
+  'options.languageWarning': 'net.minecraft.client.gui.menu.GuiOptionsLanguage',
+  'options.snooper.title': 'net.minecraft.client.gui.options.GuiOptionsSnooper',
+  'resourcePack.openFolder': 'net.minecraft.client.gui.options.GuiOptionsResourcePacks',
+  'texturePack.openFolder': 'net.minecraft.client.gui.options.GuiOptionsTexturePacks',
+  'options.sounds.title': 'net.minecraft.client.gui.options.GuiOptionsSounds',
+  'Invalid Biome id': CLASS.BIOME_PROVIDER,
+  'Unable to serialize an anonymous value to json!': CLASS.DATA_GENERATOR,
+  'BiomeBuilder{\nsurfaceBuilder=': CLASS.BIOME$BIOME_BUILDER,
+  'Something went wrong when converting from HSV to RGB. Input was ': CLASS.MATH_HELPER,
+  'blockDiamond': CLASS.BLOCK,
+  'Smelting Recipe ': CLASS.SMELTING_RECIPE,
+  'Tried to load invalid item: {}': CLASS.ITEM_STACK,
+  'An ingredient entry is either a tag or an item, not both': CLASS.INGREDIENT,
+  'Item List': CLASS.DATA_PROVIDER_ITEMS,
+  'Block List': CLASS.DATA_PROVIDER_BLOCKS,
+  'Advancements': CLASS.DATA_PROVIDER_ADVANCEMENTS,
+  'data/minecraft/advancements/recipes/root.json': CLASS.DATA_PROVIDER_RECIPES,
+  'Command Syntax': CLASS.DATA_PROVIDER_COMMANDS,
+  'SNBT -> NBT': CLASS.DATA_PROVIDER_SNBT_TO_NBT,
+  'NBT -> SNBT': CLASS.DATA_PROVIDER_NBT_TO_SNBT,
+  'Fluid Tags': CLASS.DATA_PROVIDER_FLUID_TAGS,
+  'Block Tags': CLASS.DATA_PROVIDER_BLOCK_TAGS,
+  'Item Tags': CLASS.DATA_PROVIDER_ITEM_TAGS,
+  '---- Minecraft Crash Report ----\n': CLASS.CRASH_REPORT,
+  'argument.player.unknown': CLASS.ARGUMENT_PLAYER,
+  'argument.entity.selector.not_allowed': CLASS.ARGUMENT_ENTITY,
+  'argument.pos.outofworld': CLASS.ARGUMENT_BLOCKPOS,
+  'argument.pos.incomplete': CLASS.ARGUMENT_VEC3,
+  'argument.vec2.incomplete': CLASS.ARGUMENT_VEC2,
+  'foo{bar=baz}': CLASS.ARGUMENT_BLOCK_STATE,
+  '#stone[foo=bar]{baz=nbt}': CLASS.ARGUMENT_BLOCK_PREDICATE,
+  'stick{foo=bar}': CLASS.ARGUMENT_ITEM_STACK,
+  '#stick{foo=bar}': CLASS.ARGUMENT_ITEM_PREDICATE,
+  'argument.color.invalid': CLASS.ARGUMENT_TEXT_COLOR,
+  'argument.component.invalid': CLASS.ARGUMENT_TEXT_COMPONENT,
+  'Hello @p :)': CLASS.ARGUMENT_MESSAGE,
+  'argument.nbt.invalid': CLASS.ARGUMENT_NBT,
+  'arguments.nbtpath.child.invalid': CLASS.ARGUMENT_NBT_PATH,
+  'arguments.objective.notFound': CLASS.ARGUMENT_OBJECTIVE,
+  'argument.criteria.invalid': CLASS.ARGUMENT_OBJECTIVE_CRITERIA,
+  'arguments.operation.invalid': CLASS.ARGUMENT_OPERATION,
+  'particle.notFound': CLASS.ARGUMENT_PARTICLE,
+  'argument.rotation.incomplete': CLASS.ARGUMENT_ROTATION,
+  'argument.scoreboardDisplaySlot.invalid': CLASS.ARGUMENT_SCOREBOARD_SLOT,
+  'argument.scoreHolder.empty': CLASS.ARGUMENT_SCORE_HOLDER,
+  'arguments.swizzle.invalid': CLASS.ARGUMENT_SWIZZLE,
+  'team.notFound': CLASS.ARGUMENT_TEAM,
+  'container.5': CLASS.ARGUMENT_ITEM_SLOT,
+  'argument.id.unknown': CLASS.ARGUMENT_IDENTIFIER,
+  'effect.effectNotFound': CLASS.ARGUMENT_MOB_EFFECT,
+  'arguments.function.unknown': CLASS.ARGUMENT_FUNCTION,
+  'argument.anchor.invalid': CLASS.ARGUMENT_ENTITY_ANCHOR,
+  'enchantment.unknown': CLASS.ARGUMENT_ENCHANTMENT,
+  'entity.notFound': CLASS.ARGUMENT_ENTITY_SUMMON,
+  'Could not serialize argument {} ({})!': CLASS.COMMAND_ARGUMENTS,
+  'Accessed MobEffects before Bootstrap!': CLASS.MOB_EFFECTS,
+  'Accessed particles before Bootstrap!': CLASS.PARTICLES,
+  'SimpleAdvancement{id=': CLASS.ADVANCEMENT,
+  'Query Listener': CLASS.QUERY_LISTENER,
+  'brewed_potion': CLASS.ADVANCEMENT_TRIGGER_BREWED_POTION,
+  'changed_dimension': CLASS.ADVANCEMENT_TRIGGER_CHANGED_DIMENSION,
+  'channeled_lightning': CLASS.ADVANCEMENT_TRIGGER_CHANNELED_LIGHTNING,
+  'construct_beacon': CLASS.ADVANCEMENT_TRIGGER_CONSTRUCT_BEACON,
+  'consume_item': CLASS.ADVANCEMENT_TRIGGER_CONSUME_ITEM,
+  'cured_zombie_villager': CLASS.ADVANCEMENT_TRIGGER_CURED_ZOMBIE_VILLAGER,
+  'effects_changed': CLASS.ADVANCEMENT_TRIGGER_EFFECTS_CHANGED,
+  'enter_block': CLASS.ADVANCEMENT_TRIGGER_ENTER_BLOCK,
+  'entity_hurt_player': CLASS.ADVANCEMENT_TRIGGER_ENTITY_HURT_PLAYER,
+  'filled_bucket': CLASS.ADVANCEMENT_TRIGGER_FILLED_BUCKET,
+  'fishing_rod_hooked': CLASS.ADVANCEMENT_TRIGGER_FISHING_ROD_HOOKED,
+  'inventory_changed': CLASS.ADVANCEMENT_TRIGGER_INVENTORY_CHANGED,
+  'item_durability_changed': CLASS.ADVANCEMENT_TRIGGER_ITEM_DURABILITY_CHANGED,
+  'nether_travel': CLASS.ADVANCEMENT_TRIGGER_NETHER_TRAVEL,
+  'placed_block': CLASS.ADVANCEMENT_TRIGGER_PLACED_BLOCK,
+  'player_hurt_entity': CLASS.ADVANCEMENT_TRIGGER_PLAYER_HURT_ENTITY,
+  'recipe_unlocked': CLASS.ADVANCEMENT_TRIGGER_RECIPE_UNLOCKED,
+  'summoned_entity': CLASS.ADVANCEMENT_TRIGGER_SUMMONED_ENTITY,
+  'tame_animal': CLASS.ADVANCEMENT_TRIGGER_TAME_ANIMAL,
+  'used_ender_eye': CLASS.ADVANCEMENT_TRIGGER_USED_ENDER_EYE,
+  'villager_trade': CLASS.ADVANCEMENT_TRIGGER_VILLAGER_TRADE,
+  'Duplicate criterion id ': CLASS.ADVANCEMENT_CRITERIA,
+  'AbstractCriterionInstance{criterion=': CLASS.ADVANCEMENT_ABSTRACT_CRITERION_INSTANCE,
+  'interact_with_brewingstand': CLASS.STATISTICS,
+  'RequiredPlayerRange': CLASS.SPAWNER_LOGIC,
+  '10387319': CLASS.STRUCTURE_WOODLAND_MANSION,
+  'Skipping Structure with id {}': CLASS.STRUCTURES,
+  'World optimizaton finished after {} ms': CLASS.WORLD_OPTIMIZER,
+  'optimizeWorld.info.converted': CLASS.GUI_SCREEN_OPTIMIZE_WORLD,
+  'ThreadedAnvilChunkStorage ({}): All chunks are saved': CLASS.THREADED_ANVIL_CHUNK_STORAGE,
+  'lang/%s.lang': CLASS.I18N_LOCALE,
+  'lang/%s.json': CLASS.I18N_LOCALE,
+  "{Name:'minecraft:air'}": CLASS.THE_FLATTENING_BLOCK_STATES,
+  'pickaxeDiamond': CLASS.ITEM,
+  '6364136223846793005': CLASS.GEN_LAYER,
+  '-559038737': CLASS.CHUNK_POS,
+  'RCON Client': CLASS.RCON_CLIENT,
+  'Plains': CLASS.BIOME,
+  'STRIKETHROUGH': CLASS.TEXT_FORMATTING,
+  'mobBaseTick': CLASS.ENTITY_MOB,
+  'X-Minecraft-Username': {
+    name: CLASS.RESOURCE_PACK_REPOSITORY,
+    method: 'getDownloadHeaders'
+  },
+  'Coordinates of biome request': {
+    name: CLASS.WORLD,
+    method: 'getBiome',
+    args: [CLASS.BLOCK_POS],
+    return: CLASS.BIOME
+  },
+  ' is already a registered built-in loot table': {
+    name: CLASS.LOOT_TABLES,
+    method: 'registerLootTable'
+  },
+  ' is already known to ID ': {
+    name: CLASS.CONNECTION_STATE,
+    method: 'registerPacket',
+    args: [CLASS.PACKET_DIRECTION]
+  },
+  'Unknown synced attribute modifier': {
+    name: PKG.PACKET_PLAY_SERVER + '.S2CEntityProperties',
+    method: 'read'
+  },
+  'Root tag must be a named compound tag': {
+    name: CLASS.NBT_COMPRESSED,
+    method: 'readRootCompound',
+    return: CLASS.NBT_COMPOUND
+  },
+  'http://skins.minecraft.net/MinecraftSkins/%s.png': {
+    name: CLASS.ABSTRACT_CLIENT_PLAYER,
+    method: 'downloadSkin',
+    return: CLASS.THREAD_IMAGE_DOWNLOAD
+  },
+  'Missing default of DefaultedMappedRegistry: ': {
+    name: CLASS.DEFAULT_MAPPED_REGISTRY,
+    method: 'validateKey'
+  },
+  'Invalid Block requested: ': {
+    name: CLASS.BLOCKS,
+    method: 'getRegisteredBlock',
+    return: CLASS.BLOCK
+  },
+  'Invalid Item requested: ': {
+    name: CLASS.ITEMS,
+    method: 'getRegisteredItem',
+    return: CLASS.ITEM
+  },
+  'Invalid Enchantment requested: ': {
+    name: CLASS.ENCHANTMENTS,
+    method: 'getRegisteredEnchantment',
+    return: CLASS.ENCHANTMENT
+  },
+  'Invalid Biome requested: ': {
+    name: CLASS.BIOMES,
+    method: 'getRegisteredBiome',
+    return: CLASS.BIOME
+  },
+  'Invalid Potion requested: ': {
+    name: CLASS.POTIONS,
+    method: 'getRegisteredPotion',
+    return: CLASS.POTION
+  },
+  'Invalid MobEffect requested: ': {
+    name: CLASS.MOB_EFFECTS,
+    method: 'getRegisteredMobEffect',
+    return: CLASS.MOB_EFFECT
+  },
+  'Invalid Sound requested: ': {
+    name: CLASS.SOUNDS,
+    method: 'getRegisteredSound',
+    return: CLASS.SOUND
+  },
+  'Getting Biome': {
+    name: CLASS.WORLD,
+    method: 'getBiome',
+    return: CLASS.BIOME
+  },
+  'screenshots': {
+    name: CLASS.SCREENSHOT_HELPER,
+    method: 'saveScreenshot'
+  },
+  'OW KNOWS!': {
+    name: CLASS.PATH_HEAP,
+    method: 'addPoint',
+    return: CLASS.PATH_POINT
+  },
+  'That name is already taken.': {
+    name: CLASS.INTEGRATED_PLAYER_LIST,
+    method: 'getConnectMessage',
+    superClass: CLASS.PLAYER_LIST
+  },
+  'Merry X-mas!': {
+    name: CLASS.GUI_MAIN_MENU,
+    method: 'initGui',
+    superClass: CLASS.GUI_SCREEN,
+    baseClass: CLASS.GUI
+  },
+  'texts/splashes.txt': {
+    name: CLASS.GUI_MAIN_MENU,
+    method: 'initGui',
+    superClass: CLASS.GUI_SCREEN,
+    baseClass: CLASS.GUI
+  },
+  'Notch': {
+    name: CLASS.ENTITY_PLAYER_BASE,
+    baseClass: CLASS.ENTITY
+  },
+  'PooledMutableBlockPosition modified after it was released.': {
+    name: CLASS.BLOCK_POS$POOLED_MUTABLE_BLOCK_POS,
+    superClass: CLASS.BLOCK_POS$MUTABLE_BLOCK_POS
+  },
+  '/art/kz.png': {
+    name: CLASS.RENDER_PAINTING,
+    superClass: CLASS.RENDER_ENTITY
+  },
+  '/item/arrows.png': {
+    name: CLASS.RENDER_PAINTING,
+    superClass: CLASS.RENDER_ARROW
+  },
+  '/item/boat.png': {
+    name: CLASS.RENDER_PAINTING,
+    superClass: CLASS.RENDER_BOAT
+  },
+  'RENDER_DISTANCE': [{
+    predicate: ({clsInfo}) => clsInfo.isInnerClass,
+    name: 'Option'
+  }, {
+    name: CLASS.GAME_SETTINGS_OPTION
+  }],
+  'Facing': {
+    predicate: ({cls}) => cls.isAbstract(),
+    name: CLASS.ENTITY_HANGING
+  },
+  'SpellTicks': {
+    predicate: ({cls}) => cls.isAbstract(),
+    name: CLASS.ENTITY_SPELLCASTING_ILLAGER
+  },
+  'pickup': {
+    predicate: ({cls}) => cls.isAbstract(),
+    name: CLASS.ENTITY_ABSTRACT_ARROW
+  }, /*
+  'life': {
+    predicate: ({cls}) => cls.isAbstract(),
+    name: CLASS.ENTITY_ABSTRACT_PROJECTILE
+  }, */
+  '=': {
+    predicate: ({clsInfo, method}) => clsInfo.isInnerClass && method.getName() === 'toString',
+    outerClass: CLASS.INT_HASH_MAP,
+    name: 'Entry'
+  },
+  'options.chat.title': {
+    predicate: ({code}) => !code.consts.includes('options.video'),
+    name: CLASS.GUI_CHAT_OPTIONS
+  },
+  'deadmau5': [{
+    predicate: ({sig}) => sig.endsWith('Ljava/lang/String;DDDI)V'),
+    name: CLASS.RENDER_ENTITY
+  }, {
+    predicate: ({sig}) => sig.endsWith('FFFFFFF)V'),
+    name: 'net.minecraft.client.renderer.entity.layer.LayerDeadmau5Head',
+    metod: 'renderLayer',
+    superClass: 'net.minecraft.entity.layer.RenderLayer'
+  }],
+  'Batch already started.': {
+    name: CLASS.BATCH_PROCESSOR,
+    method: 'startBatch'
+  },
+  'Server console handler': {
+    name: CLASS.DEDICATED_SERVER,
+    method: 'startServer'
+  },
+  'RCON Listener': {
+    name: CLASS.RCON_LISTENER,
+    args: [CLASS.RCON_SERVER],
+    superClass: CLASS.RCON_THREAD
+  },
+  'source_entity': [{
+    predicate: ({code}) => code.consts.includes('is_fire'),
+    name: CLASS.ADVANCEMENT_TRIGGER_DAMAGE_SOURCE
+  }, {
+    name: CLASS.ADVANCEMENT_TRIGGER_DAMAGE
+  }],
+  'enchanted_item': {
+    predicate: ({method}) => method.getName() === '<clinit>',
+    name: CLASS.ADVANCEMENT_TRIGGER_ENCHANTED_ITEM
+  },
+  'impossible': {
+    predicate: ({method}) => method.getName() === '<clinit>',
+    name: CLASS.ADVANCEMENT_TRIGGER_IMPOSSIBLE
+  },
+  'killing_blow': [{
+    predicate: ({clsInfo}) => clsInfo.isInnerClass,
+    name: 'Instance'
+  }, {
+    name: CLASS.ADVANCEMENT_TRIGGER_KILL
+  }],
+  'levitation': {
+    predicate: ({line}) => line.next.op === 'invokespecial',
+    name: CLASS.ADVANCEMENT_TRIGGER_LEVITATION
+  },
+  'tick': [{
+    predicate: ({method, code}) => method.getName() === '<clinit>' && code.consts.includes('functions/'),
+    name: CLASS.FUNCTION_MANAGER
+  }, {
+    predicate: ({method}) => method.getName() === '<clinit>',
+    name: CLASS.ADVANCEMENT_TRIGGER_TICK
+  }],
+  'used_totem': {
+    predicate: ({method}) => method.getName() === '<clinit>',
+    name: CLASS.ADVANCEMENT_TRIGGER_USED_TOTEM
+  },
+  'Enchant': {
+    name: CLASS.CONTAINER_ENCHANTMENT,
+    superClass: CLASS.CONTAINER
+  },
+  'entityBaseTick': {
+    name: CLASS.ENTITY,
+    method: 'tick',
+    call: {
+      class: CLASS.PROFILER,
+      method: 'start'
+    }
+  },
+  'falling_block': {
+    name: CLASS.ENTITIES,
+    method: 'init',
+    call: {
+      next: 'invokestatic',
+      method: 'registerEntity'
+    }
+  },
+  'Banned by an operator.': {
+    name: CLASS.BAN_DETAIL,
+    field: 'reason'
+  },
+  'selectWorld.title': {
+    name: CLASS.GUI_SELECT_WORLD,
+    call: {
+      next: 'invokestatic',
+      class: CLASS.I18N,
+      method: 'format'
+    },
+    field: 'title'
+  },
+  'old! {}': {
+    predicate: ({cls}) => cls.getSuperclassName() !== 'java/lang/Enum',
+    name: CLASS.GEN_LAYER_HILLS,
+    method: 'getInts',
+    superClass: CLASS.GEN_LAYER
+  },
+  'PigZombie': {
+    predicate: ({line}) => /^[a-z]{1,3}$/.test(line.previous.const),
+    name: CLASS.ENTITIES
+  },
+  'Bad packet id': {
+    predicate: ({sig}) => sig.startsWith('(Ljava/io/DataInputStream;)L'),
+    name: 'net.minecraft.network.Packet',
+    method: 'decode'
+  },
+  'c.': {
+    predicate: ({code}) => code.consts.includes(36) && code.consts.includes('.dat'),
+    name: CLASS.ALPHA_CHUNK_LOADER,
+    method: 'getFileForChunk'
+  }
+})
+
+function handleSimple (obj, params) {
+  const {cls, line, method, methodInfo, clsInfo, info} = params
+  if (!obj) return
+  if (typeof obj === 'string') return obj
+  if (Array.isArray(obj)) {
+    for (const el of obj) {
+      const res = handleSimple(el, params)
+      if (res) return res
+    }
+  }
+  if (obj.predicate && !obj.predicate(params)) return
+  if (obj.return) info.class[method.getReturnType().getClassName()].name = obj.return
+  if (obj.args) {
+    const types = method.getArgumentTypes()
+    obj.args.forEach((name, i) => {
+      info.class[types[i].getClassName()].name = name
+    })
+  }
+  if (obj.method) methodInfo.name = obj.method
+  if (obj.superClass) info.class[cls.getSuperclassName()].name = obj.superClass
+  if (obj.baseClass) info.class[cls.getSuperClasses().slice(-2)[0].getClassName()].name = obj.baseClass
+  if (obj.outerClass) info.class[clsInfo.outerClassName].name = obj.outerClass
+  if (obj.call) {
+    let call
+    if (obj.call.next) call = (line.nextOp(obj.call.next) || {}).call
+    else call = (line.next || {}).call
+    if (call) {
+      if (obj.call.method) info.method[call.fullSig].name = obj.call.method
+      if (obj.call.class) info.class[call.className].name = obj.call.class
+    }
+  }
+  if (obj.field) {
+    const putfield = line.nextOp('putfield')
+    if (putfield) clsInfo.field[putfield.field.fieldName] = obj.field
+  }
+  return obj.name
+}
+
 function getClassNameForConstant (c, line, cls, method, code, methodInfo, clsInfo, info) {
-  const Entity = info.classReverse[CLASS.ENTITY]
   const sig = method.getSignature()
+  const simple = handleSimple(simpleConstToClass[c], {line, cls, method, sig, code, methodInfo, clsInfo, info})
+  if (simple) return simple
+  const Entity = info.classReverse[CLASS.ENTITY]
   switch (c) {
-    case 'Using ARB_multitexture.\n': return CLASS.OPENGL_HELPER
-    case '{} was kicked for floating too long!': return CLASS.NET_PLAYER_HANDLER
-    case 'X-Minecraft-Username':
-      methodInfo.name = 'getDownloadHeaders'
-      return CLASS.RESOURCE_PACK_REPOSITORY
-    case 'MpServer': return CLASS.WORLD_CLIENT
-    case 'unlimitedTracking': return CLASS.MAP_DATA
-    case 'Error starting SoundSystem. Turning off sounds & music': return CLASS.SOUND_SYSTEM
-    case 'selectWorld.load_folder_access': return CLASS.ANVIL_SAVE_CONVERTER
-    case 'Invalid font->characters: expected object, was ': return CLASS.FONT_METADATA_SECTION_SERIALIZER
-    case 'Villages': return CLASS.VILLAGE_COLLECTION
-    case 'Golems': return CLASS.VILLAGE
-    case 'Unable to resolve BlockEntity for ItemInstance: {}': return CLASS.DATAFIX_BLOCK_ENTITY_TAG
-    case 'shaders/post/creeper.json': return CLASS.ENTITY_RENDERER
-    case 'Coordinates of biome request':
-      info.class[method.getArgumentTypes()[0].getClassName()].name = CLASS.BLOCK_POS
-      info.class[method.getReturnType().getClassName()].name = CLASS.BIOME
-      methodInfo.name = 'getBiome'
-      return CLASS.WORLD
-    case 'default_1_1': return CLASS.WORLD_TYPE
     // case 'RecordItem': return !clsInfo.isInnerClass && CLASS.BLOCK_JUKEBOX
-    case 'Map colour ID must be between 0 and 63 (inclusive)': return CLASS.MAP_COLOR
-    case 'Detected infinite loop in loot tables': return CLASS.LOOT_TABLE
-    case 'Unknown loot entry type \'': return CLASS.LOOT_ENTRY
-    case ' is already a registered built-in loot table':
-      methodInfo.name = 'registerLootTable'
-      return CLASS.LOOT_TABLES
-    case 'STRIKETHROUGH': return CLASS.TEXT_FORMATTING
     case 'key.forward':
       info.class[line.prevOp('new').className].name = CLASS.KEY_BINDING
       return CLASS.GAME_SETTINGS
-    case 'RENDER_DISTANCE':
-      return clsInfo.isInnerClass ? 'Option' : CLASS.GAME_SETTINGS_OPTION
-    case 'Duplicate packet id:': return CLASS.PACKET
-    case 'ByteArray with size ': return CLASS.PACKET_BUFFER
-    case ' is already known to ID ':
-      methodInfo.name = 'registerPacket'
-      info.class[method.getArgumentTypes()[0].getClassName()].name = CLASS.PACKET_DIRECTION
-      return CLASS.CONNECTION_STATE
-    case 'Unknown synced attribute modifier':
-      methodInfo.name = 'read'
-      return PKG.PACKET_PLAY_SERVER + '.S2CEntityProperties'
-    case 'Root tag must be a named compound tag':
-      methodInfo.name = 'readRootCompound'
-      info.class[method.getReturnType().getClassName()].name = CLASS.NBT_COMPOUND
-      return CLASS.NBT_COMPRESSED
-    case 'Not tesselating!': case 'Already tesselating!': return CLASS.TESSELATOR
-    case '/environment/clouds.png':
-    case 'minecraft:blocks/destroy_stage_': return CLASS.RENDER_GLOBAL
-    case 'Rendering item': return CLASS.RENDER_ITEM
-    case 'Unable to load variant: {} from {}': return CLASS.BLOCK_MODEL_BAKERY
-    case 'entityBaseTick':
-      methodInfo.name = 'tick'
-      info.method[line.next.call.fullSig].name = 'start'
-      info.class[line.next.call.className].name = CLASS.PROFILER
-      return CLASS.ENTITY
-    case 'falling_block':
-      methodInfo.name = 'init'
-      info.method[line.nextOp('invokestatic').call.fullSig].name = 'registerEntity'
-      return CLASS.ENTITIES
-    case 'mobBaseTick': return CLASS.ENTITY_MOB
-    case 'HurtTime':
-    case 'livingEntityBaseTick': return CLASS.ENTITY_LIVING_BASE
-    case 'DeathLootTableSeed': return CLASS.ENTITY_LIVING
-    case 'Notch':
-      info.class[cls.getSuperClasses().slice(-2)[0].getClassName()].name = CLASS.ENTITY
-      return CLASS.ENTITY_PLAYER_BASE
-    case 'playerGameType': return CLASS.ENTITY_PLAYER
-    case 'ChestedHorse': return CLASS.ENTITY_CHESTED_HORSE
-    case 'HorseChest': return CLASS.ENTITY_ABSTRACT_HORSE
-    case 'Facing': return cls.isAbstract() && CLASS.ENTITY_HANGING
-    case 'SpellTicks': return cls.isAbstract() && CLASS.ENTITY_SPELLCASTING_ILLAGER
-    case 'pickup': return cls.isAbstract() && CLASS.ENTITY_ABSTRACT_ARROW
-    case 'life': return cls.isAbstract() && CLASS.ENTITY_ABSTRACT_PROJECTILE
-    case 'ownerName': return CLASS.ENTITY_THROWABLE
-    case 'CustomDisplayTile': return CLASS.ENTITY_MINECART
-    case 'PushX': return CLASS.ENTITY_MINECART_FURNACE
     case 'TransferCooldown': {
       if (Entity && hasSuperClass(cls, Entity)) return CLASS.ENTITY_MINECART_HOPPER
       const ifn = cls.getInterfaces()
@@ -137,11 +526,6 @@ function getClassNameForConstant (c, line, cls, method, code, methodInfo, clsInf
       }
       return CLASS.ENTITY_MINECART_HOPPER
     }
-    case 'TNTFuse': return CLASS.ENTITY_MINECART_TNT
-    case 'ForcedAge': return CLASS.ENTITY_AGING
-    case 'Fleeing speed bonus': return CLASS.ENTITY_CREATURE
-    case 'Sitting': return CLASS.ENTITY_TAMEABLE
-    case 'InLove': return CLASS.ENTITY_BREEDABLE
     /*
     case 'CustomDisplayTile': return 'net.minecraft.entity.item.EntityMinecart'
     case 'PushX': return 'net.minecraft.entity.item.EntityMinecartFurnace'
@@ -159,27 +543,8 @@ function getClassNameForConstant (c, line, cls, method, code, methodInfo, clsInf
     case '/mob/chicken.png': return 'net.minecraft.entity.passive.EntityChicken'
     case '/mob/cow.png': return 'net.minecraft.entity.passive.EntityCow'
     */
-    case 'OMPenthouse': return CLASS.OCEAN_MONUMENT_PIECES
-    case 'An Objective with the name \'': return CLASS.SCOREBOARD
-    case 'X90_Y180': return CLASS.MODEL_ROTATION
-    case 'That name is already taken.': {
-      info.class[cls.getSuperclassName()].name = CLASS.PLAYER_LIST
-      methodInfo.name = 'getConnectMessage'
-      return CLASS.INTEGRATED_PLAYER_LIST
-    }
-    case 'Banned by an operator.': {
-      clsInfo.field[line.nextOp('putfield').field.fieldName] = 'reason'
-      return CLASS.BAN_DETAIL
-    }
     case 'Integrated Server (map_client.txt)': {
       info.class[cls.getInterfaces()[0].getClassName()].name = CLASS.CRASH_REPORT_DETAIL
-      break
-    }
-    case '=': {
-      if (clsInfo.isInnerClass && method.getName() === 'toString') {
-        info.class[clsInfo.outerClassName].name = CLASS.INT_HASH_MAP
-        return 'Entry'
-      }
       break
     }
     case 'chunkSource': {
@@ -191,9 +556,6 @@ function getClassNameForConstant (c, line, cls, method, code, methodInfo, clsInf
         clsInfo.field[worldInfoLine.field.fieldName] = 'worldInfo'
         info.class[decodeType(worldInfoLine.field.type)].name = CLASS.WORLD_INFO
         const entitySpawnerLine = worldInfoLine.nextOp('getfield')
-        console.log(line.prevOp('ldc_w "mobSpawner"') || line.prevOp('ldc_w "spawner"'))
-        console.log(worldInfoLine)
-        console.log(entitySpawnerLine)
         clsInfo.field[entitySpawnerLine.field.fieldName] = 'entitySpawner'
         info.class[decodeType(entitySpawnerLine.field.type)].name = CLASS.ENTITY_SPAWNER
       } catch (e) {
@@ -201,60 +563,6 @@ function getClassNameForConstant (c, line, cls, method, code, methodInfo, clsInf
       }
       return CLASS.WORLD_SERVER
     }
-    case 'box[': return CLASS.AABB
-    case 'http://skins.minecraft.net/MinecraftSkins/%s.png':
-      methodInfo.name = 'downloadSkin'
-      info.class[method.getReturnType().getClassName()].name = CLASS.THREAD_IMAGE_DOWNLOAD
-      return CLASS.ABSTRACT_CLIENT_PLAYER
-    case 'Resource download thread':
-      return CLASS.RESOURCE_DOWNLOAD_THREAD
-    case 'textures/gui/options_background.png': return CLASS.GUI
-    case 'Invalid Item!': return CLASS.GUI_SCREEN
-    case 'Merry X-mas!': case 'texts/splashes.txt':
-      info.class[cls.getSuperclassName()].name = CLASS.GUI_SCREEN
-      info.class[cls.getSuperClasses().slice(-2)[0].getClassName()].name = CLASS.GUI
-      methodInfo.name = 'initGui'
-      return CLASS.GUI_MAIN_MENU
-    case 'selectWorld.title': {
-      const {call} = line.nextOp('invokestatic') || {}
-      if (call) {
-        info.class[call.fullClassName].name = CLASS.I18N
-        info.method[call.fullSig].name = 'format'
-      }
-      clsInfo.field[line.nextOp('putfield').field.fieldName] = 'title'
-      return CLASS.GUI_SELECT_WORLD
-    }
-    case 'selectWorld.edit.title': return 'net.minecraft.client.gui.world.GuiEditWorld'
-    case 'options.customizeTitle': return 'net.minecraft.client.gui.world.GuiCustomizeWorld'
-    case 'createWorld.customize.flat.title': return 'net.minecraft.client.gui.world.GuiCustomizeWorldFlat'
-    case 'multiplayer.title': return CLASS.GUI_MULTIPLAYER
-    case 'options.title': return 'net.minecraft.client.gui.menu.GuiOptions'
-    case 'options.skinCustomisation.title': return 'net.minecraft.client.gui.menu.GuiOptionsSkinCustomisation'
-    case 'constrols.resetAll': return 'net.minecraft.client.gui.menu.GuiOptionsControls'
-    case 'options.languageWarning': return 'net.minecraft.client.gui.menu.GuiOptionsLanguage'
-    case 'options.chat.title':
-      return !code.consts.includes('options.video') && 'net.minecraft.client.gui.options.GuiOptionsChat'
-    case 'options.snooper.title': return 'net.minecraft.client.gui.options.GuiOptionsSnooper'
-    case 'resourcePack.openFolder': return 'net.minecraft.client.gui.options.GuiOptionsResourcePacks'
-    case 'texturePack.openFolder': return 'net.minecraft.client.gui.options.GuiOptionsTexturePacks'
-    case 'options.sounds.title': return 'net.minecraft.client.gui.options.GuiOptionsSounds'
-    case 'Missing default of DefaultedMappedRegistry: ':
-      methodInfo.name = 'validateKey'
-      return 'net.minecraft.util.registry.DefaultedMappedRegistry'
-    case 'blockDiamond':
-      return CLASS.BLOCK
-    case 'Invalid Block requested: ':
-      methodInfo.name = 'getRegisteredBlock'
-      info.class[method.getReturnType().getClassName()].name = 'net.minecraft.block.Block'
-      return CLASS.BLOCKS
-    case `{Name:'minecraft:air'}`:
-      return CLASS.THE_FLATTENING_BLOCK_STATES
-    case 'pickaxeDiamond':
-      return CLASS.ITEM
-    case 'Invalid Item requested: ':
-      methodInfo.name = 'getRegisteredItem'
-      info.class[method.getReturnType().getClassName()].name = 'net.minecraft.item.Item'
-      return CLASS.ITEMS
     case 'Accessed Items before Bootstrap!':
       if (code.lines[0].call) {
         const BootstrapIsRegistered = code.lines[0].call
@@ -262,218 +570,21 @@ function getClassNameForConstant (c, line, cls, method, code, methodInfo, clsInf
         info.method[BootstrapIsRegistered.fullSig].name = 'isRegistered'
       } else console.log('Expected call to Bootstrap.isRegistered:', code.lines[0])
       return
-    case 'Invalid Enchantment requested: ':
-      methodInfo.name = 'getRegisteredEnchantment'
-      info.class[method.getReturnType().getClassName()].name = 'net.minecraft.enchantment.Enchantment'
-      return CLASS.ENCHANTMENTS
-    case 'Getting Biome': {
-      info.class[method.getReturnType().getClassName()].name = CLASS.BIOME
-      methodInfo.name = 'getBiome'
-      return CLASS.WORLD
-    }
-    case 'Plains':
-      return CLASS.BIOME
-    case 'Invalid Biome requested: ':
-      methodInfo.name = 'getRegisteredBiome'
-      info.class[method.getReturnType().getClassName()].name = CLASS.BIOME
-      return CLASS.BIOMES
-    case 'Invalid Potion requested: ':
-      methodInfo.name = 'getRegisteredPotion'
-      info.class[method.getReturnType().getClassName()].name = 'net.minecraft.potion.Potion'
-      return CLASS.POTIONS
-    case 'Invalid MobEffect requested: ':
-      methodInfo.name = 'getRegisteredMobEffect'
-      info.class[method.getReturnType().getClassName()].name = 'net.minecraft.potion.MobEffect'
-      return CLASS.MOB_EFFETS
-    case 'Invalid Sound requested: ':
-      methodInfo.name = 'getRegisteredSound'
-      info.class[method.getReturnType().getClassName()].name = 'net.minecraft.sound.Sound'
-      return CLASS.SOUNDS
-    case 'screenshots':
-      methodInfo.name = 'saveScreenshot'
-      return 'net.minecraft.util.ScreenshotHelper'
-    case 'OW KNOWS!':
-      methodInfo.name = 'addPoint'
-      info.class[method.getReturnType().getClassName()].name = 'net.minecraft.pathfinding.PathPoint'
-      return 'net.minecraft.pathfinding.PathHeap'
-    case 'deadmau5':
-      if (sig.endsWith('Ljava/lang/String;DDDI)V')) return CLASS.RENDER_ENTITY
-      if (sig.endsWith('FFFFFFF)V')) {
-        methodInfo.name = 'renderLayer'
-        info.class[cls.getSuperclassName()].name = 'net.minecraft.entity.layer.RenderLayer'
-        return 'net.minecraft.client.renderer.entity.layer.LayerDeadmau5Head'
-      }
-      return
-    case '/art/kz.png':
-      info.class[cls.getSuperclassName()].name = CLASS.RENDER_ENTITY
-      return CLASS.RENDER_PAINTING
-    case '/item/arrows.png':
-      info.class[cls.getSuperclassName()].name = CLASS.RENDER_ENTITY
-      return CLASS.RENDER_ARROW
-    case '/item/boat.png':
-      info.class[cls.getSuperclassName()].name = CLASS.RENDER_ENTITY
-      return CLASS.RENDER_BOAT
-    case 'old! {}': {
-      if (cls.getSuperclassName() !== 'java/lang/Enum') {
-        info.class[cls.getSuperclassName()].name = CLASS.GEN_LAYER
-        methodInfo.name = 'getInts'
-        return CLASS.GEN_LAYER_HILLS
-      }
-      break
-    }
-    case 6364136223846793005:
-      return CLASS.GEN_LAYER
-    case 'Invalid Biome id':
-      return CLASS.BIOME_PROVIDER
-    case 'Unable to serialize an anonymous value to json!':
-      return CLASS.DATA_GENERATOR
-    case 'BiomeBuilder{\nsurfaceBuilder=':
-      return CLASS.BIOME$BIOME_BUILDER
-    case 'Something went wrong when converting from HSV to RGB. Input was ':
-      return CLASS.MATH_HELPER
-    case 'PooledMutableBlockPosition modified after it was released.':
-      info.class[cls.getSuperclassName()].name = CLASS.BLOCK_POS$MUTABLE_BLOCK_POS
-      return CLASS.BLOCK_POS$POOLED_MUTABLE_BLOCK_POS
-    case 'Smelting Recipe ':
-      return CLASS.SMELTING_RECIPE
     case 'ServerChunkCache: ':
       info.class[cls.getInterfaces()[0].getClassName()].name = CLASS.CHUNK_PROVIDER
       return CLASS.CHUNK_PROVIDER_SERVER
-    case 'Batch already started.':
-      methodInfo.name = 'startBatch'
-      return CLASS.BATCH_PROCESSOR
-    case -559038737: case '-559038737':
-      return CLASS.CHUNK_POS
-    case 'Tried to load invalid item: {}':
-      return CLASS.ITEM_STACK
-    case 'An ingredient entry is either a tag or an item, not both':
-      return CLASS.INGREDIENT
-    case 'Server console handler':
-      methodInfo.name = 'startServer'
-      return CLASS.DEDICATED_SERVER
-    case 'Item List': return CLASS.DATA_PROVIDER_ITEMS
-    case 'Block List': return CLASS.DATA_PROVIDER_BLOCKS
-    case 'Advancements': return CLASS.DATA_PROVIDER_ADVANCEMENTS
-    case 'data/minecraft/advancements/recipes/root.json':
-      return CLASS.DATA_PROVIDER_RECIPES
-    case 'Command Syntax': return CLASS.DATA_PROVIDER_COMMANDS
-    case 'SNBT -> NBT': return CLASS.DATA_PROVIDER_SNBT_TO_NBT
-    case 'NBT -> SNBT': return CLASS.DATA_PROVIDER_NBT_TO_SNBT
-    case 'Fluid Tags': return CLASS.DATA_PROVIDER_FLUID_TAGS
-    case 'Block Tags': return CLASS.DATA_PROVIDER_BLOCK_TAGS
-    case 'Item Tags': return CLASS.DATA_PROVIDER_ITEM_TAGS
-    case '---- Minecraft Crash Report ----\n': return CLASS.CRASH_REPORT
-    case 'argument.player.unknown': return CLASS.ARGUMENT_PLAYER
-    case 'argument.entity.selector.not_allowed': return CLASS.ARGUMENT_ENTITY
-    case 'argument.pos.outofworld': return CLASS.ARGUMENT_BLOCKPOS
-    case 'argument.pos.incomplete': return CLASS.ARGUMENT_VEC3
-    case 'argument.vec2.incomplete': return CLASS.ARGUMENT_VEC2
-    case 'foo{bar=baz}': return CLASS.ARGUMENT_BLOCK_STATE
-    case '#stone[foo=bar]{baz=nbt}': return CLASS.ARGUMENT_BLOCK_PREDICATE
-    case 'stick{foo=bar}': return CLASS.ARGUMENT_ITEM_STACK
-    case '#stick{foo=bar}': return CLASS.ARGUMENT_ITEM_PREDICATE
-    case 'argument.color.invalid': return CLASS.ARGUMENT_TEXT_COLOR
-    case 'argument.component.invalid': return CLASS.ARGUMENT_TEXT_COMPONENT
-    case 'Hello @p :)': return CLASS.ARGUMENT_MESSAGE
-    case 'argument.nbt.invalid': return CLASS.ARGUMENT_NBT
-    case 'arguments.nbtpath.child.invalid': return CLASS.ARGUMENT_NBT_PATH
-    case 'arguments.objective.notFound': return CLASS.ARGUMENT_OBJECTIVE
-    case 'argument.criteria.invalid': return CLASS.ARGUMENT_OBJECTIVE_CRITERIA
-    case 'arguments.operation.invalid': return CLASS.ARGUMENT_OPERATION
-    case 'particle.notFound': return CLASS.ARGUMENT_PARTICLE
-    case 'argument.rotation.incomplete': return CLASS.ARGUMENT_ROTATION
-    case 'argument.scoreboardDisplaySlot.invalid': return CLASS.ARGUMENT_SCOREBOARD_SLOT
-    case 'argument.scoreHolder.empty': return CLASS.ARGUMENT_SCORE_HOLDER
-    case 'arguments.swizzle.invalid': return CLASS.ARGUMENT_SWIZZLE
-    case 'team.notFound': return CLASS.ARGUMENT_TEAM
-    case 'container.5': return CLASS.ARGUMENT_ITEM_SLOT
-    case 'argument.id.unknown': return CLASS.ARGUMENT_IDENTIFIER
-    case 'effect.effectNotFound': return CLASS.ARGUMENT_MOB_EFFECT
-    case 'arguments.function.unknown': return CLASS.ARGUMENT_FUNCTION
-    case 'argument.anchor.invalid': return CLASS.ARGUMENT_ENTITY_ANCHOR
-    case 'enchantment.unknown': return CLASS.ARGUMENT_ENCHANTMENT
-    case 'entity.notFound': return CLASS.ARGUMENT_ENTITY_SUMMON
-    case 'Could not serialize argument {} ({})!': return CLASS.COMMAND_ARGUMENTS
-    case 'Accessed MobEffects before Bootstrap!': return CLASS.MOB_EFFECTS
-    case 'Accessed particles before Bootstrap!': return CLASS.PARTICLES
-    case 'SimpleAdvancement{id=': return CLASS.ADVANCEMENT
-    case 'Query Listener': return CLASS.QUERY_LISTENER
-    case 'RCON Listener':
-      info.class[cls.getSuperclassName()].name = CLASS.RCON_THREAD
-      info.class[method.getArgumentTypes()[0].getClassName()].name = CLASS.RCON_SERVER
-      return CLASS.RCON_LISTENER
-    case 'RCON Client': return CLASS.RCON_CLIENT
     case 'bred_animals':
       info.class[cls.getInterfaces()[0].getClassName()].name = CLASS.ADVANCEMENT_TRIGGER
       return CLASS.ADVANCEMENT_TRIGGER_BRED_ANIMALS
-    case 'brewed_potion': return CLASS.ADVANCEMENT_TRIGGER_BREWED_POTION
-    case 'changed_dimension': return CLASS.ADVANCEMENT_TRIGGER_CHANGED_DIMENSION
-    case 'channeled_lightning': return CLASS.ADVANCEMENT_TRIGGER_CHANNELED_LIGHTNING
-    case 'construct_beacon': return CLASS.ADVANCEMENT_TRIGGER_CONSTRUCT_BEACON
-    case 'consume_item': return CLASS.ADVANCEMENT_TRIGGER_CONSUME_ITEM
-    case 'cured_zombie_villager': return CLASS.ADVANCEMENT_TRIGGER_CURED_ZOMBIE_VILLAGER
-    case 'source_entity':
-      return code.consts.includes('is_fire') ? CLASS.ADVANCEMENT_TRIGGER_DAMAGE_SOURCE : CLASS.ADVANCEMENT_TRIGGER_DAMAGE
-    case 'effects_changed': return CLASS.ADVANCEMENT_TRIGGER_EFFECTS_CHANGED
-    case 'enchanted_item':
-      if (method.getName() !== '<clinit>') return
-      return CLASS.ADVANCEMENT_TRIGGER_ENCHANTED_ITEM
-    case 'enter_block': return CLASS.ADVANCEMENT_TRIGGER_ENTER_BLOCK
-    case 'entity_hurt_player': return CLASS.ADVANCEMENT_TRIGGER_ENTITY_HURT_PLAYER
-    case 'filled_bucket': return CLASS.ADVANCEMENT_TRIGGER_FILLED_BUCKET
-    case 'fishing_rod_hooked': return CLASS.ADVANCEMENT_TRIGGER_FISHING_ROD_HOOKED
-    case 'impossible':
-      if (method.getName() !== '<clinit>') return
-      return CLASS.ADVANCEMENT_TRIGGER_IMPOSSIBLE
-    case 'inventory_changed': return CLASS.ADVANCEMENT_TRIGGER_INVENTORY_CHANGED
-    case 'item_durability_changed': return CLASS.ADVANCEMENT_TRIGGER_ITEM_DURABILITY_CHANGED
-    case 'killing_blow':
-      if (clsInfo.isInnerClass) return 'Instance'
-      return CLASS.ADVANCEMENT_TRIGGER_KILL
-    case 'levitation':
-      if (line.next.op !== 'invokespecial') return
-      return CLASS.ADVANCEMENT_TRIGGER_LEVITATION
-    case 'nether_travel': return CLASS.ADVANCEMENT_TRIGGER_NETHER_TRAVEL
-    case 'placed_block': return CLASS.ADVANCEMENT_TRIGGER_PLACED_BLOCK
-    case 'player_hurt_entity': return CLASS.ADVANCEMENT_TRIGGER_PLAYER_HURT_ENTITY
-    case 'recipe_unlocked': return CLASS.ADVANCEMENT_TRIGGER_RECIPE_UNLOCKED
-    case 'summoned_entity': return CLASS.ADVANCEMENT_TRIGGER_SUMMONED_ENTITY
-    case 'tame_animal': return CLASS.ADVANCEMENT_TRIGGER_TAME_ANIMAL
-    case 'tick':
-      if (method.getName() !== '<clinit>') return
-      if (code.consts.includes('functions/')) return CLASS.FUNCTION_MANAGER
-      return CLASS.ADVANCEMENT_TRIGGER_TICK
-    case 'used_ender_eye': return CLASS.ADVANCEMENT_TRIGGER_USED_ENDER_EYE
-    case 'used_totem':
-      if (method.getName() !== '<clinit>') return
-      return CLASS.ADVANCEMENT_TRIGGER_USED_TOTEM
-    case 'villager_trade': return CLASS.ADVANCEMENT_TRIGGER_VILLAGER_TRADE
-    case 'Duplicate criterion id ': return CLASS.ADVANCEMENT_CRITERIA
-    case 'AbstractCriterionInstance{criterion=': return CLASS.ADVANCEMENT_ABSTRACT_CRITERION_INSTANCE
-    case 'interact_with_brewingstand': return CLASS.STATISTICS
-    case 'RequiredPlayerRange': return CLASS.SPAWNER_LOGIC
-    case 'Enchant':
-      info.class[cls.getSuperclassName()].name = CLASS.CONTAINER
-      return CLASS.CONTAINER_ENCHANTMENT
-    case '10387319': return CLASS.STRUCTURE_WOODLAND_MANSION
-    case 'Skipping Structure with id {}': return CLASS.STRUCTURES
-    case 'World optimizaton finished after {} ms': return CLASS.WORLD_OPTIMIZER
-    case 'optimizeWorld.info.converted': return CLASS.GUI_SCREEN_OPTIMIZE_WORLD
-    case 'ThreadedAnvilChunkStorage ({}): All chunks are saved': return CLASS.THREADED_ANVIL_CHUNK_STORAGE
-    case 'lang/%s.lang': case 'lang/%s.json': return CLASS.I18N_LOCALE
   }
-  if (c === 'PigZombie' && /^[a-z]{1,3}$/.test(line.previous.const)) return CLASS.ENTITIES
-  if (c === 'Bad packet id' && sig.startsWith('(Ljava/io/DataInputStream;)L')) {
-    methodInfo.name = 'decode'
-    return 'net.minecraft.network.Packet'
+  if (/^commands\.(.*?)\.$/.test(c)) {
+    const commandName = c.match(/^commands\.(.*?)\.$/)[1]
+    if (commandName.indexOf('.') >= 0) return
+    return PKG.COMMAND + '.Command' + toUpperCamelCase(commandName)
   }
   if (c.startsWith('Skipping BlockEntity') || c.startsWith('Skipping TileEntity')) {
     methodInfo.name = 'fromNBT'
     return CLASS.BLOCK_ENTITY
-  }
-  if (c === 'c.' && code.consts.includes(36) && code.consts.includes('.dat')) {
-    methodInfo.name = 'getFileForChunk'
-    return CLASS.ALPHA_CHUNK_LOADER
   }
   if (c.startsWith('Wrong location!')) {
     methodInfo.name = 'addEntity'
@@ -482,11 +593,6 @@ function getClassNameForConstant (c, line, cls, method, code, methodInfo, clsInf
   if (c.startsWith('fossils/')) {
     info.class[cls.getSuperclassName()].name = CLASS.WORLD_GENERATOR
     return CLASS.WORLD_GEN_FOSSILS
-  }
-  if (/^commands\.(.*?)\.$/.test(c)) {
-    const commandName = c.match(/^commands\.(.*?)\.$/)[1]
-    if (commandName.indexOf('.') >= 0) return
-    return PKG.COMMAND + '.Command' + toUpperCamelCase(commandName)
   }
   if (c.startsWith('Starting integrated minecraft server version')) return CLASS.INTEGRATED_SERVER
   if (c.endsWith('Fix') && hasSuperClass(cls, 'com.mojang.datafixers.DataFix')) return PKG.DATAFIX + '.' + c

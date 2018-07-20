@@ -1,6 +1,6 @@
 import * as CLASS from '../../../../ClassNames'
 import * as PKG from '../../../../PackageNames'
-import {toUpperCamelCase} from '../../../../util'
+import {toUpperCamelCase, toUnderScoreCase} from '../../../../util'
 
 const ENTITY_PKG = {
   Arrow: PKG.ENTITY_PROJECTILE,
@@ -81,11 +81,14 @@ const ENTITY_PKG = {
 
 export function method (cls, method, code, methodInfo, clsInfo, info) {
   if (code.consts.includes('pig')) {
+    const flat = code.consts.includes('falling_block')
     for (const line of code.lines) {
       if (typeof line.const !== 'string') continue
-      if (!/^[A-Z][A-Za-z_\d]+$/.test(line.const)) continue
+      if (!/^[A-Za-z_\d]+$/.test(line.const) || typeof line.previous.const === 'string') continue
       const name = toUpperCamelCase(line.const)
-      const entClass = line.previous.const || line.next.context
+      const fieldName = (flat ? line.const : toUnderScoreCase(line.const)).toUpperCase()
+      clsInfo.field[line.nextOp('putstatic').field.fieldName] = fieldName
+      const entClass = line.previous.const || line.next.const
       if (!entClass.startsWith('L') || !entClass.endsWith(';')) continue
       const pkg = name in ENTITY_PKG ? ENTITY_PKG[name] : PKG.ENTITY
       info.class[entClass.slice(1, -1)].name = pkg + '.' + name

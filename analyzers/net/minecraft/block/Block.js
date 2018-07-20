@@ -52,6 +52,10 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
 
 export function field (field, clsInfo, info) {
   const sig = field.getType().getSignature()
+  switch (sig) {
+    case 'Ljava/lang/String;': return 'name'
+    case 'I': return 'lightOpacity'
+  }
   const MapColor = info.classReverse[CLASS.MAP_COLOR]
   const DefaultedMappedRegistry = info.classReverse[CLASS.DEFAULTED_MAPPED_REGISTRY]
   const BlockState = info.classReverse[CLASS.BLOCK_STATE]
@@ -59,10 +63,6 @@ export function field (field, clsInfo, info) {
   if (MapColor && sig === 'L' + MapColor + ';') return 'mapColor'
   if (DefaultedMappedRegistry && sig === 'L' + DefaultedMappedRegistry + ';') return 'REGISTRY'
   if (BlockState && sig === 'L' + BlockState + ';') return 'defaultBlockState'
-  switch (sig) {
-    case 'Ljava/lang/String;': return 'name'
-    case 'I': return 'lightOpacity'
-  }
 }
 
 const classNames = {

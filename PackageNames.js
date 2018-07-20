@@ -43,7 +43,6 @@ export const CLIENT_ENTITY = CLIENT + '.entity'
 export const CLIENT_MULTIPLAYER = CLIENT + '.multiplayer'
 export const RESOURCES = CLIENT + '.resources'
 export const RESOURCES_DATA = RESOURCES + '.data'
-export const SOUND = CLIENT + '.sound'
 export const RENDERER = CLIENT + '.renderer'
 export const RENDERER_BLOCK = RENDERER + '.block'
 export const RENDERER_BLOCK_MODEL = RENDERER_BLOCK + '.model'
@@ -70,6 +69,8 @@ export const PATHFINDING = BASE + '.pathfinding'
 
 export const SCOREBOARD = BASE + '.scoreboard'
 
+export const SOUND = BASE + '.sound'
+
 export const WORLD = BASE + '.world'
 export const WORLD_BORDER = WORLD + '.border'
 export const WORLD_GEN = WORLD + '.gen'
@@ -84,6 +85,8 @@ export const CHUNK_STORAGE = CHUNK + '.storage'
 export const VILLAGE = WORLD + '.village'
 
 export const NBT = MOJANG + '.nbt'
+
+export const POTION = BASE + '.potion'
 
 export const PROFILER = BASE + '.profiler'
 
