@@ -2,7 +2,7 @@ import {toUpperCamelCase} from '../../../../../util'
 import * as CLASS from '../../../../../ClassNames'
 
 export function method (cls, method, code, methodInfo, clsInfo, info) {
-  if (method.getName() === '<clinit>') {
+  if (methodInfo.origName === '<clinit>') {
     for (const line of code.lines) {
       if (typeof line.const !== 'string') continue
       const isOld = /^[A-Z][A-Za-z_\d]+$/.test(line.const)

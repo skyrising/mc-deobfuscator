@@ -1,3 +1,4 @@
+import {signatureTag as s} from '../../../../util/code'
 import * as CLASS from '../../../../ClassNames'
 
 export function cls (cls, clsInfo, info) {
@@ -14,18 +15,18 @@ export function field (field, clsInfo, info) {
   const WorldInfo = info.classReverse[CLASS.WORLD_INFO]
   const Profiler = info.classReverse[CLASS.PROFILER]
   const VillageCollection = info.classReverse[CLASS.VILLAGE_COLLECTION]
-  if (!WorldInfo || !Profiler || !VillageCollection) clsInfo.done = false
+  const ChunkProvider = info.classReverse[CLASS.CHUNK_PROVIDER]
+  if (!WorldInfo || !Profiler || !VillageCollection || !ChunkProvider) clsInfo.done = false
   if (WorldInfo && sig === 'L' + WorldInfo + ';') return 'worldInfo'
   if (Profiler && sig === 'L' + Profiler + ';') return 'profiler'
   if (VillageCollection && sig === 'L' + VillageCollection + ';') return 'villages'
+  if (ChunkProvider && sig === 'L' + ChunkProvider + ';') return 'chunkProvider'
 }
 
 export function method (cls, method, code, methodInfo, clsInfo, info) {
-  const sig = method.getSignature()
-  const BlockPos = info.classReverse[CLASS.BLOCK_POS]
-  const BlockState = info.classReverse[CLASS.BLOCK_STATE]
-  if (!BlockPos || !BlockState) clsInfo.done = false
-  if (BlockPos && BlockState && sig === `(L${BlockPos};)L${BlockState};`) return 'getBlockState'
+  const {sig} = methodInfo
+  if (s`(${CLASS.BLOCK_POS})${CLASS.BLOCK_STATE}`.matches(methodInfo)) return 'getBlockState'
+  if (s`(${CLASS.BLOCK_POS}${CLASS.BLOCK_STATE}I)Z`.matches(methodInfo)) return 'setBlockState'
   if (sig.startsWith('(L') && sig.endsWith(')Z') && code.consts.includes(0.014)) {
     return 'handleMaterialMovement'
   }

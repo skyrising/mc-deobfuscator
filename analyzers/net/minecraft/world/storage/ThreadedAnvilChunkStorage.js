@@ -1,7 +1,7 @@
 import * as CLASS from '../../../../../ClassNames'
 
 export function method (cls, method, code, methodInfo, clsInfo, info) {
-  const sig = method.getSignature()
+  const {sig} = methodInfo
   const ChunkPos = info.classReverse[CLASS.CHUNK_POS]
   const NBTCompound = info.classReverse[CLASS.NBT_COMPOUND]
   if (!ChunkPos || !NBTCompound) clsInfo.done = false

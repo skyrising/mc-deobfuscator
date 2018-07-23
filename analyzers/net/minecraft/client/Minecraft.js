@@ -1,10 +1,9 @@
 export function method (cls, method, code, methodInfo, clsInfo, info) {
-  const sig = method.getSignature()
-  const className = cls.getClassName()
+  const {sig} = methodInfo
   switch (sig) {
     case '()Ljava/io/File;':
     case '(Ljava/lang/String;)Ljava/io/File;': return 'getWorkingDirectory'
-    case '()L' + className.replace(/\./g, '/') + ';': return 'getInstance'
+    case '()L' + clsInfo.obfName.replace(/\./g, '/') + ';': return 'getInstance'
   }
   for (const c of code.consts) {
     switch (c) {
@@ -24,11 +23,10 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
 
 export function field (field, clsInfo, info, cls) {
   const sig = field.getType().getSignature()
-  const className = cls.getClassName()
   switch (sig) {
     case 'Ljava/awt/Canvas;': return 'canvas'
     case 'Lnet/minecraft/client/MinecraftApplet;': return 'applet'
     case 'Ljava/io/File;': return 'workingDir'
-    case 'L' + className.replace(/\./g, '/') + ';': return 'instance'
+    case 'L' + clsInfo.obfName.replace(/\./g, '/') + ';': return 'instance'
   }
 }

@@ -1,14 +1,13 @@
 import * as CLASS from '../../../../ClassNames'
 
 export function method (cls, method, code, methodInfo, clsInfo, info) {
-  const sig = method.getSignature()
-  const args = method.getArgumentTypes()
+  const {sig} = methodInfo
   const Builder = clsInfo.obfName
-  if (methodInfo.name === '<init>' && args.length === 2 && sig.startsWith('(L')) {
-    info.class[args[0].getClassName()].name = CLASS.MATERIAL
-    info.class[args[1].getClassName()].name = CLASS.MAP_COLOR
+  if (methodInfo.name === '<init>' && methodInfo.args.length === 2 && sig.startsWith('(L')) {
+    info.class[methodInfo.args[0].getClassName()].name = CLASS.MATERIAL
+    info.class[methodInfo.args[1].getClassName()].name = CLASS.MAP_COLOR
   }
-  if (sig.endsWith(')L' + Builder + ';') && method.isStatic()) return 'create'
+  if (sig.endsWith(')L' + Builder + ';') && methodInfo.static) return 'create'
   switch (sig) {
     case '(I)L' + Builder + ';': return 'setLightOpacity'
     case '(FF)L' + Builder + ';': return 'setHardnessAndResistance'

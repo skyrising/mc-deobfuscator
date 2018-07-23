@@ -9,18 +9,29 @@ const ENTITY_PKG = {
   Boat: PKG.ENTITY_ITEM,
   CaveSpider: PKG.ENTITY_MONSTER,
   Chicken: PKG.ENTITY_PASSIVE,
+  CommandBlockMinecart: PKG.ENTITY_ITEM,
+  Cod: PKG.ENTITY_PASSIVE,
   Cow: PKG.ENTITY_PASSIVE,
   Creeper: PKG.ENTITY_MONSTER,
+  Dolphin: PKG.ENTITY_PASSIVE,
   Donkey: PKG.ENTITY_PASSIVE,
   DragonFireball: PKG.ENTITY_PROJECTILE,
+  Drowned: PKG.ENTITY_MONSTER,
+  Egg: PKG.ENTITY_PROJECTILE,
   ElderGuardian: PKG.ENTITY_MONSTER,
+  EndCrystal: PKG.ENTITY_ITEM,
   EnderCrystal: PKG.ENTITY_ITEM,
   EnderDragon: PKG.ENTITY_BOSS,
   Enderman: PKG.ENTITY_MONSTER,
   Endermite: PKG.ENTITY_MONSTER,
+  EnderPearl: PKG.ENTITY_PROJECTILE,
   EvocationFangs: PKG.ENTITY_PROJECTILE,
   EvocationIllager: PKG.ENTITY_MONSTER,
+  Evoker: PKG.ENTITY_MONSTER,
+  EvokerFangs: PKG.ENTITY_PROJECTILE,
+  EyeOfEnder: PKG.ENTITY_ITEM,
   EyeOfEnderSignal: PKG.ENTITY_ITEM,
+  FallingBlock: PKG.ENTITY_ITEM,
   FallingSand: PKG.ENTITY_ITEM,
   Fireball: PKG.ENTITY_PROJECTILE,
   FireworksRocketEntity: PKG.ENTITY_PROJECTILE,
@@ -44,6 +55,7 @@ const ENTITY_PKG = {
   Pig: PKG.ENTITY_PASSIVE,
   PigZombie: PKG.ENTITY_MONSTER,
   PolarBear: PKG.ENTITY_MONSTER,
+  Potion: PKG.ENTITY_PROJECTILE,
   PrimedTnt: PKG.ENTITY_ITEM,
   Rabbit: PKG.ENTITY_PASSIVE,
   Sheep: PKG.ENTITY_PASSIVE,
@@ -55,6 +67,7 @@ const ENTITY_PKG = {
   Slime: PKG.ENTITY_MONSTER,
   SmallFireball: PKG.ENTITY_PROJECTILE,
   Snowball: PKG.ENTITY_PROJECTILE,
+  SnowGolem: PKG.ENTITY_PASSIVE,
   SnowMan: PKG.ENTITY_PASSIVE,
   SpectralArrow: PKG.ENTITY_PROJECTILE,
   Spider: PKG.ENTITY_MONSTER,
@@ -64,6 +77,7 @@ const ENTITY_PKG = {
   ThrownEnderpearl: PKG.ENTITY_PROJECTILE,
   ThrownExpBottle: PKG.ENTITY_PROJECTILE,
   ThrownPotion: PKG.ENTITY_PROJECTILE,
+  Tnt: PKG.ENTITY_ITEM,
   Vex: PKG.ENTITY_MONSTER,
   Villager: PKG.ENTITY_PASSIVE,
   VillagerGolem: PKG.ENTITY_PASSIVE,
@@ -75,6 +89,7 @@ const ENTITY_PKG = {
   Wolf: PKG.ENTITY_PASSIVE,
   Zombie: PKG.ENTITY_MONSTER,
   ZombieHorse: PKG.ENTITY_PASSIVE,
+  ZombiePigman: PKG.ENTITY_MONSTER,
   ZombieVillager: PKG.ENTITY_MONSTER,
   XPOrb: PKG.ENTITY_ITEM
 }
@@ -88,26 +103,24 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
       const name = toUpperCamelCase(line.const)
       const fieldName = (flat ? line.const : toUnderScoreCase(line.const)).toUpperCase()
       clsInfo.field[line.nextOp('putstatic').field.fieldName] = fieldName
-      const entClass = line.previous.const || line.next.const
-      if (!entClass.startsWith('L') || !entClass.endsWith(';')) continue
+      const entClass = flat ? line.next.const : line.previous.const
       const pkg = name in ENTITY_PKG ? ENTITY_PKG[name] : PKG.ENTITY
-      info.class[entClass.slice(1, -1)].name = pkg + '.' + name
+      info.class[entClass].name = pkg + '.' + name
     }
   }
-  const sig = method.getSignature()
+  const {sig} = methodInfo
   for (const c of code.consts) {
     if (typeof c === 'string' && c.startsWith('Skipping Entity with id ')) {
       if (!sig.startsWith('(IL')) {
-        const args = method.getArgumentTypes()
-        info.class[args[0].getClassName()].name = CLASS.NBT_COMPOUND
-        info.class[args[1].getClassName()].name = CLASS.WORLD
+        info.class[methodInfo.args[0].getClassName()].name = CLASS.NBT_COMPOUND
+        info.class[methodInfo.args[1].getClassName()].name = CLASS.WORLD
       }
       return 'createEntity'
     }
   }
   if (sig.startsWith('(Ljava/lang/String;II)L')) return 'registerSpawnEgg'
   if (sig === '(Ljava/lang/Class;Ljava/lang/String;I)V') return 'registerEntity'
-  if (sig.startsWith('(Ljava/lang/String;L') && method.isStatic()) return 'createEntity'
+  if (sig.startsWith('(Ljava/lang/String;L') && methodInfo.static) return 'createEntity'
 }
 
 export function field (field, clsInfo, info, cls) {

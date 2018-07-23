@@ -2,12 +2,13 @@ import fs from 'mz/fs'
 import path from 'path'
 import java from 'java'
 // import {graph} from './graphviz'
-import {getDefaultName, waiter, getMappedClassName} from './util'
+import {getDefaultName, waiter, getMappedClassName, getCallStats} from './util'
 import {getCode} from './util/code'
 import {startStatus, endStatus, setStatus, printStatus} from './util/status'
 import {specialSource, extractJar} from './util/tools'
 import {getAllClasses, initMaven} from './util/java'
 import {findAnalyzer} from './util/analyzers'
+import {getExtendedVersionInfo} from './util/version'
 import * as renameGetterSetter from './analyzers/getterSetter'
 
 const debug = require('debug')('mc:deobf')
@@ -69,9 +70,18 @@ async function analyzeJar (jarFile, classPath) {
   console.log(classNames.length + ' classes, ' + classNames.filter(name => !name.includes('$')).length + ' outer classes')
   const side = jarFile.includes('server') ? 'server' : 'client'
   const version = path.basename(jarFile, '.jar').split('.').filter(p => /\d/.test(p)).join('.')
+  const [, versionMajor, versionMinor, versionPatch] = version.match(/^(\d+)\.(\d+)(\.\d+)?/) || []
   const info = {
     side,
-    version,
+    version: {
+      ...(await getExtendedVersionInfo(version)),
+      major: versionMajor && +versionMajor,
+      minor: versionMinor && +versionMinor,
+      patch: versionPatch && +versionPatch,
+      toString () {
+        return version
+      }
+    },
     running: 0,
     pass: 0,
     maxParallel: 0,
@@ -372,7 +382,7 @@ async function analyzeClass (cls, info) {
 }
 
 async function runAnalyzer (analyzer, cls, clsInfo, info, genericAnalyzer) {
-  const className = cls.getClassName()
+  const className = clsInfo.obfName
   if (analyzer.cls) {
     if (analyzer !== genericAnalyzer) debug('%s: Running analyzer.cls', (clsInfo.name || className))
     setStatus(`${clsInfo.name || className}`)
@@ -385,18 +395,19 @@ async function runAnalyzer (analyzer, cls, clsInfo, info, genericAnalyzer) {
   }
   if (analyzer.field) {
     for (const field of await cls.getFieldsAsync()) {
+      const fieldProxy = field// getCallStats(field)
       const obfName = await field.getNameAsync()
       if (clsInfo.field[obfName]) continue
       clsInfo.field[obfName] = null
       if (analyzer !== genericAnalyzer) debug('%s.%s: Running analyzer.field', (clsInfo.name || className), obfName)
       setStatus(`${clsInfo.name || className}.${obfName}`)
       try {
-        const deobfName = await analyzer.field(field, clsInfo, info, cls)
+        const deobfName = await analyzer.field(fieldProxy, clsInfo, info, cls)
         if (deobfName) {
           clsInfo.field[obfName] = deobfName
           clsInfo.done = false
         } else if (genericAnalyzer && analyzer !== genericAnalyzer) {
-          const deobfName = await genericAnalyzer.field(field, clsInfo, info, cls)
+          const deobfName = await genericAnalyzer.field(fieldProxy, clsInfo, info, cls)
           if (deobfName) clsInfo.field[obfName] = deobfName
         }
       } catch (e) {
@@ -406,12 +417,16 @@ async function runAnalyzer (analyzer, cls, clsInfo, info, genericAnalyzer) {
   }
 
   for (const method of await cls.getMethodsAsync()) {
+    const methodProxy = getCallStats(method)
     const name = await method.getNameAsync()
     const sig = await method.getSignatureAsync()
     const methodInfo = clsInfo.method[name + ':' + sig]
+    methodInfo.clsInfo = clsInfo
+    methodInfo.info = info
     methodInfo.obfName = name
     methodInfo.sig = sig
     methodInfo.static = await method.isStaticAsync()
+    methodInfo.args = await method.getArgumentTypesAsync()
     if (methodInfo.done) continue
     if (analyzer !== genericAnalyzer) debug('Analyzing method %s.%s:%s', (clsInfo.name || className), name, sig)
     setStatus(`${clsInfo.name || className}.${name}${sig}`)
@@ -422,14 +437,14 @@ async function runAnalyzer (analyzer, cls, clsInfo, info, genericAnalyzer) {
     try {
       if (analyzer.method) {
         methodInfo.done = true
-        const name = await analyzer.method(cls, method, code, methodInfo, clsInfo, info)
+        const name = await analyzer.method(cls, methodProxy, code, methodInfo, clsInfo, info)
         if (name) methodInfo.name = name
         else if (genericAnalyzer && analyzer !== genericAnalyzer) {
-          const name = await genericAnalyzer.method(cls, method, code, methodInfo, clsInfo, info)
+          const name = await genericAnalyzer.method(cls, methodProxy, code, methodInfo, clsInfo, info)
           if (name) methodInfo.name = name
         }
       } else if (genericAnalyzer && analyzer !== genericAnalyzer) {
-        const name = await genericAnalyzer.method(cls, method, code, methodInfo, clsInfo, info)
+        const name = await genericAnalyzer.method(cls, methodProxy, code, methodInfo, clsInfo, info)
         if (name) methodInfo.name = name
       }
     } catch (e) {

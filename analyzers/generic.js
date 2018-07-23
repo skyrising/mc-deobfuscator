@@ -95,18 +95,18 @@ const simpleConstToClass = Object.freeze({
   'Resource download thread': CLASS.RESOURCE_DOWNLOAD_THREAD,
   'textures/gui/options_background.png': CLASS.GUI,
   'Invalid Item!': CLASS.GUI_SCREEN,
-  'selectWorld.edit.title': 'net.minecraft.client.gui.world.GuiEditWorld',
-  'options.customizeTitle': 'net.minecraft.client.gui.world.GuiCustomizeWorld',
-  'createWorld.customize.flat.title': 'net.minecraft.client.gui.world.GuiCustomizeWorldFlat',
+  'selectWorld.edit.title': CLASS.GUI_EDIT_WORLD,
+  'options.customizeTitle': CLASS.GUI_CUSTOMIZE_WORLD,
+  'createWorld.customize.flat.title': CLASS.GUI_CUSTOMIZE_FLAT,
   'multiplayer.title': CLASS.GUI_MULTIPLAYER,
-  'options.title': 'net.minecraft.client.gui.menu.GuiOptions',
-  'options.skinCustomisation.title': 'net.minecraft.client.gui.menu.GuiOptionsSkinCustomisation',
-  'constrols.resetAll': 'net.minecraft.client.gui.menu.GuiOptionsControls',
-  'options.languageWarning': 'net.minecraft.client.gui.menu.GuiOptionsLanguage',
-  'options.snooper.title': 'net.minecraft.client.gui.options.GuiOptionsSnooper',
-  'resourcePack.openFolder': 'net.minecraft.client.gui.options.GuiOptionsResourcePacks',
-  'texturePack.openFolder': 'net.minecraft.client.gui.options.GuiOptionsTexturePacks',
-  'options.sounds.title': 'net.minecraft.client.gui.options.GuiOptionsSounds',
+  'options.title': CLASS.GUI_OPTIONS,
+  'options.skinCustomisation.title': CLASS.GUI_OPTIONS_SKIN,
+  'controls.resetAll': CLASS.GUI_OPTIONS_CONTROLS,
+  'options.languageWarning': CLASS.GUI_OPTIONS_LANGUAGE,
+  'options.snooper.title': CLASS.GUI_OPTIONS_SNOOPER,
+  'resourcePack.openFolder': CLASS.GUI_OPTIONS_RESOURCE_PACKS,
+  'texturePack.openFolder': CLASS.GUI_OPTIONS_TEXTURE_PACKS,
+  'options.sounds.title': CLASS.GUI_OPTIONS_SOUNDS,
   'Invalid Biome id': CLASS.BIOME_PROVIDER,
   'Unable to serialize an anonymous value to json!': CLASS.DATA_GENERATOR,
   'BiomeBuilder{\nsurfaceBuilder=': CLASS.BIOME$BIOME_BUILDER,
@@ -127,7 +127,10 @@ const simpleConstToClass = Object.freeze({
   'Item Tags': CLASS.DATA_PROVIDER_ITEM_TAGS,
   '---- Minecraft Crash Report ----\n': CLASS.CRASH_REPORT,
   'argument.player.unknown': CLASS.ARGUMENT_PLAYER,
-  'argument.entity.selector.not_allowed': CLASS.ARGUMENT_ENTITY,
+  'argument.entity.selector.not_allowed': {
+    predicate: ({code}) => code.consts.includes('@e'),
+    name: CLASS.ARGUMENT_ENTITY
+  },
   'argument.pos.outofworld': CLASS.ARGUMENT_BLOCKPOS,
   'argument.pos.incomplete': CLASS.ARGUMENT_VEC3,
   'argument.vec2.incomplete': CLASS.ARGUMENT_VEC2,
@@ -347,7 +350,7 @@ const simpleConstToClass = Object.freeze({
     name: CLASS.ENTITY_ABSTRACT_PROJECTILE
   }, */
   '=': {
-    predicate: ({clsInfo, method}) => clsInfo.isInnerClass && method.getName() === 'toString',
+    predicate: ({clsInfo, methodInfo}) => clsInfo.isInnerClass && methodInfo.origName === 'toString',
     outerClass: CLASS.INT_HASH_MAP,
     name: 'Entry'
   },
@@ -384,11 +387,11 @@ const simpleConstToClass = Object.freeze({
     name: CLASS.ADVANCEMENT_TRIGGER_DAMAGE
   }],
   'enchanted_item': {
-    predicate: ({method}) => method.getName() === '<clinit>',
+    predicate: ({methodInfo}) => methodInfo.origName === '<clinit>',
     name: CLASS.ADVANCEMENT_TRIGGER_ENCHANTED_ITEM
   },
   'impossible': {
-    predicate: ({method}) => method.getName() === '<clinit>',
+    predicate: ({methodInfo}) => methodInfo.origName === '<clinit>',
     name: CLASS.ADVANCEMENT_TRIGGER_IMPOSSIBLE
   },
   'killing_blow': [{
@@ -402,14 +405,14 @@ const simpleConstToClass = Object.freeze({
     name: CLASS.ADVANCEMENT_TRIGGER_LEVITATION
   },
   'tick': [{
-    predicate: ({method, code}) => method.getName() === '<clinit>' && code.consts.includes('functions/'),
+    predicate: ({methodInfo, code}) => methodInfo.origName === '<clinit>' && code.consts.includes('functions/'),
     name: CLASS.FUNCTION_MANAGER
   }, {
-    predicate: ({method}) => method.getName() === '<clinit>',
+    predicate: ({methodInfo}) => methodInfo.origName === '<clinit>',
     name: CLASS.ADVANCEMENT_TRIGGER_TICK
   }],
   'used_totem': {
-    predicate: ({method}) => method.getName() === '<clinit>',
+    predicate: ({methodInfo}) => methodInfo.origName === '<clinit>',
     name: CLASS.ADVANCEMENT_TRIGGER_USED_TOTEM
   },
   'Enchant': {
@@ -464,7 +467,105 @@ const simpleConstToClass = Object.freeze({
     predicate: ({code}) => code.consts.includes(36) && code.consts.includes('.dat'),
     name: CLASS.ALPHA_CHUNK_LOADER,
     method: 'getFileForChunk'
-  }
+  },
+  'clazz': {
+    name: CLASS.BLOCK_PROPERTY_BASE,
+    interfaces: [CLASS.BLOCK_PROPERTY]
+  },
+  'waterlogged': {
+    predicate: ({code}) => code.consts.includes('hinge'),
+    name: CLASS.BLOCK_PROPERTIES
+  },
+  'true': {
+    predicate: ({code, sig}) => sig === '(Ljava/lang/String;)Ljava/util/Optional;' && code.consts.includes('false'),
+    name: CLASS.BLOCK_PROPERTY_BOOL,
+    method: 'parseValue'
+  },
+  'Integrated Server (map_client.txt)': {
+    interfaces: [CLASS.CRASH_REPORT_DETAIL]
+  },
+  'Unable to get CW facing for axis ': {
+    name: CLASS.FACING,
+    method: 'rotateAround',
+    args: ['Axis']
+  },
+  'Unable to get X-rotated facing of ': {
+    name: CLASS.FACING,
+    method: 'rotateX'
+  },
+  'Unable to get Y-rotated facing of ': {
+    name: CLASS.FACING,
+    method: 'rotateY'
+  },
+  'Unable to get Z-rotated facing of ': {
+    name: CLASS.FACING,
+    method: 'rotateZ'
+  },
+  'Unable to get CCW facing of ': {
+    name: CLASS.FACING,
+    method: 'rotateYCCW'
+  },
+  'Cannot get property ': {
+    name: CLASS.BLOCK_PROPERTY_CONTAINER,
+    method: 'getProperty',
+    args: [CLASS.BLOCK_PROPERTY]
+  },
+  'Cannot set property ': {
+    name: CLASS.BLOCK_PROPERTY_CONTAINER,
+    method: 'setProperty'
+  },
+  'VoxelShape[': CLASS.VOXEL_SHAPE,
+  'Exception while updating neighbours': {
+    name: CLASS.WORLD,
+    method: 'updateNeighbour',
+    call: {
+      class: CLASS.CRASH_REPORT,
+      method: 'create'
+    }
+  },
+  'progress': {
+    predicate: ({code}) => code.consts.includes('extending') && code.consts.includes('source'),
+    name: CLASS.BLOCK_ENTITY_PISTON_MOVED_BLOCK
+  },
+  'checkLight': {
+    name: CLASS.WORLD,
+    method: 'setBlockState',
+    args: [CLASS.BLOCK_POS, CLASS.BLOCK_STATE],
+    eval ({line, info}) {
+      const profilerStart = line.nextOp('invokevirtual')
+      if (!profilerStart) return
+      const checkLight = profilerStart.nextOp('invokevirtual')
+      if (checkLight && checkLight.call) info.method[checkLight.call.fullSig].name = 'checkLight'
+    }
+  },
+  'ServerChunkCache: ': {
+    name: CLASS.CHUNK_PROVIDER_SERVER,
+    interfaces: [CLASS.CHUNK_PROVIDER]
+  },
+  'bred_animals': {
+    name: CLASS.ADVANCEMENT_TRIGGER_BRED_ANIMALS,
+    interfaces: [CLASS.ADVANCEMENT_TRIGGER]
+  },
+  'Connecting to {}, {}': CLASS.GUI_MULTIPLAYER_CONNECTING,
+  'lanServer.start': CLASS.GUI_OPEN_TO_LAN,
+  'gui.recipebook.moreRecipes': CLASS.GUI_RECIPE_BOOK,
+  'textures/gui/container/brewing_stand.png': CLASS.GUI_BREWING_STAND,
+  'textures/gui/bars.png': CLASS.GUI_BOSS_BAR,
+  '>': {
+    predicate: ({code}) => !code.consts.includes('+=') && code.consts.includes('<'),
+    name: CLASS.GUI_SUBTITLE
+  },
+  'chat.link.confirmTrusted': CLASS.GUI_CHAT_LINK_CONFIRM,
+  'createWorld.customize.presets.title': CLASS.GUI_SUPERFLAT_PRESETS,
+  'multiplayer.downloadingTerrain': CLASS.GUI_DOWNLOADING_TERRAIN,
+  'options.videoTitle': CLASS.GUI_OPTIONS_VIDEO,
+  'texts/end.txt': CLASS.GUI_END_SCROLL,
+  'textures/gui/container/inventory.png': CLASS.GUI_INVENTORY,
+  'textures/gui/container/crafting_table.png': CLASS.GUI_CRAFTING_TABLE,
+  'textures/gui/container/creative_inventory/tabs.png': CLASS.GUI_CREATIVE_INVENTORY,
+  'textures/gui/container/dispenser.png': CLASS.GUI_DISPENSER,
+  'textures/gui/container/enchanting_table.png': CLASS.GUI_ENCHANTING_TABLE,
+  'textures/gui/container/furnace.png': CLASS.GUI_FURNACE
 })
 
 function handleSimple (obj, params) {
@@ -480,14 +581,17 @@ function handleSimple (obj, params) {
   if (obj.predicate && !obj.predicate(params)) return
   if (obj.return) info.class[method.getReturnType().getClassName()].name = obj.return
   if (obj.args) {
-    const types = method.getArgumentTypes()
     obj.args.forEach((name, i) => {
-      info.class[types[i].getClassName()].name = name
+      info.class[methodInfo.args[i].getClassName()].name = name
     })
   }
   if (obj.method) methodInfo.name = obj.method
   if (obj.superClass) info.class[cls.getSuperclassName()].name = obj.superClass
-  if (obj.baseClass) info.class[cls.getSuperClasses().slice(-2)[0].getClassName()].name = obj.baseClass
+  if (obj.baseClass) {
+    const scs = cls.getSuperClasses()
+    if (scs.length >= 2) info.class[scs[scs.length - 2].getClassName()].name = obj.baseClass
+    else console.log((obj.name || clsInfo.obfName) + ' does not have enough superclasses')
+  }
   if (obj.outerClass) info.class[clsInfo.outerClassName].name = obj.outerClass
   if (obj.call) {
     let call
@@ -502,11 +606,22 @@ function handleSimple (obj, params) {
     const putfield = line.nextOp('putfield')
     if (putfield) clsInfo.field[putfield.field.fieldName] = obj.field
   }
+  if (obj.interfaces) {
+    const ifs = cls.getInterfaces()
+    if (obj.interfaces.length === ifs.length) {
+      for (let i = 0; i < obj.interfaces.length; i++) {
+        if (obj.interfaces[i]) info.class[ifs[i].getClassName()].name = obj.interfaces[i]
+      }
+    } else {
+      console.log('Number of interfaces for ' + (obj.name || clsInfo.obfName) + ' mismatch: expected ' + obj.interfaces.length + ' got ' + ifs.length)
+    }
+  }
+  if (obj.eval) obj.eval(params)
   return obj.name
 }
 
 function getClassNameForConstant (c, line, cls, method, code, methodInfo, clsInfo, info) {
-  const sig = method.getSignature()
+  const {sig} = methodInfo
   const simple = handleSimple(simpleConstToClass[c], {line, cls, method, sig, code, methodInfo, clsInfo, info})
   if (simple) return simple
   const Entity = info.classReverse[CLASS.ENTITY]
@@ -543,14 +658,11 @@ function getClassNameForConstant (c, line, cls, method, code, methodInfo, clsInf
     case '/mob/chicken.png': return 'net.minecraft.entity.passive.EntityChicken'
     case '/mob/cow.png': return 'net.minecraft.entity.passive.EntityCow'
     */
-    case 'Integrated Server (map_client.txt)': {
-      info.class[cls.getInterfaces()[0].getClassName()].name = CLASS.CRASH_REPORT_DETAIL
-      break
-    }
     case 'chunkSource': {
       methodInfo.name = 'tick'
       info.method[line.next.call.fullSig].name = 'next'
       info.class[line.next.call.className].name = CLASS.PROFILER
+      info.class[cls.getSuperclassName()].name = CLASS.WORLD
       try {
         const worldInfoLine = (line.prevOp('ldc_w "mobSpawner"') || line.prevOp('ldc_w "spawner"')).nextOp('getfield')
         clsInfo.field[worldInfoLine.field.fieldName] = 'worldInfo'
@@ -570,12 +682,6 @@ function getClassNameForConstant (c, line, cls, method, code, methodInfo, clsInf
         info.method[BootstrapIsRegistered.fullSig].name = 'isRegistered'
       } else console.log('Expected call to Bootstrap.isRegistered:', code.lines[0])
       return
-    case 'ServerChunkCache: ':
-      info.class[cls.getInterfaces()[0].getClassName()].name = CLASS.CHUNK_PROVIDER
-      return CLASS.CHUNK_PROVIDER_SERVER
-    case 'bred_animals':
-      info.class[cls.getInterfaces()[0].getClassName()].name = CLASS.ADVANCEMENT_TRIGGER
-      return CLASS.ADVANCEMENT_TRIGGER_BRED_ANIMALS
   }
   if (/^commands\.(.*?)\.$/.test(c)) {
     const commandName = c.match(/^commands\.(.*?)\.$/)[1]
@@ -600,11 +706,11 @@ function getClassNameForConstant (c, line, cls, method, code, methodInfo, clsInf
 
 export function method (cls, method, code, methodInfo, clsInfo, info) {
   methodInfo.done = false
-  const sig = method.getSignature()
+  const {sig} = methodInfo
   const sc = cls.getSuperclassName()
   if (sc === 'java.lang.Enum') {
-    if (method.getName() === '<clinit>') enumClinit(cls, method, code, methodInfo, clsInfo, info)
-    else if (method.getName() === 'values') {
+    if (methodInfo.origName === '<clinit>') enumClinit(cls, method, code, methodInfo, clsInfo, info)
+    else if (methodInfo.origName === 'values') {
       clsInfo.field[code.lines[0].field.fieldName] = '$VALUES'
     }
   }
@@ -631,18 +737,22 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
 
 function enumClinit (cls, method, code, methodInfo, clsInfo, info) {
   const names = []
-  for (const line of code.lines) {
-    if (line.op === 'new' && line.arg.slice(1, -1) === cls.getClassName().replace(/\./g, '/')) {
-      const ldc = line.nextOp('ldc')
-      if (!ldc || !/^[A-Za-z_\d]+$/.test(ldc.const)) continue
+  const self = clsInfo.obfName.replace(/\./g, '/')
+  for (let i = 0; i < code.lines.length; i++) {
+    const line = code.lines[i]
+    if (line.op === 'new' && line.className === self) {
+      const ldc = line.nextOp(['ldc', 'ldc_w'])
+      if (!ldc) continue
       const putstatic = ldc.nextOp('putstatic')
       if (!putstatic) continue
+      i = code.lines.indexOf(putstatic)
+      if (!/^[A-Z_\d]+$/.test(ldc.const)) {
+        console.log('Not renaming ' + clsInfo.obfName + '.' + ldc.const)
+        continue
+      }
       const name = ldc.const.toUpperCase()
       clsInfo.field[putstatic.field.fieldName] = name
       names.push(name)
-      switch (ldc.const) {
-        case 'SkullAndRoses': clsInfo.name = 'net.minecraft.entity.item.PaintingType'; break
-      }
     }
   }
   clsInfo.enumNames = names
@@ -677,6 +787,10 @@ function getEnumName (names, cls, clsInfo, info) {
     case 'SAVE,LOAD,CORNER,DATA': return CLASS.STRUCTURE_BLOCK_MODE
     case 'PROTOCHUNK,LEVELCHUNK': return CLASS.CHUNK_STAGE$TYPE
     case 'DEFAULT,STICKY': return CLASS.PISTON_TYPE
+    case 'DOWN,UP,NORTH,SOUTH,WEST':
+      if (clsInfo.isInnerClass) return
+      if (cls.getInterfaces().length) return CLASS.FACING
+      return
     case 'NONE,TAIGA,EXTREME_HILLS,JUNGLE,MESA':
       info.class[clsInfo.outerClassName].name = CLASS.BIOME
       return CLASS.BIOME$CATEGORY

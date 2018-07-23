@@ -63,18 +63,22 @@ export async function getCode (method) {
     }
     Object.assign(line, {
       nextOp (line, includeSelf = false) {
-        const [op, arg] = line.split(' ')
-        if (includeSelf && this.op === op && (!arg || this.arg === arg)) return this
+        line = Array.isArray(line) ? line : [line]
+        for (const candidate of line) {
+          const [op, arg] = candidate.split(' ')
+          if (includeSelf && this.op === op && (!arg || this.arg === arg)) return this
+        }
         if (!this.next) return
-        if (this.next.op === op && (!arg || this.next.arg === arg)) return this.next
-        return this.next.nextOp(line)
+        return this.next.nextOp(line, true)
       },
       prevOp (line, includeSelf = false) {
-        const [op, arg] = line.split(' ')
-        if (includeSelf && this.op === op && (!arg || this.arg === arg)) return this
+        line = Array.isArray(line) ? line : [line]
+        for (const candidate of line) {
+          const [op, arg] = candidate.split(' ')
+          if (includeSelf && this.op === op && (!arg || this.arg === arg)) return this
+        }
         if (!this.previous) return
-        if (this.previous.op === op && (!arg || this.previous.arg === arg)) return this.previous
-        return this.previous.prevOp(line)
+        return this.previous.prevOp(line, true)
       }
     })
     return line
@@ -82,4 +86,77 @@ export async function getCode (method) {
   for (let i = 0; i < lines.length - 1; i++) lines[i].next = lines[i + 1]
   for (let i = 1; i < lines.length; i++) lines[i].previous = lines[i - 1]
   return {code, lines, calls, internalCalls, fields, internalFields, consts}
+}
+
+function resolve (info, raw) {
+  if (raw.length === 1 || raw[0] === 'L') return raw
+  const cls = info.classReverse[raw]
+  if (cls) return 'L' + cls + ';'
+}
+
+class Signature {
+  constructor (args, ret) {
+    this.args = args
+    this.return = ret
+  }
+
+  matches (methodInfo) {
+    const filled = this.fill(methodInfo.info)
+    // TODO: wildcards
+    if (!filled) methodInfo.clsInfo.done = false
+    else return methodInfo.sig === filled
+  }
+
+  fill (info) {
+    const args = []
+    for (let i = 0; i < this.args.length; i++) {
+      args[i] = resolve(info, this.args[i])
+      if (!args[i]) return
+    }
+    const ret = resolve(info, this.return)
+    if (!ret) return
+    return '(' + args.join('') + ')' + ret
+  }
+}
+
+// TODO: arrays
+export function signatureTag (strings, ...args) {
+  const parsedArgs = []
+  let parsedReturn
+  let startArgs
+  let endArgs
+  for (const str of strings) {
+    for (let i = 0; i < str.length; i++) {
+      const c = str[i]
+      if (c === '(') {
+        if (startArgs) throw Error('Unexpected (')
+        startArgs = true
+        continue
+      }
+      if (c === ')') {
+        if (endArgs) throw Error('Unexpected )')
+        endArgs = true
+        continue
+      }
+      if (startArgs) {
+        if (c === 'L') {
+          const colon = str.indexOf(';', i) + 1
+          const cls = str.slice(i, colon)
+          i = colon - 1
+          if (!endArgs) parsedArgs.push(cls)
+          else parsedReturn = cls
+        } else {
+          if (!endArgs) parsedArgs.push(c)
+          else parsedReturn = c
+        }
+      }
+    }
+    if (args.length) {
+      const next = args.shift()
+      if (!next) throw Error(`Invalid parameter for ${endArgs ? 'return type' : 'argument ' + parsedArgs.length}`)
+      if (!endArgs) parsedArgs.push(next)
+      else parsedReturn = next
+    }
+  }
+  return new Signature(parsedArgs, parsedReturn)
 }

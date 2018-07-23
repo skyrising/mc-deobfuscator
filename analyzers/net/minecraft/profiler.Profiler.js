@@ -2,8 +2,8 @@ export function cls (cls, clsInfo, info) {
 }
 
 export function method (cls, method, code, methodInfo, clsInfo, info) {
-  if (method.getName() === '<init>') return
-  const sig = method.getSignature()
+  if (methodInfo.origName === '<init>') return
+  const {sig} = methodInfo
   switch (sig) {
     case '(Ljava/util/function/Supplier;)V': return 'start'
     case '()V': return 'end'

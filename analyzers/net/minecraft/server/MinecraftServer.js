@@ -6,10 +6,9 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
     case 'Lcom/mojang/authlib/GameProfileRepository;': return 'getProfileRepo'
     case 'Ljava/net/Proxy;': return 'getProxy'
   } */
-  const args = method.getArgumentTypes()
-  if (method.getName() === '<init>' && args.length > 6) {
-    info.class[args[2].getClassName()].name = 'net.minecraft.util.datafix.DataFixer'
-    info.class[args[6].getClassName()].name = 'net.minecraft.server.management.PlayerProfileCache'
+  if (method.origName === '<init>' && methodInfo.args.length > 6) {
+    info.class[methodInfo.args[2].getClassName()].name = 'com.mojang.datafixers.DataFixer'
+    info.class[methodInfo.args[6].getClassName()].name = 'net.minecraft.server.management.PlayerProfileCache'
   }
   for (const c of code.consts) {
     if (typeof c === 'string') {
@@ -19,13 +18,13 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
       else if (c === 'sendCommandFeedback') return 'sendCommandFeedback'
       else if (c === 'save' || c === 'tallying') return 'tick'
       else if (c === 'spawnRadius') {
-        info.class[args[0].getClassName()].name = 'net.minecraft.world.WorldServer'
+        info.class[methodInfo.args[0].getClassName()].name = 'net.minecraft.world.WorldServer'
         return 'getSpawnRadius'
       } else if (c === 'server-icon.png') {
-        info.class[args[0].getClassName()].name = 'net.minecraft.network.ServerStatusResponse'
+        info.class[methodInfo.args[0].getClassName()].name = 'net.minecraft.network.ServerStatusResponse'
         return 'addIconToResponse'
       } else if (c === 'Profiler Position') {
-        info.class[args[0].getClassName()].name = 'net.minecraft.crash.CrashReport'
+        info.class[methodInfo.args[0].getClassName()].name = 'net.minecraft.crash.CrashReport'
         return 'addServerInfoToCrashReport'
       }
     } else if (c === 29999984) return 'getMaxWorldSize'
@@ -71,6 +70,7 @@ export function field (field, clsInfo, info) {
     case 'Lcom/mojang/authlib/yggdrasil/YggdrasilAuthenticationService;': return 'authService'
     case 'Lcom/mojang/authlib/minecraft/MinecraftSessionService;': return 'sessionService'
     case 'Lcom/mojang/authlib/GameProfileRepository;': return 'profileRepo'
+    case 'Lcom/mojang/datafixers/DataFix;': return 'dataFix'
     case 'Ljava/net/Proxy;': return 'proxy'
     case 'Ljava/util/Random;': return 'random'
     case 'Ljava/lang/Thread;': return 'serverThread'

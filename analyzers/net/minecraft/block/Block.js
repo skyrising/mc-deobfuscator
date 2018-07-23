@@ -1,3 +1,4 @@
+import {signatureTag as s} from '../../../../util/code'
 import * as CLASS from '../../../../ClassNames'
 import * as PKG from '../../../../PackageNames'
 
@@ -9,16 +10,13 @@ export function cls (cls, clsInfo, info) {
 }
 
 export function method (cls, method, code, methodInfo, clsInfo, info) {
-  const sig = method.getSignature()
-  const args = method.getArgumentTypes()
-  const name = method.getName()
+  const {sig} = methodInfo
   const Block = clsInfo.obfName
   if (code.consts.includes('cobblestone')) {
     for (const line of code.lines) {
       if (!line.const) continue
-      const blockClass = getBlockClass(line.const)
+      const blockClass = classNames[line.const]
       if (blockClass) {
-        console.log(line.const, blockClass)
         const newCls = line.nextOp('new').arg.slice(1, -1)
         if (newCls !== Block) info.class[newCls].name = PKG.BLOCK + '.' + blockClass
       }
@@ -30,21 +28,22 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
   }
   if (code.consts.includes('Don\'t know how to convert ') && code.consts.includes(' back into data...')) {
     methodInfo.name = 'getMetaFromState'
-    info.class[args[0].getClassName()].name = CLASS.BLOCK_STATE
+    info.class[methodInfo.args[0].getClassName()].name = CLASS.BLOCK_STATE
   }
-  if (name === '<init>' && args.length === 2 && sig.startsWith('(L')) {
-    info.class[args[0].getClassName()].name = CLASS.MATERIAL
+  if (methodInfo.origName === '<init>' && methodInfo.args.length === 2 && sig.startsWith('(L')) {
+    info.class[methodInfo.args[0].getClassName()].name = CLASS.MATERIAL
   }
-  if (name === '<init>' && args.length === 1) {
-    const arg0 = args[0].getClassName()
+  if (methodInfo.origName === '<init>' && methodInfo.args.length === 1) {
+    const arg0 = methodInfo.args[0].getClassName()
     info.class[arg0].name = arg0.includes('$') ? CLASS.BLOCK$BUILDER : CLASS.MATERIAL
   }
-  if (name === '<clinit>') {
+  if (methodInfo.origName === '<clinit>') {
     for (const line of code.lines) {
       if (!line.const || line.const !== 'air') continue
       info.class[line.prevOp('new').arg.slice(1, -1)].name = CLASS.RESOURCE_LOCATION
     }
   }
+  if (s`(DDDDDD)${CLASS.VOXEL_SHAPE}`.matches(methodInfo)) return 'createShape'
   switch (sig) {
     case '(Ljava/lang/String;L' + Block + ';)V': return 'registerBlock'
   }
@@ -87,7 +86,7 @@ const classNames = {
   sticky_piston: 'Piston',
   cobweb: 'CobWeb',
   piston_head: 'PistonHead',
-  mobing_piston: 'MovingPiston',
+  moving_piston: 'MovingPiston',
   tnt: 'Tnt',
   bookshelf: 'Bookshelf',
   torch: 'Torch',
@@ -203,8 +202,4 @@ const classNames = {
   void_air: 'Air',
   bubble_column: 'BubbleColumn',
   structure_block: 'StructureBlock'
-}
-
-function getBlockClass (name) {
-  return classNames[name]
 }

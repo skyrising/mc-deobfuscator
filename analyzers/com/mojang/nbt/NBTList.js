@@ -1,8 +1,7 @@
 
 export function method (cls, method, code, methodInfo, clsInfo, info) {
-  const sig = method.getSignature()
   const NBTBase = cls.getSuperclassName()
-  switch (sig) {
+  switch (methodInfo.sig) {
     case '()I': return 'size'
     case '(L' + NBTBase + ';)V': return 'add'
     case '(I)L' + NBTBase + ';': return 'get'

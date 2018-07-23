@@ -6,8 +6,10 @@ import {getMappedClassName, sortObfClassName} from './index'
 export function generateSrgs (info) {
   const dataDir = path.resolve(__dirname, '../data')
   if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir)
-  const versionDir = path.resolve(dataDir, info.version)
+  const versionDir = path.resolve(dataDir, info.version.toString())
   if (!fs.existsSync(versionDir)) fs.mkdirSync(versionDir)
+  const version = path.resolve(versionDir, 'version.json')
+  fs.writeFileSync(version, JSON.stringify(info.version, null, 2))
   const sideDir = path.resolve(versionDir, info.side)
   if (!fs.existsSync(sideDir)) fs.mkdirSync(sideDir)
   const srg = path.resolve(sideDir, 'mapping.srg')
@@ -15,7 +17,7 @@ export function generateSrgs (info) {
   const obfClasses = path.resolve(sideDir, 'classes-obf.txt')
   const deobfClasses = path.resolve(sideDir, 'classes-deobf.txt')
   generateClassLists(info, obfClasses, deobfClasses)
-  return {srg, obfClasses, deobfClasses}
+  return {version, srg, obfClasses, deobfClasses}
 }
 
 export function generateClassLists (info, obfFile, deobfFile) {

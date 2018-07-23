@@ -1,5 +1,5 @@
-export function method (cls, method) {
-  const sig = method.getSignature()
+export function method (cls, method, code, methodInfo, clsInfo, info) {
+  const {sig} = methodInfo
   const PacketBuffer = cls.getClassName()
   if (sig.endsWith('[B')) return 'readByteArray'
   else if (sig.endsWith('[I')) return 'readVarIntArray'

@@ -1,5 +1,5 @@
 export function method (cls, method, code, methodInfo, clsInfo, info) {
-  const sig = method.getSignature()
+  const {sig} = methodInfo
   switch (sig) {
     case '()L' + cls.getClassName() + ';': return 'getInstance'
     case '(Ljava/lang/String;)Ljava/lang/String;': return code.consts.includes('.name') ? 'formatName' : 'format'

@@ -7,8 +7,8 @@ export function field (field, clsInfo, info) {
 }
 
 export function method (cls, method, code, methodInfo, clsInfo, info) {
-  const sig = method.getSignature()
-  if (method.getName() === '<init>' && sig === '(III)V') {
+  const {sig} = methodInfo
+  if (methodInfo.origName === '<init>' && sig === '(III)V') {
     for (const line of code.lines) {
       if (!line.load) continue
       clsInfo.field[line.nextOp('putfield').field.fieldName] = 'xyz'[line.load - 1]

@@ -11,10 +11,10 @@ export function field (field, clsInfo, info) {
 }
 
 export function method (cls, method, code, methodInfo, clsInfo, info) {
-  const sig = method.getSignature()
+  const {sig} = methodInfo
   if (sig.startsWith('(L') && sig.endsWith(';)V')) {
-    info.class[method.getArgumentTypes()[0].getClassName()].name = CLASS.DATA_PROVIDER
+    info.class[methodInfo.args[0].getClassName()].name = CLASS.DATA_PROVIDER
     return 'addProvider'
   }
-  if (sig === '()V' && !method.getName().endsWith('init>')) return 'generate'
+  if (sig === '()V' && !methodInfo.origName.endsWith('init>')) return 'generate'
 }

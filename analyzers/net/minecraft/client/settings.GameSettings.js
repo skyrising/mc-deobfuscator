@@ -2,7 +2,7 @@ import * as CLASS from '../../../../ClassNames'
 import {toLowerCamelCase} from '../../../../util'
 
 export function method (cls, method, code, methodInfo, clsInfo, info) {
-  const sig = method.getSignature()
+  const {sig} = methodInfo
   if (sig === '()V' && code.consts.includes('mouseSensitivity')) {
     for (const line of code.lines) {
       if (typeof line.const !== 'string' || line.const === 'true') continue
@@ -13,7 +13,7 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
     }
     return 'loadOptions'
   }
-  if (method.getName() === '<init>') {
+  if (methodInfo.origName === '<init>') {
     for (const line of code.lines) {
       if (typeof line.const !== 'string' || !line.const.startsWith('key.') || line.previous.op !== 'dup') continue
       clsInfo.field[line.nextOp('putfield').field.fieldName] = toLowerCamelCase(line.const.split('.'))

@@ -8,8 +8,9 @@ export function nameGetterSetter (cls, code, methodInfo, clsInfo) {
     const field = code.lines[1].field
     if (field.fullClassName === cls.getClassName()) {
       const fieldName = clsInfo.field[field.fieldName] || field.fieldName
-      if (/^[A-Z]/.test(fieldName)) return 'get_' + fieldName
-      methodInfo.name = 'get' + fieldName[0].toUpperCase() + fieldName.slice(1)
+      const prefix = field.type === 'Z' ? 'is' : 'get'
+      if (/^[A-Z]/.test(fieldName)) return prefix + '_' + fieldName
+      methodInfo.name = prefix + fieldName[0].toUpperCase() + fieldName.slice(1)
     }
   } else if (code.lines.length === 4 && code.lines[0].op === 'aload_0' && code.lines[2].op === 'putfield') {
     const field = code.lines[2].field

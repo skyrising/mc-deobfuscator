@@ -1,5 +1,5 @@
 export function method (cls, method, code, methodInfo, clsInfo, info) {
-  if (method.getName() === '<clinit>') {
+  if (methodInfo.origName === '<clinit>') {
     for (const line of code.lines) {
       if (typeof line.const !== 'string') continue
       if (!/^[a-z_\d]+$/.test(line.const)) continue

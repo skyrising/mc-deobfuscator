@@ -1,6 +1,8 @@
 import mvn from 'node-java-maven'
 import java from 'java'
 
+import {sortObfClassName} from './index'
+
 export function getAllClasses (jarFileName) {
   const FileInputStream = java.import('java.io.FileInputStream')
   const JarInputStream = java.import('java.util.jar.JarInputStream')
@@ -13,7 +15,7 @@ export function getAllClasses (jarFileName) {
     if (!name.endsWith('.class')) continue
     names.push(name.slice(0, name.lastIndexOf('.')))
   }
-  return names
+  return names.sort(sortObfClassName)
 }
 
 export async function initMaven () {

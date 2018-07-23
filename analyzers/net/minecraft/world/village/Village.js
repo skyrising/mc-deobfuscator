@@ -11,7 +11,7 @@ export function field (field, clsInfo, info) {
 }
 
 export function method (cls, method, code, methodInfo, clsInfo, info) {
-  const sig = method.getSignature()
+  const {sig} = methodInfo
   const BlockPos = info.classReverse[CLASS.BLOCK_POS]
   if (!BlockPos) clsInfo.done = false
   if (sig.startsWith('(L' + BlockPos + ';III)')) {

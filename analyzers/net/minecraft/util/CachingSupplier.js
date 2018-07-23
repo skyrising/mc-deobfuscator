@@ -7,7 +7,7 @@ export function field (field, clsInfo, info, cls) {
 }
 
 export function method (cls, method, code, methodInfo, clsInfo, info) {
-  const sig = method.getSignature()
+  const {sig} = methodInfo
   switch (sig) {
     case '()Ljava/lang/Object;': return 'get'
   }

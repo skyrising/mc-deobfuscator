@@ -50,6 +50,12 @@ export const RENDERER_BLOCK_MODEL = RENDERER_BLOCK + '.model'
 export const GUI = CLIENT + '.gui'
 export const GUI_ADVANCEMENTS = GUI + '.advancements'
 export const MENU = GUI + '.menu'
+export const MENU_WORLD = MENU + '.world'
+export const MENU_OPTIONS = MENU + '.options'
+export const MENU_MULTIPLAYER = MENU + '.multiplayer'
+export const MENU_INGAME = MENU + '.ingame'
+export const GUI_CONTAINER = MENU_INGAME + '.container'
+export const GUI_WIDGETS = GUI + '.widgets'
 
 export const INVENTORY = BASE + '.inventory'
 

@@ -12,7 +12,7 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
     }
     return
   }
-  const sig = method.getSignature()
+  const {sig} = methodInfo
   const ResourceLocation = info.classReverse[CLASS.RESOURCE_LOCATION]
   if (!ResourceLocation) clsInfo.done = false
   if (ResourceLocation && sig.endsWith('L' + ResourceLocation + ';')) return 'registerLootTable'

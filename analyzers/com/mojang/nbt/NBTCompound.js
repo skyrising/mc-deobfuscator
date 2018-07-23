@@ -10,10 +10,9 @@ export function cls (cls, clsInfo, info) {
 }
 
 export function method (cls, method, code, methodInfo, clsInfo, info) {
-  const sig = method.getSignature()
-  const NBTCompound = cls.getClassName()
+  const NBTCompound = cls.obfName
   const NBTBase = cls.getSuperclassName()
-  switch (sig) {
+  switch (methodInfo.sig) {
     case '(Ljava/lang/String;B)V': return 'setByte'
     case '(Ljava/lang/String;S)V': return 'setShort'
     case '(Ljava/lang/String;I)V': return 'setInt'

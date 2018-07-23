@@ -6,7 +6,7 @@ export function field (field, clsInfo, info) {
 }
 
 export function method (cls, method, code, methodInfo, clsInfo, info) {
-  if (method.getName() === '<clinit>') {
+  if (methodInfo.origName === '<clinit>') {
     for (const line of code.lines) {
       if (typeof line.const !== 'string') continue
       const name = line.const
@@ -19,8 +19,8 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
     }
     return
   }
-  const sig = method.getSignature()
-  const self = cls.getClassName()
+  const {sig} = methodInfo
+  const self = clsInfo.obfName
   switch (sig) {
     case '(Ljava/lang/String;)L' + self + ';': return 'fromName'
     case '(I)L' + self + ';': return 'withVersion'

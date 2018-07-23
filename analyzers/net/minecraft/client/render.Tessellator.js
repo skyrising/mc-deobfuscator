@@ -1,10 +1,9 @@
 import {GL_QUADS} from '../../../../GLConsts'
 
 export function method (cls, method, code, methodInfo, clsInfo, info) {
-  const sig = method.getSignature()
-  const className = cls.getClassName()
+  const {sig} = methodInfo
   const firstLine = code.lines[0]
-  if (method.getName() === '<init>') {
+  if (methodInfo.origName === '<init>') {
     for (const line of code.lines) {
       if (line.call) {
         const call = line.call.methodName
@@ -40,7 +39,7 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
     }
     case '(FFF)V': return 'wrong'
     // case '(FFF)V': return code.consts.includes('But..') ? 'setNormal' : code.consts.length ? 'setColor' : 'translate'
-    case '()L' + className + ';': return 'getInstance'
+    case '()L' + clsInfo.obfName + ';': return 'getInstance'
     case '(DDDDD)V': return 'addVertex'
     case '(DDD)V':
       if (code.lines.length < 16) {

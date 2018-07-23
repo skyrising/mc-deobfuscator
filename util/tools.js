@@ -49,7 +49,7 @@ export function retroguard (inFile, outFile, info, classPath) {
 export async function extractJar (jar, dir) {
   rmrf(dir)
   fs.mkdirSync(dir)
-  console.log('Extracting ' + jar)
+  console.log('Extracting ' + jar + ' to ' + dir)
   cp.spawnSync('jar', ['xf', jar], {cwd: dir})
 }
 

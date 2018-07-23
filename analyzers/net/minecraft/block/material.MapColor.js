@@ -1,7 +1,7 @@
 export function method (cls, method, code, methodInfo, clsInfo, info) {
-  if (method.getName() === '<init>') return init(cls, method, code, methodInfo, clsInfo, info)
-  if (method.getName() === '<clinit>') return clinit(cls, method, code, methodInfo, clsInfo, info)
-  if (method.getSignature() === '(I)I') return 'getMapColor'
+  if (methodInfo.origName === '<init>') return init(cls, method, code, methodInfo, clsInfo, info)
+  if (methodInfo.origName === '<clinit>') return clinit(cls, method, code, methodInfo, clsInfo, info)
+  if (methodInfo.sig === '(I)I') return 'getMapColor'
 }
 
 function init (cls, method, code, methodInfo, clsInfo, info) {

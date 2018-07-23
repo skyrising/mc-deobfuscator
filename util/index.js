@@ -1,3 +1,4 @@
+import path from 'path'
 import * as PKG from '../PackageNames'
 
 export function hasSuperClass (cls, name) {
@@ -49,7 +50,10 @@ export function toUnderScoreCase (camelCase) {
 }
 
 export function getReturnType (sig) {
-  if (typeof sig !== 'string') sig = sig.getSignature()
+  if (typeof sig !== 'string') {
+    console.log('get return type of method: ' + Error().stack.split('\n')[2])
+    sig = sig.getSignature()
+  }
   const t = sig.slice(sig.lastIndexOf(')') + 1)
   return decodeAnyType(t)
 }
@@ -121,4 +125,23 @@ export function getMappedClassName (info, from) {
   }
   const toEnd = (to.name || from).slice((to.name || from).lastIndexOf('$') + 1)
   return getMappedClassName(info, from.slice(0, from.lastIndexOf('$'))) + '$' + toEnd
+}
+
+const logged = new Set()
+export function getCallStats (obj) {
+  const name = obj.getClass ? obj.getClass().getSimpleName() : (obj[Symbol.toStringTag] || obj.prototype.constructor.name)
+  return new Proxy(obj, {
+    get (base, key) {
+      const value = base[key]
+      if (typeof value === 'function') {
+        const line = name + '.' + key + Error().stack.split('\n')[2].replace(path.resolve(__dirname, '..') + '/', '')
+        if (!logged.has(line)) console.log(line)
+        logged.add(line)
+        return (...args) => {
+          return value.call(base, ...args)
+        }
+      }
+      return value
+    }
+  })
 }

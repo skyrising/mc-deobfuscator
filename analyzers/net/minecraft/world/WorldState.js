@@ -1,7 +1,7 @@
 import * as CLASS from '../../../../ClassNames'
 
 export function method (cls, method, code, methodInfo, clsInfo, info) {
-  const sig = method.getSignature()
+  const {sig} = methodInfo
   if (sig.endsWith('I)I')) return 'getCombinedLight'
   if (sig.endsWith(')I')) return 'getStrongPower'
   if (sig.endsWith(')Z')) return 'isAirBlock'

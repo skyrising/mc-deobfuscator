@@ -10,8 +10,8 @@ export function field (field, clsInfo, info) {
 }
 
 export function method (cls, method, code, methodInfo, clsInfo, info) {
-  const sig = method.getSignature()
-  const self = cls.getClassName()
+  const {sig} = methodInfo
+  const self = clsInfo.obfName
   switch (sig) {
     case '(I)L' + self + ';': return 'forId'
     case '()Ljava/lang/String;': return 'getName'
