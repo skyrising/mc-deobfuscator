@@ -17,6 +17,10 @@ export function generateSrgs (info) {
   const obfClasses = path.resolve(sideDir, 'classes-obf.txt')
   const deobfClasses = path.resolve(sideDir, 'classes-deobf.txt')
   generateClassLists(info, obfClasses, deobfClasses)
+  console.log(version)
+  console.log(srg)
+  console.log(obfClasses)
+  console.log(deobfClasses)
   return {version, srg, obfClasses, deobfClasses}
 }
 

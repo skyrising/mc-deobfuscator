@@ -787,6 +787,7 @@ function getEnumName (names, cls, clsInfo, info) {
     case 'SAVE,LOAD,CORNER,DATA': return CLASS.STRUCTURE_BLOCK_MODE
     case 'PROTOCHUNK,LEVELCHUNK': return CLASS.CHUNK_STAGE$TYPE
     case 'DEFAULT,STICKY': return CLASS.PISTON_TYPE
+    case 'SKY,BLOCK': return CLASS.LIGHT_TYPE
     case 'DOWN,UP,NORTH,SOUTH,WEST':
       if (clsInfo.isInnerClass) return
       if (cls.getInterfaces().length) return CLASS.FACING

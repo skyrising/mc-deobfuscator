@@ -199,6 +199,7 @@ async function analyzeJar (jarFile, classPath) {
                     set name (deobfName) {
                       const argSig = fullSig.slice(fullSig.indexOf('('), fullSig.indexOf(')') + 1) + (this.static ? ':static' : '')
                       const objectMethods = ['toString', 'clone', 'equals', 'hashCode', '<clinit>', '<init>']
+                      if (clsInfo.superClassName === 'java/lang/Enum') objectMethods.push('values', 'valueOf')
                       if (objectMethods.includes(this.origName) && deobfName !== this.origName) {
                         console.warn(Error('Tried renaming ' + this.origName + ' to ' + deobfName))
                         return
