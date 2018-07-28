@@ -29,6 +29,9 @@ export function doesImplement (cls, name) {
   return cls.getInterfaces().map(c => c.getClassName()).includes(name)
 }
 
+export const slash = s => s.replace(/\./g, '/')
+export const dot = s => s.replace(/\//g, '.')
+
 export function ucFirst (s) {
   return s[0].toUpperCase() + s.slice(1)
 }

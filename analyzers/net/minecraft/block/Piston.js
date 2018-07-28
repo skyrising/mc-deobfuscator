@@ -1,4 +1,4 @@
-import {signatureTag as s} from '../../../../util/code'
+import {signatureTag as s, getMethodInheritance} from '../../../../util/code'
 import * as CLASS from '../../../../ClassNames'
 
 export function cls (cls, clsInfo, info) {
@@ -19,6 +19,7 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
   if (s`(${CLASS.WORLD}${CLASS.BLOCK_POS}${CLASS.FACING}Z)Z`.matches(methodInfo)) {
     const newHelper = code.lines[0].nextOp('new', true)
     console.log('PistonMoveHelper: ' + newHelper)
+    console.log(getMethodInheritance(methodInfo))
     if (newHelper) info.class[newHelper.className].name = CLASS.PISTON_MOVE_HELPER
     return 'doMove'
   }

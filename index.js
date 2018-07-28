@@ -1,9 +1,10 @@
 import fs from 'mz/fs'
 import path from 'path'
 import java from 'java'
+import util from 'util'
 // import {graph} from './graphviz'
 import {getDefaultName, waiter, getMappedClassName, getCallStats} from './util'
-import {getCode} from './util/code'
+import {getCode, getMethodInheritance} from './util/code'
 import {startStatus, endStatus, setStatus, printStatus} from './util/status'
 import {specialSource, extractJar} from './util/tools'
 import {getAllClasses, initMaven} from './util/java'
@@ -139,11 +140,28 @@ async function analyzeJar (jarFile, classPath) {
       }
     },
     classReverse: {},
-    class: new Proxy({}, {
+    class: new Proxy({
+      [util.inspect.custom] (depth, opts) {
+        return opts.stylize('[Classes: ', 'special') +
+          opts.stylize(Object.keys(this).filter(name => Boolean(this[name].bin)).length, 'number') +
+          opts.stylize(']', 'special')
+      }
+    }, {
+      ownKeys (classes) {
+        return Object.keys(classes).filter(name => Boolean(classes[name].bin))
+      },
       get (classes, clsObfName) {
+        if (typeof clsObfName !== 'string') return classes[clsObfName]
         clsObfName = clsObfName.replace(/\//g, '.')
         if (!classes[clsObfName]) {
           const clsInfo = classes[clsObfName] = {
+            [util.inspect.custom] (depth, opts) {
+              return opts.stylize('[Class ', 'special') +
+                opts.stylize(clsObfName, 'string') +
+                (this._name ? ' (' + opts.stylize(this._name, 'string') + ')' : '') +
+                opts.stylize(']', 'special')
+            },
+            info,
             obfName: clsObfName,
             consts: new Set(),
             subClasses: new Set(),
@@ -188,11 +206,30 @@ async function analyzeJar (jarFile, classPath) {
               */
             }),
             reverseMethod: {},
-            method: new Proxy({}, {
+            method: new Proxy({
+              [util.inspect.custom] (depth, opts) {
+                return opts.stylize('[Methods: ', 'special') +
+                  opts.stylize(Object.keys(this).filter(name => Boolean(this[name].bin)).length, 'number') +
+                  opts.stylize(']', 'special')
+              }
+            }, {
+              ownKeys (methods) {
+                return Object.keys(methods).filter(fullSig => Boolean(methods[fullSig].bin))
+              },
               get (mds, fullSig) {
+                if (typeof fullSig !== 'string') return mds[fullSig]
                 if (!mds[fullSig]) {
                   const [origName, sig] = fullSig.split(':')
                   mds[fullSig] = {
+                    [util.inspect.custom] (depth, opts) {
+                      return opts.stylize('[Method ', 'special') +
+                        util.inspect(this.clsInfo, opts) +
+                        opts.stylize(origName, 'string') +
+                        opts.stylize(sig, 'special') +
+                        (this._name ? ' (' + opts.stylize(this._name, 'string') + ')' : '') +
+                        opts.stylize(']', 'special')
+                    },
+                    clsInfo,
                     origName,
                     sig,
                     static: false,
@@ -217,13 +254,21 @@ async function analyzeJar (jarFile, classPath) {
                           console.info('%s.%s%s renamed to %s', (clsInfo.name || clsObfName), this._name, argSig, deobfName)
                         }
                         debugMd('MD: %s/%s %s %s/%s %s', slash(clsObfName), origName, sig, slash(classes[clsObfName].name || clsObfName), deobfName, sig)
+                        const inherited = getMethodInheritance(this)[1]
+                        if (inherited) {
+                          info.class[inherited].method[fullSig].name = deobfName
+                          console.log('renaming super(' + inherited + ') ' + fullSig + ' -> ' + deobfName)
+                        }
                       }
                       this._name = deobfName
                       clsInfo.reverseMethod[deobfName] = clsInfo.reverseMethod[deobfName] || []
                       clsInfo.reverseMethod[deobfName][argSig] = origName
                     },
                     get name () {
-                      return this._name
+                      if (this._name) return this._name
+                      const inherited = getMethodInheritance(this)[1]
+                      if (inherited) return info.class[inherited].method[fullSig].name
+                      return this.origName
                     }
                   }
                 }
@@ -240,6 +285,7 @@ async function analyzeJar (jarFile, classPath) {
     }),
     method: new Proxy({}, {
       get (obj, fullSig) {
+        if (typeof fullSig !== 'string') return
         const className = fullSig.slice(0, fullSig.lastIndexOf('.', fullSig.indexOf(':')))
         const methodSig = fullSig.slice(className.length + 1)
         return info.class[className].method[methodSig]
@@ -255,6 +301,15 @@ async function analyzeJar (jarFile, classPath) {
   }
   */
   startStatus(info)
+  console.log('Enriching class info')
+  await Promise.all(classNames.map(async name => {
+    try {
+      const cls = await Repository.lookupClass(name)
+      await enrichClsInfo(cls, info)
+    } catch (e) {
+      console.warn(e)
+    }
+  }))
   const ps = {}
   while (true) {
     while (info.hasWork) {
@@ -353,33 +408,47 @@ async function analyzeClassWrapper (next, info, Repository) {
   })
 }
 
-async function analyzeClass (cls, info) {
-  const className = cls.getClassName()
+async function enrichClsInfo (cls, info) {
+  const className = await cls.getClassNameAsync()
   const clsInfo = info.class[className]
-  if (clsInfo.done) return
-  clsInfo.superClassName = cls.getSuperclassName()
+  if (clsInfo.bin) return clsInfo
+  clsInfo.superClassName = await cls.getSuperclassNameAsync()
   info.class[clsInfo.superClassName].subClasses.add(className)
-  clsInfo.done = true
+  clsInfo.interfaces = await cls.getInterfacesAsync()
+  clsInfo.interfaceNames = await Promise.all(clsInfo.interfaces.map(i => i.getClassNameAsync()))
+  for (const ifn of clsInfo.interfaces) info.class[ifn].subClasses.add(className)
   clsInfo.bin = cls
-  clsInfo.isInterface = cls.isInterface()
+  clsInfo.isInterface = await cls.isInterfaceAsync()
+  for (const md of await cls.getMethodsAsync()) {
+    const methodInfo = clsInfo.method[(await md.getNameAsync()) + ':' + (await md.getSignatureAsync())]
+    methodInfo.bin = md
+    methodInfo.isAbstract = await md.isAbstract()
+  }
+  return clsInfo
+}
+
+async function analyzeClass (cls, info) {
+  const clsInfo = await enrichClsInfo(cls, info)
+  if (clsInfo.done) return
+  clsInfo.done = true
   const pkg = cls.getPackageName()
-  if (pkg.startsWith('net.minecraft')) clsInfo.name = className
+  if (pkg.startsWith('net.minecraft')) clsInfo.name = clsInfo.obfName
   const genericAnalyzer = require('./analyzers/generic')
   let analyzer = genericAnalyzer
-  const special = clsInfo.name && (clsInfo.analyzer || await findAnalyzer(getMappedClassName(info, className)))
+  const special = clsInfo.name && (clsInfo.analyzer || await findAnalyzer(getMappedClassName(info, clsInfo.obfName)))
   if (special) {
     console.log('Special analyzer for %s: %s', clsInfo.name, Object.keys(analyzer))
     clsInfo.analyzer = analyzer = special
-    info.genericAnalyzed[className] = -1
+    info.genericAnalyzed[clsInfo.obfName] = -1
   } else if (clsInfo.name) {
     debug('Generic analyzer for %s', clsInfo.name)
   }
   try {
     await runAnalyzer(analyzer, cls, clsInfo, info, genericAnalyzer)
   } catch (e) {
-    console.error('Error while analyzing %s:\n%s', (clsInfo.name || className), e.stack)
+    console.error('Error while analyzing %s:\n%s', (clsInfo.name || clsInfo.obfName), e.stack)
   }
-  setStatus(`Done with ${clsInfo.name || className}`)
+  setStatus(`Done with ${clsInfo.name || clsInfo.obfName}`)
 }
 
 async function runAnalyzer (analyzer, cls, clsInfo, info, genericAnalyzer) {

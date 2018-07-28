@@ -160,3 +160,27 @@ export function signatureTag (strings, ...args) {
   }
   return new Signature(parsedArgs, parsedReturn)
 }
+
+const methodInheritance = {}
+export function getMethodInheritance (methodInfo, clsInfo) {
+  if (clsInfo === null) return []
+  if (!clsInfo) clsInfo = methodInfo.clsInfo
+  if (!clsInfo) console.warn('No clsInfo:', methodInfo)
+  if (!clsInfo) return []
+  const methodFullSig = methodInfo.origName + ':' + methodInfo.sig
+  const key = clsInfo.obfName + '/' + methodFullSig
+  if (key in methodInheritance) return methodInheritance[key]
+  const check = [clsInfo.superClassName, ...clsInfo.interfaceNames]
+  for (const c of check) {
+    if (!clsInfo.info.class[c].bin) continue
+    const superInheritance = getMethodInheritance(methodInfo, clsInfo.info.class[c])
+    if (superInheritance && superInheritance.length) {
+      const inher = [clsInfo.obfName, ...superInheritance]
+      methodInheritance[key] = inher
+      return inher
+    }
+  }
+  if (!clsInfo.method[methodFullSig].bin) return []
+  methodInheritance[key] = [clsInfo.obfName]
+  return methodInheritance[key]
+}

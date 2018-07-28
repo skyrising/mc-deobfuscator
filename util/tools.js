@@ -6,9 +6,9 @@ import {sync as rmrf} from 'rimraf'
 import {generateSrgs} from './srg'
 
 export function specialSource (inFile, outFile, info) {
-  const {srg} = generateSrgs(info)
+  const {tsrg} = generateSrgs(info)
   console.log('Deobfuscating with SpecialSource')
-  cp.spawnSync('java', ['-jar', 'work/specialsource.jar', '-i', inFile, '-o', outFile, '-m', srg, '--kill-lvt'], {
+  cp.spawnSync('java', ['-jar', 'work/specialsource.jar', '-i', inFile, '-o', outFile, '-m', tsrg, '--kill-lvt'], {
     stdio: ['ignore', 'inherit', fs.openSync('./temp/specialsource.warn', 'w')]
   })
 }

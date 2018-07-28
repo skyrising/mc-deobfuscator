@@ -1,7 +1,7 @@
 import * as PKG from '../PackageNames'
 import fs from 'fs'
 import path from 'path'
-import {getMappedClassName, sortObfClassName} from './index'
+import {getMappedClassName, sortObfClassName, slash} from './index'
 
 export function generateSrgs (info) {
   const dataDir = path.resolve(__dirname, '../data')
@@ -14,14 +14,17 @@ export function generateSrgs (info) {
   if (!fs.existsSync(sideDir)) fs.mkdirSync(sideDir)
   const srg = path.resolve(sideDir, 'mapping.srg')
   generateSrg(info, srg)
+  const tsrg = path.resolve(sideDir, 'mapping.tsrg')
+  generateTsrg(info, tsrg)
   const obfClasses = path.resolve(sideDir, 'classes-obf.txt')
   const deobfClasses = path.resolve(sideDir, 'classes-deobf.txt')
   generateClassLists(info, obfClasses, deobfClasses)
   console.log(version)
   console.log(srg)
+  console.log(tsrg)
   console.log(obfClasses)
   console.log(deobfClasses)
-  return {version, srg, obfClasses, deobfClasses}
+  return {version, srg, tsrg, obfClasses, deobfClasses}
 }
 
 export function generateClassLists (info, obfFile, deobfFile) {
@@ -32,7 +35,6 @@ export function generateClassLists (info, obfFile, deobfFile) {
 }
 
 export function generateSrg (info, srgFile) {
-  const slash = s => s.replace(/\./g, '/')
   const srg = [
     'PK: . ' + slash(PKG.DEFAULT),
     'PK: net net',
@@ -67,4 +69,19 @@ export function generateSrg (info, srgFile) {
     if (a < b) return -1
     return 0
   }).join('\n'))
+}
+
+export function generateTsrg (info, tsrgFile) {
+  const lines = []
+  for (const from of info.classNames) {
+    const to = info.class[from]
+    const toName = getMappedClassName(info, from)
+    lines.push(slash(from) + ' ' + slash(toName))
+    for (const fd in to.field) lines.push(`\t${fd} ${to.field[fd] || fd}`)
+    for (const mdFrom in to.method) {
+      const md = to.method[mdFrom]
+      lines.push(`\t${md.origName} ${md.sig} ${md.name}`)
+    }
+  }
+  fs.writeFileSync(tsrgFile, lines.join('\n'))
 }
