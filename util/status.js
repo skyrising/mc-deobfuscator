@@ -50,6 +50,7 @@ function printLine (sgr, ...args) {
 }
 
 function log (...args) {
+  console.debug(...args)
   printLine(0, ...args)
   printStatus()
 }

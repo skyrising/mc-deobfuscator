@@ -27,6 +27,8 @@ export const ENTITY_PASSIVE = ENTITY + '.passive'
 export const PLAYER = ENTITY + '.player'
 export const ENTITY_PROJECTILE = ENTITY + '.projectile'
 
+export const FLUID = BASE + '.fluid'
+
 export const INIT = BASE + '.init'
 
 export const ITEM = BASE + '.item'

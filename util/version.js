@@ -1,4 +1,4 @@
-import fs from 'fs'
+import fs from 'mz/fs'
 import path from 'path'
 import request from 'request-promise-native'
 
@@ -16,8 +16,10 @@ export async function getVersionInfo (id) {
 }
 
 export async function getExtendedVersionInfo (id) {
+  const file = path.resolve(__dirname, '../data', id, 'version.json')
+  if (await fs.exists(file)) return JSON.parse(await fs.readFile(file, 'utf8'))
   const version = await getVersionInfo(id)
-  const {downloads} = await getVersionManifest(id)
+  const {downloads} = await getVersionManifest(id) || {}
   return {...version, downloads}
 }
 

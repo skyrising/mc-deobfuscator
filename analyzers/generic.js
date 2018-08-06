@@ -9,6 +9,7 @@ export function cls (cls, clsInfo, info) {
   const Entity = info.classReverse[CLASS.ENTITY]
   const Enchantment = info.classReverse[CLASS.ENCHANTMENT]
   const Biome = info.classReverse[CLASS.BIOME]
+  const Fluid = info.classReverse[CLASS.FLUID]
   const Gui = info.classReverse[CLASS.GUI]
   const NBTBase = info.classReverse[CLASS.NBT_BASE]
   const RenderEntity = info.classReverse[CLASS.RENDER_ENTITY]
@@ -24,6 +25,7 @@ export function cls (cls, clsInfo, info) {
     if (Entity && hasSuperClass(cls, Entity)) return PKG.ENTITY + '.' + getDefaultName(clsInfo)
     if (Enchantment && hasSuperClass(cls, Enchantment)) return PKG.ENCHANTMENT + '.' + getDefaultName(clsInfo)
     if (Biome && hasSuperClass(cls, Biome)) return PKG.BIOME + '.' + getDefaultName(clsInfo)
+    if (Fluid && hasSuperClass(cls, Fluid)) return PKG.FLUID + '.' + getDefaultName(clsInfo)
     if (Gui && hasSuperClass(cls, Gui)) return PKG.GUI + '.' + getDefaultName(clsInfo)
     if (NBTBase && (hasSuperClass(cls, NBTBase) || doesImplement(cls, NBTBase))) {
       if (cls.isAbstract()) return CLASS.NBT_PRIMITIVE
@@ -275,6 +277,11 @@ const simpleConstToClass = Object.freeze({
     name: CLASS.SOUNDS,
     method: 'getRegisteredSound',
     return: CLASS.SOUND
+  },
+  'Invalid Fluid requested: ': {
+    name: CLASS.FLUIDS,
+    method: 'getRegisteredFluid',
+    return: CLASS.FLUID
   },
   'Getting Biome': {
     name: CLASS.WORLD,

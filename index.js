@@ -1,24 +1,22 @@
 import fs from 'mz/fs'
 import path from 'path'
-import java from 'java'
-import util from 'util'
 // import {graph} from './graphviz'
-import {getDefaultName, waiter, getMappedClassName, getCallStats} from './util'
-import {getCode, getMethodInheritance} from './util/code'
-import {startStatus, endStatus, setStatus, printStatus} from './util/status'
+import {getDefaultName} from './util'
+import {enrichClsInfo} from './util/code'
+import {createInfo} from './util/info'
+import {startStatus, endStatus, setStatus} from './util/status'
 import {specialSource, extractJar} from './util/tools'
-import {getAllClasses, initMaven} from './util/java'
-import {findAnalyzer} from './util/analyzers'
-import {getExtendedVersionInfo} from './util/version'
+import {getAllClasses, initJava} from './util/java'
+import {analyzeClassWrapper, runAnalyzer} from './util/analyzers'
 import * as renameGetterSetter from './analyzers/getterSetter'
 
-const debug = require('debug')('mc:deobf')
-const debugMd = require('debug')('deobf:md')
-const debugCl = require('debug')('deobf:cl')
-
-const MAX_GENERIC_PASSES = 3
-const MAX_SPECIAL_PASSES = 3
-const MAX_TOTAL_PASSES = 8
+const debugConsole = new console.Console(fs.createWriteStream('debug.log'))
+const dbg = require('debug')('mc:deobf')
+const debug = (...args) => {
+  debugConsole.log(...args)
+  dbg(...args)
+}
+console.debug = debug
 
 const version = process.argv[2] || '1.12'
 if (version.endsWith('.jar')) analyzeJar(path.resolve(version), []).catch(console.error)
@@ -42,274 +40,26 @@ async function analyzeVersion (version) {
 }
 
 async function analyzeJar (jarFile, classPath) {
-  java.asyncOptions = {
-    asyncSuffix: undefined,
-    syncSuffix: '',
-    promiseSuffix: 'Async',
-    promisify: fn => function pfn () {
-      const argsExtra = new Array(Math.max(0, fn.length - arguments.length - 1))
-      const argsIn = [].slice.call(arguments)
-      return new Promise((resolve, reject) => {
-        const args = argsIn.concat(argsExtra)
-        args.push((err, data) => {
-          if (err) reject(err)
-          else resolve(data)
-        })
-        fn.apply(this, args)
-      })
-    }
-  }
-  await initMaven()
-  const ClassPath = java.import('org.apache.bcel.util.ClassPath')
-  const ClassPathRepository = java.import('org.apache.bcel.util.ClassPathRepository')
-  const Repository = java.import('org.apache.bcel.Repository')
   const fullClassPath = [jarFile, ...classPath]
   console.log('Class path: ' + fullClassPath)
-  Repository.setRepository(new ClassPathRepository(new ClassPath(fullClassPath.join(':'))))
-  const slash = s => s.replace(/\./g, '/')
+  const Repository = await initJava(fullClassPath)
   const classNames = getAllClasses(jarFile).filter(name => !name.includes('/') || name.startsWith('net/minecraft'))
-  console.log(classNames.length + ' classes, ' + classNames.filter(name => !name.includes('$')).length + ' outer classes')
-  const side = jarFile.includes('server') ? 'server' : 'client'
-  const version = path.basename(jarFile, '.jar').split('.').filter(p => /\d/.test(p)).join('.')
-  const [, versionMajor, versionMinor, versionPatch] = version.match(/^(\d+)\.(\d+)(\.\d+)?/) || []
-  const info = {
-    side,
-    version: {
-      ...(await getExtendedVersionInfo(version)),
-      major: versionMajor && +versionMajor,
-      minor: versionMinor && +versionMinor,
-      patch: versionPatch && +versionPatch,
-      toString () {
-        return version
-      }
-    },
-    running: 0,
-    pass: 0,
-    maxParallel: 0,
-    numAnalyzed: 0,
-    classAnalyzeAvg: 0,
-    classNames,
-    _queue: [...classNames],
-    genericAnalyzed: {},
-    specialAnalyzed: {},
-    totalAnalyzed: {},
-    namedQueue: [],
-    get hasWork () {
-      return !!info._queue.length
-    },
-    get queue () {
-      const name = info.namedQueue.shift()
-      if (info.genericAnalyzed[name] === -1) {
-        info.specialAnalyzed[name] = (info.specialAnalyzed[name] || 0) + 1
-      } else {
-        info.genericAnalyzed[name] = (info.genericAnalyzed[name] || 0) + 1
-      }
-      info.totalAnalyzed[name] = (info.totalAnalyzed[name] || 0) + 1
-      return info._queue.shift()
-    },
-    set queue (items) {
-      if (!items) return
-      if (!Array.isArray(items)) items = [items]
-      for (const item of items) {
-        const name = typeof item === 'string' ? item : item.getClassName()
-        if (info.namedQueue.includes(name)) continue
-        if (info.genericAnalyzed[name] >= MAX_GENERIC_PASSES) continue
-        if (info.specialAnalyzed[name] >= MAX_SPECIAL_PASSES) continue
-        if (info.totalAnalyzed[name] >= MAX_TOTAL_PASSES) continue
-        if (info.totalAnalyzed[name] >= info.pass) info.pass = info.totalAnalyzed[name] + 1
-        ;(info.class[name].analyzing || Promise.resolve()).then(() => {
-          if (info.namedQueue.includes(name)) return
-          debug('Queueing %s (%s, back)', (info.class[name].name || name), Math.max(info.genericAnalyzed[name], info.specialAnalyzed[name]) || 'new')
-          info._queue.push(item)
-          info.namedQueue.push(name)
-        })
-      }
-    },
-    queueFront (items) {
-      if (!items) return
-      if (!Array.isArray(items)) items = [items]
-      for (const item of items) {
-        const name = typeof item === 'string' ? item : item.getClassName()
-        if (info.totalAnalyzed[name] >= MAX_TOTAL_PASSES) continue
-        ;(info.class[name].analyzing || Promise.resolve()).then(() => {
-          info.class[name].done = false
-          debug('Queueing %s (%s, front)', (info.class[name].name || name), Math.max(info.genericAnalyzed[name], info.specialAnalyzed[name]) || 'new')
-          info._queue.unshift(item)
-          info.namedQueue.unshift(name)
-        })
-      }
-    },
-    classReverse: {},
-    class: new Proxy({
-      [util.inspect.custom] (depth, opts) {
-        return opts.stylize('[Classes: ', 'special') +
-          opts.stylize(Object.keys(this).filter(name => Boolean(this[name].bin)).length, 'number') +
-          opts.stylize(']', 'special')
-      }
-    }, {
-      ownKeys (classes) {
-        return Object.keys(classes).filter(name => Boolean(classes[name].bin))
-      },
-      get (classes, clsObfName) {
-        if (typeof clsObfName !== 'string') return classes[clsObfName]
-        clsObfName = clsObfName.replace(/\//g, '.')
-        if (!classes[clsObfName]) {
-          const clsInfo = classes[clsObfName] = {
-            [util.inspect.custom] (depth, opts) {
-              return opts.stylize('[Class ', 'special') +
-                opts.stylize(clsObfName, 'string') +
-                (this._name ? ' (' + opts.stylize(this._name, 'string') + ')' : '') +
-                opts.stylize(']', 'special')
-            },
-            info,
-            obfName: clsObfName,
-            consts: new Set(),
-            subClasses: new Set(),
-            outerClassName: clsObfName.indexOf('$') > 0 ? clsObfName.slice(0, clsObfName.lastIndexOf('$')) : undefined,
-            get outerClass () {
-              if (!this.outerClassName) throw Error(`${this.name || this.obfName} is not an inner class`)
-              return info.class[this.outerClassName]
-            },
-            isInnerClass: clsObfName.indexOf('$') > 0,
-            set name (deobfName) {
-              if (clsObfName.startsWith('java.')) {
-                console.warn(Error('Tried renaming ' + clsObfName))
-                return
-              }
-              deobfName = deobfName.replace(/\//g, '.')
-              if (info.classReverse[deobfName] && info.classReverse[deobfName] !== slash(clsObfName)) {
-                throw Error(`Duplicate name ${deobfName}: ${info.classReverse[deobfName]}, ${slash(clsObfName)}`)
-              }
-              const origDeobfName = deobfName
-              if (this.isInnerClass) deobfName = deobfName.slice(deobfName.lastIndexOf(deobfName.includes('$') ? '$' : '.') + 1)
-              if (this._name !== deobfName) {
-                info.genericAnalyzed[deobfName] = -1
-                info.specialAnalyzed[deobfName] = 0
-                debugCl('CL: %s %s', slash(clsObfName), slash(deobfName))
-                printStatus(clsObfName + ' -> ' + deobfName)
-                info.queue = clsObfName
-                for (const sc of this.subClasses) info.queue = sc
-              }
-              this._name = deobfName
-              info.classReverse[origDeobfName] = slash(clsObfName)
-            },
-            get name () {
-              return this._name
-            },
-            get numLines () {
-              return Object.values(this.method).reduce((sum, m) => sum + (m.code ? m.code.lines.length : 0), 0)
-            },
-            field: new Proxy({}, {
-              /*
-              set (base, key, value) {
-              }
-              */
-            }),
-            reverseMethod: {},
-            method: new Proxy({
-              [util.inspect.custom] (depth, opts) {
-                return opts.stylize('[Methods: ', 'special') +
-                  opts.stylize(Object.keys(this).filter(name => Boolean(this[name].bin)).length, 'number') +
-                  opts.stylize(']', 'special')
-              }
-            }, {
-              ownKeys (methods) {
-                return Object.keys(methods).filter(fullSig => Boolean(methods[fullSig].bin))
-              },
-              get (mds, fullSig) {
-                if (typeof fullSig !== 'string') return mds[fullSig]
-                if (!mds[fullSig]) {
-                  const [origName, sig] = fullSig.split(':')
-                  mds[fullSig] = {
-                    [util.inspect.custom] (depth, opts) {
-                      return opts.stylize('[Method ', 'special') +
-                        util.inspect(this.clsInfo, opts) +
-                        opts.stylize(origName, 'string') +
-                        opts.stylize(sig, 'special') +
-                        (this._name ? ' (' + opts.stylize(this._name, 'string') + ')' : '') +
-                        opts.stylize(']', 'special')
-                    },
-                    clsInfo,
-                    origName,
-                    sig,
-                    static: false,
-                    set name (deobfName) {
-                      const argSig = fullSig.slice(fullSig.indexOf('('), fullSig.indexOf(')') + 1) + (this.static ? ':static' : '')
-                      const objectMethods = ['toString', 'clone', 'equals', 'hashCode', '<clinit>', '<init>']
-                      if (clsInfo.superClassName === 'java/lang/Enum') objectMethods.push('values', 'valueOf')
-                      if (objectMethods.includes(this.origName) && deobfName !== this.origName) {
-                        console.warn(Error('Tried renaming ' + this.origName + ' to ' + deobfName))
-                        return
-                      }
-                      if (this._name !== deobfName) {
-                        if (clsInfo.reverseMethod[deobfName] &&
-                            argSig in clsInfo.reverseMethod[deobfName] &&
-                            clsInfo.reverseMethod[deobfName][argSig] !== origName) {
-                          console.warn('%s.%s%s already exists (%s vs. %s)',
-                            (clsInfo.name || clsObfName), deobfName, argSig,
-                            clsInfo.reverseMethod[deobfName][argSig], origName)
-                          return
-                        }
-                        if (this._name) {
-                          console.info('%s.%s%s renamed to %s', (clsInfo.name || clsObfName), this._name, argSig, deobfName)
-                        }
-                        debugMd('MD: %s/%s %s %s/%s %s', slash(clsObfName), origName, sig, slash(classes[clsObfName].name || clsObfName), deobfName, sig)
-                        const inherited = getMethodInheritance(this)[1]
-                        if (inherited) {
-                          info.class[inherited].method[fullSig].name = deobfName
-                          console.log('renaming super(' + inherited + ') ' + fullSig + ' -> ' + deobfName)
-                        }
-                      }
-                      this._name = deobfName
-                      clsInfo.reverseMethod[deobfName] = clsInfo.reverseMethod[deobfName] || []
-                      clsInfo.reverseMethod[deobfName][argSig] = origName
-                    },
-                    get name () {
-                      if (this._name) return this._name
-                      const inherited = getMethodInheritance(this)[1]
-                      if (inherited) return info.class[inherited].method[fullSig].name
-                      return this.origName
-                    }
-                  }
-                }
-                return mds[fullSig]
-              }
-            })
-          }
-        }
-        return classes[clsObfName]
-      },
-      set (classes, clsObfName, value) {
-        throw Error(`Setting info.class.${clsObfName} to ${value} is not allowed`)
-      }
-    }),
-    method: new Proxy({}, {
-      get (obj, fullSig) {
-        if (typeof fullSig !== 'string') return
-        const className = fullSig.slice(0, fullSig.lastIndexOf('.', fullSig.indexOf(':')))
-        const methodSig = fullSig.slice(className.length + 1)
-        return info.class[className].method[methodSig]
-      }
-    })
-  }
-  /*
-  const mainClass = meta.mainClass === 'net.minecraft.launchwrapper.Launch' ? 'net.minecraft.client.Minecraft' : meta.mainClass
-  if (mainClass !== meta.mainClass) console.log('Using alternative main class: %s', mainClass)
-  info.queue = mainClass
-  if (Repository.lookupClass('net.minecraft.data.Main')) {
-    info.queue = 'net.minecraft.data.Main'
-  }
-  */
-  startStatus(info)
-  console.log('Enriching class info')
-  await Promise.all(classNames.map(async name => {
+  const forEachClass = fn => Promise.all(classNames.map(async name => {
     try {
       const cls = await Repository.lookupClass(name)
-      await enrichClsInfo(cls, info)
+      const clsInfo = info.class[name]
+      await fn(cls, clsInfo)
     } catch (e) {
       console.warn(e)
     }
   }))
+  console.log(classNames.length + ' classes, ' + classNames.filter(name => !name.includes('$')).length + ' outer classes')
+  const side = jarFile.includes('server') ? 'server' : 'client'
+  const version = path.basename(jarFile, '.jar').split('.').filter(p => /\d/.test(p)).join('.')
+  const info = await createInfo({version, side, classNames})
+  startStatus(info)
+  console.log('Enriching class info')
+  await forEachClass(cls => enrichClsInfo(cls, info))
   const ps = {}
   while (true) {
     while (info.hasWork) {
@@ -323,18 +73,9 @@ async function analyzeJar (jarFile, classPath) {
   }
   console.log('Queue empty')
   console.log('Renaming getters & setters')
-  await Promise.all(classNames.map(async name => {
-    try {
-      const cls = await Repository.lookupClass(name)
-      const clsInfo = info.class[name]
-      await runAnalyzer(renameGetterSetter, cls, clsInfo, info)
-    } catch (e) {
-      console.warn(e)
-    }
-  }))
+  await forEachClass((cls, clsInfo) => runAnalyzer(renameGetterSetter, cls, clsInfo, info))
   endStatus()
   const deobfJar = path.resolve(__dirname, './work/' + path.basename(jarFile, '.jar') + '-deobf.jar')
-  const srcDir = path.resolve('./work/src/')
   // await renderGraph(info)
   const unknownClasses = Object.values(info.class).filter(c => !c.name)
   console.log(Object.values(info.classReverse).filter(name => !info.class[name].name.endsWith(getDefaultName(info.class[name]))).length + ' class names found')
@@ -365,160 +106,25 @@ async function analyzeJar (jarFile, classPath) {
   console.log('Enums:')
   console.log(unknownClasses
     .filter(c => c.enumNames)
-    .sort((a, b) => {
-      const s0 = b.enumNames.length - a.enumNames.length
-      if (s0 !== 0) return s0
-      if (!a.isInnerClass && b.isInnerClass) return -1
-      if (a.isInnerClass && !b.isInnerClass) return 1
-      const ta = a.enumNames.toString()
-      const tb = b.enumNames.toString()
-      if (ta > tb) return 1
-      if (ta < tb) return -1
-      return 0
-    })
+    .sort(sortEnums)
     .slice(0, 100)
     .map(c => c.obfName + ': ' + c.enumNames)
     .join('\n'))
   const binDir = path.resolve('./work/bin/')
   await extractJar(deobfJar, binDir)
+  // const srcDir = path.resolve('./work/src/')
   // await procyon(deobfJar, srcDir)
   // await fernflower(deobfJar, srcDir)
 }
 
-async function analyzeClassWrapper (next, info, Repository) {
-  let w = waiter()
-  const start = Date.now()
-  if (typeof next === 'string') {
-    info.class[next].analyzing = w
-    try {
-      next = await Repository.lookupClass(next)
-    } catch (e) {
-      console.warn(e)
-      return
-    }
-  } else {
-    info.class[next.getClassName()].analyzing = w
-  }
-  info.maxParallel = Math.max(info.maxParallel, ++info.running)
-  w.waitingFor = analyzeClass(next, info)
-  return w.then(() => {
-    info.running--
-    const sum = info.classAnalyzeAvg * info.numAnalyzed + (Date.now() - start)
-    info.classAnalyzeAvg = sum / ++info.numAnalyzed
-  })
-}
-
-async function enrichClsInfo (cls, info) {
-  const className = await cls.getClassNameAsync()
-  const clsInfo = info.class[className]
-  if (clsInfo.bin) return clsInfo
-  clsInfo.superClassName = await cls.getSuperclassNameAsync()
-  info.class[clsInfo.superClassName].subClasses.add(className)
-  clsInfo.interfaces = await cls.getInterfacesAsync()
-  clsInfo.interfaceNames = await Promise.all(clsInfo.interfaces.map(i => i.getClassNameAsync()))
-  for (const ifn of clsInfo.interfaces) info.class[ifn].subClasses.add(className)
-  clsInfo.bin = cls
-  clsInfo.isInterface = await cls.isInterfaceAsync()
-  for (const md of await cls.getMethodsAsync()) {
-    const methodInfo = clsInfo.method[(await md.getNameAsync()) + ':' + (await md.getSignatureAsync())]
-    methodInfo.bin = md
-    methodInfo.isAbstract = await md.isAbstract()
-  }
-  return clsInfo
-}
-
-async function analyzeClass (cls, info) {
-  const clsInfo = await enrichClsInfo(cls, info)
-  if (clsInfo.done) return
-  clsInfo.done = true
-  const pkg = cls.getPackageName()
-  if (pkg.startsWith('net.minecraft')) clsInfo.name = clsInfo.obfName
-  const genericAnalyzer = require('./analyzers/generic')
-  let analyzer = genericAnalyzer
-  const special = clsInfo.name && (clsInfo.analyzer || await findAnalyzer(getMappedClassName(info, clsInfo.obfName)))
-  if (special) {
-    console.log('Special analyzer for %s: %s', clsInfo.name, Object.keys(analyzer))
-    clsInfo.analyzer = analyzer = special
-    info.genericAnalyzed[clsInfo.obfName] = -1
-  } else if (clsInfo.name) {
-    debug('Generic analyzer for %s', clsInfo.name)
-  }
-  try {
-    await runAnalyzer(analyzer, cls, clsInfo, info, genericAnalyzer)
-  } catch (e) {
-    console.error('Error while analyzing %s:\n%s', (clsInfo.name || clsInfo.obfName), e.stack)
-  }
-  setStatus(`Done with ${clsInfo.name || clsInfo.obfName}`)
-}
-
-async function runAnalyzer (analyzer, cls, clsInfo, info, genericAnalyzer) {
-  const className = clsInfo.obfName
-  if (analyzer.cls) {
-    if (analyzer !== genericAnalyzer) debug('%s: Running analyzer.cls', (clsInfo.name || className))
-    setStatus(`${clsInfo.name || className}`)
-    try {
-      const name = await analyzer.cls(cls, clsInfo, info)
-      if (name) clsInfo.name = name
-    } catch (e) {
-      console.error(e)
-    }
-  }
-  if (analyzer.field) {
-    for (const field of await cls.getFieldsAsync()) {
-      const fieldProxy = field// getCallStats(field)
-      const obfName = await field.getNameAsync()
-      if (clsInfo.field[obfName]) continue
-      clsInfo.field[obfName] = null
-      if (analyzer !== genericAnalyzer) debug('%s.%s: Running analyzer.field', (clsInfo.name || className), obfName)
-      setStatus(`${clsInfo.name || className}.${obfName}`)
-      try {
-        const deobfName = await analyzer.field(fieldProxy, clsInfo, info, cls)
-        if (deobfName) {
-          clsInfo.field[obfName] = deobfName
-          clsInfo.done = false
-        } else if (genericAnalyzer && analyzer !== genericAnalyzer) {
-          const deobfName = await genericAnalyzer.field(fieldProxy, clsInfo, info, cls)
-          if (deobfName) clsInfo.field[obfName] = deobfName
-        }
-      } catch (e) {
-        console.error(e)
-      }
-    }
-  }
-
-  for (const method of await cls.getMethodsAsync()) {
-    const methodProxy = getCallStats(method)
-    const name = await method.getNameAsync()
-    const sig = await method.getSignatureAsync()
-    const methodInfo = clsInfo.method[name + ':' + sig]
-    methodInfo.clsInfo = clsInfo
-    methodInfo.info = info
-    methodInfo.obfName = name
-    methodInfo.sig = sig
-    methodInfo.static = await method.isStaticAsync()
-    methodInfo.args = await method.getArgumentTypesAsync()
-    if (methodInfo.done) continue
-    if (analyzer !== genericAnalyzer) debug('Analyzing method %s.%s:%s', (clsInfo.name || className), name, sig)
-    setStatus(`${clsInfo.name || className}.${name}${sig}`)
-    const code = methodInfo.code = methodInfo.code || await getCode(method)
-    for (const c of code.consts) if (typeof c === 'string') clsInfo.consts.add(c)
-    // for (const call of code.internalCalls) if (call.fullClassName !== className) info.queue = call.fullClassName
-    // for (const field of code.internalFields) if (field.fullClassName !== className) info.queue = field.fullClassName
-    try {
-      if (analyzer.method) {
-        methodInfo.done = true
-        const name = await analyzer.method(cls, methodProxy, code, methodInfo, clsInfo, info)
-        if (name) methodInfo.name = name
-        else if (genericAnalyzer && analyzer !== genericAnalyzer) {
-          const name = await genericAnalyzer.method(cls, methodProxy, code, methodInfo, clsInfo, info)
-          if (name) methodInfo.name = name
-        }
-      } else if (genericAnalyzer && analyzer !== genericAnalyzer) {
-        const name = await genericAnalyzer.method(cls, methodProxy, code, methodInfo, clsInfo, info)
-        if (name) methodInfo.name = name
-      }
-    } catch (e) {
-      console.error(e)
-    }
-  }
+const sortEnums = (a, b) => {
+  const s0 = b.enumNames.length - a.enumNames.length
+  if (s0 !== 0) return s0
+  if (!a.isInnerClass && b.isInnerClass) return -1
+  if (a.isInnerClass && !b.isInnerClass) return 1
+  const ta = a.enumNames.toString()
+  const tb = b.enumNames.toString()
+  if (ta > tb) return 1
+  if (ta < tb) return -1
+  return 0
 }

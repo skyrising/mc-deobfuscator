@@ -138,7 +138,7 @@ export function getCallStats (obj) {
       const value = base[key]
       if (typeof value === 'function') {
         const line = name + '.' + key + Error().stack.split('\n')[2].replace(path.resolve(__dirname, '..') + '/', '')
-        if (!logged.has(line)) console.log(line)
+        if (!logged.has(line)) console.debug(line)
         logged.add(line)
         return (...args) => {
           return value.call(base, ...args)

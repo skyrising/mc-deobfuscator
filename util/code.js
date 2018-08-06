@@ -184,3 +184,22 @@ export function getMethodInheritance (methodInfo, clsInfo) {
   methodInheritance[key] = [clsInfo.obfName]
   return methodInheritance[key]
 }
+
+export async function enrichClsInfo (cls, info) {
+  const className = await cls.getClassNameAsync()
+  const clsInfo = info.class[className]
+  if (clsInfo.bin) return clsInfo
+  clsInfo.superClassName = await cls.getSuperclassNameAsync()
+  info.class[clsInfo.superClassName].subClasses.add(className)
+  clsInfo.interfaces = await cls.getInterfacesAsync()
+  clsInfo.interfaceNames = await Promise.all(clsInfo.interfaces.map(i => i.getClassNameAsync()))
+  for (const ifn of clsInfo.interfaces) info.class[ifn].subClasses.add(className)
+  clsInfo.bin = cls
+  clsInfo.isInterface = await cls.isInterfaceAsync()
+  for (const md of await cls.getMethodsAsync()) {
+    const methodInfo = clsInfo.method[(await md.getNameAsync()) + ':' + (await md.getSignatureAsync())]
+    methodInfo.bin = md
+    methodInfo.isAbstract = await md.isAbstract()
+  }
+  return clsInfo
+}
