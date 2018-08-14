@@ -64,7 +64,7 @@ console.warn = (...args) => {
   printStatus()
 }
 
-const errorLog = fs.createWriteStream(path.resolve(__dirname, '../error.log'))
+const errorLog = fs.createWriteStream(path.resolve('error.log'))
 
 console.error = (...args) => {
   printLine(31, ...args)

@@ -5,8 +5,10 @@
   "main": "index.js",
   "scripts": {
     "test": "env BABEL_ENV=test nyc ava",
-    "dev": "node -r @babel/register index.js",
-    "dl-server": "node -r @babel/register util/version.js"
+    "build": "babel src -d build",
+    "start": "node build/index.js",
+    "dev": "node -r @babel/register src/index.js",
+    "dl-server": "node -r @babel/register src/util/version.js"
   },
   "author": "",
   "license": "ISC",

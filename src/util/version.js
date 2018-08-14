@@ -16,7 +16,7 @@ export async function getVersionInfo (id) {
 }
 
 export async function getExtendedVersionInfo (id) {
-  const file = path.resolve(__dirname, '../data', id, 'version.json')
+  const file = path.resolve('data', id, 'version.json')
   if (await fs.exists(file)) return JSON.parse(await fs.readFile(file, 'utf8'))
   const version = await getVersionInfo(id)
   const {downloads} = await getVersionManifest(id) || {}
@@ -41,7 +41,7 @@ export async function downloadJar (version, download = 'server') {
   const filename = (download === 'server' ? 'minecraft_server.' : '') + version + '.jar'
   const versionManifest = await getVersionManifest(version)
   if (!versionManifest) throw Error('Could not find version ' + version)
-  const out = fs.createWriteStream(path.resolve(__dirname, '../work/', filename))
+  const out = fs.createWriteStream(path.resolve('work/', filename))
   return request(versionManifest.downloads[download].url).pipe(out)
 }
 

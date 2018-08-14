@@ -4,7 +4,7 @@ import path from 'path'
 import {getMappedClassName, sortObfClassName, slash} from './index'
 
 export function generateSrgs (info) {
-  const dataDir = path.resolve(__dirname, '../data')
+  const dataDir = path.resolve('data')
   if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir)
   const versionDir = path.resolve(dataDir, info.version.toString())
   if (!fs.existsSync(versionDir)) fs.mkdirSync(versionDir)

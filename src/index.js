@@ -79,7 +79,7 @@ async function analyzeJar (jarFile, classPath) {
   console.log('Renaming getters & setters')
   await forEachClass((cls, clsInfo) => runAnalyzer(renameGetterSetter, cls, clsInfo, info))
   endStatus()
-  const deobfJar = path.resolve(__dirname, './work/' + path.basename(jarFile, '.jar') + '-deobf.jar')
+  const deobfJar = path.resolve('work', path.basename(jarFile, '.jar') + '-deobf.jar')
   // await renderGraph(info)
   const unknownClasses = Object.values(info.class).filter(c => !c.name)
   console.log(Object.values(info.classReverse).filter(name => !info.class[name].name.endsWith(getDefaultName(info.class[name]))).length + ' class names found')

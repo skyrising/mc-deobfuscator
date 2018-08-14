@@ -11,8 +11,7 @@
     "@babel/plugin-syntax-dynamic-import",
     ["@babel/plugin-proposal-decorators", {"legacy": true}],
     ["@babel/plugin-proposal-class-properties", { "spec": true }],
-    ["@babel/plugin-proposal-object-rest-spread", { "useBuiltIns": true }],
-    "transform-dirname-filename"
+    ["@babel/plugin-proposal-object-rest-spread", { "useBuiltIns": true }]
   ],
   "env": {
     "test": {

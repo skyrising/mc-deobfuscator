@@ -1,5 +1,5 @@
 import test from 'ava'
-import * as parse from '../../util/parse'
+import * as parse from '../../src/util/parse'
 
 test('parseClassSignature', t => {
   const cases = [
