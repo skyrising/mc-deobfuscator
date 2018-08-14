@@ -7,8 +7,9 @@ import {createInfo} from './util/info'
 import {startStatus, endStatus, setStatus} from './util/status'
 import {specialSource, extractJar} from './util/tools'
 import {getAllClasses, initJava} from './util/java'
-import {analyzeClassWrapper, runAnalyzer} from './util/analyzers'
+import {analyzeClassWrapper, runAnalyzer, initAnalyzer} from './util/analyzers'
 import * as renameGetterSetter from './analyzers/getterSetter'
+import * as hierarchyAnalyzer from './analyzers/hierarchy'
 
 const debugConsole = new console.Console(fs.createWriteStream('debug.log'))
 const dbg = require('debug')('mc:deobf')
@@ -60,10 +61,11 @@ async function analyzeJar (jarFile, classPath) {
   startStatus(info)
   console.log('Enriching class info')
   await forEachClass(cls => enrichClsInfo(cls, info))
+  await initAnalyzer(hierarchyAnalyzer, info)
   const ps = {}
   while (true) {
     while (info.hasWork) {
-      const name = info.queue
+      const name = info.dequeue()
       ps[name] = analyzeClassWrapper(name, info, Repository)
     }
     setStatus('Starting pass')
@@ -72,6 +74,8 @@ async function analyzeJar (jarFile, classPath) {
     if (!info.hasWork) break
   }
   console.log('Queue empty')
+  console.log('Analyzing hierarchy')
+  await forEachClass((cls, clsInfo) => runAnalyzer(hierarchyAnalyzer, cls, clsInfo, info))
   console.log('Renaming getters & setters')
   await forEachClass((cls, clsInfo) => runAnalyzer(renameGetterSetter, cls, clsInfo, info))
   endStatus()

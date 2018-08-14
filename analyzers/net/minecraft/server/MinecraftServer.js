@@ -1,3 +1,5 @@
+// TODO: use ClassNames.js
+
 export function method (cls, method, code, methodInfo, clsInfo, info) {
   /*
   switch (method.getReturnType().getSignature()) {

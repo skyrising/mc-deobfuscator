@@ -2,13 +2,6 @@ import {signatureTag as s} from '../../../../util/code'
 import * as CLASS from '../../../../ClassNames'
 import * as PKG from '../../../../PackageNames'
 
-export function cls (cls, clsInfo, info) {
-  const ifs = cls.getInterfaces()
-  if (ifs.length === 1) {
-    info.class[ifs[0].getClassName()].name = CLASS.ITEMIZABLE
-  }
-}
-
 export function method (cls, method, code, methodInfo, clsInfo, info) {
   const {sig} = methodInfo
   const Block = clsInfo.obfName
@@ -89,7 +82,7 @@ const classNames = {
   moving_piston: 'MovingPiston',
   tnt: 'Tnt',
   bookshelf: 'Bookshelf',
-  torch: 'Torch',
+  torch: 'StandingTorch',
   wall_torch: 'WallTorch',
   fire: 'Fire',
   spawner: 'Spawner',
@@ -99,7 +92,7 @@ const classNames = {
   crafting_table: 'CraftingTable',
   wheat: 'Wheat',
   furnace: 'Furnace',
-  sign: 'Sign',
+  sign: 'StandingSign',
   oak_door: 'Door',
   ladder: 'Ladder',
   rail: 'Rail',
@@ -153,7 +146,7 @@ const classNames = {
   potatoes: 'Potatoes',
   oak_button: 'WoodButton',
   skeleton_wall_skull: 'WallHead',
-  skeleton_skull: 'Head',
+  skeleton_skull: 'NormalHead',
   wither_skeleton_wall_skull: 'WitherSkeletonWallSkull',
   wither_skeleton_skull: 'WitherSkeletonSkull',
   player_wall_head: 'PlayerWallHead',
@@ -176,7 +169,7 @@ const classNames = {
   packed_ice: 'PackedIce',
   sunflower: 'TallFlower',
   tall_grass: 'TallGrass',
-  white_banner: 'Banner',
+  white_banner: 'StandingBanner',
   white_wall_banner: 'WallBanner',
   end_rod: 'EndRod',
   chorus_flower: 'ChorusFlower',

@@ -21,8 +21,10 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
 export function field (field, clsInfo, info) {
   const sig = field.getType().getSignature()
   const MapColor = info.classReverse[CLASS.MAP_COLOR]
-  if (!MapColor) clsInfo.done = false
+  const Material = info.classReverse[CLASS.MATERIAL]
+  if (!MapColor || !Material) clsInfo.done = false
   if (MapColor && sig === 'L' + MapColor + ';') return 'mapColor'
+  if (Material && sig === 'L' + Material + ';') return 'material'
   switch (sig) {
     case 'I': return 'lightOpacity'
   }

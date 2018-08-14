@@ -124,7 +124,8 @@ export function getMappedClassName (info, from) {
   if (from.indexOf('$') < 0) {
     if (to.name) return to.name.replace(/\./g, '/')
     if (from.length >= 6) return from.replace(/\./g, '/')
-    return PKG.DEFAULT.replace(/\./g, '/') + '/' + getDefaultName(to)
+    console.debug('Mapping class name ' + to.obfName + ' with package ' + (to.package || PKG.DEFAULT) + ' -> ' + (to.package || PKG.DEFAULT).replace(/\./g, '/') + '/' + getDefaultName(to))
+    return (to.package || PKG.DEFAULT).replace(/\./g, '/') + '/' + getDefaultName(to)
   }
   const toEnd = (to.name || from).slice((to.name || from).lastIndexOf('$') + 1)
   return getMappedClassName(info, from.slice(0, from.lastIndexOf('$'))) + '$' + toEnd

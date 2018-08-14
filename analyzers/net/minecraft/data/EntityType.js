@@ -43,19 +43,21 @@ const ENTITY_PKG = {
   IllusionIllager: PKG.ENTITY_MONSTER,
   Item: PKG.ENTITY_ITEM,
   ItemFrame: PKG.ENTITY_ITEM,
+  IronGolem: PKG.ENTITY_PASSIVE,
   LavaSlime: PKG.ENTITY_MONSTER,
   LeashKnot: PKG.ENTITY_ITEM,
   Llama: PKG.ENTITY_PASSIVE,
   LlamaSpit: PKG.ENTITY_PROJECTILE,
+  Minecart: PKG.ENTITY_ITEM,
   Mule: PKG.ENTITY_PASSIVE,
   MushroomCow: PKG.ENTITY_PASSIVE,
   Ozelot: PKG.ENTITY_PASSIVE,
   Parrot: PKG.ENTITY_PASSIVE,
   Painting: PKG.ENTITY_ITEM,
+  Phantom: PKG.ENTITY_MONSTER,
   Pig: PKG.ENTITY_PASSIVE,
   PigZombie: PKG.ENTITY_MONSTER,
   PolarBear: PKG.ENTITY_MONSTER,
-  Potion: PKG.ENTITY_PROJECTILE,
   PrimedTnt: PKG.ENTITY_ITEM,
   Rabbit: PKG.ENTITY_PASSIVE,
   Sheep: PKG.ENTITY_PASSIVE,
@@ -78,6 +80,7 @@ const ENTITY_PKG = {
   ThrownExpBottle: PKG.ENTITY_PROJECTILE,
   ThrownPotion: PKG.ENTITY_PROJECTILE,
   Tnt: PKG.ENTITY_ITEM,
+  Trident: PKG.ENTITY_PROJECTILE,
   Vex: PKG.ENTITY_MONSTER,
   Villager: PKG.ENTITY_PASSIVE,
   VillagerGolem: PKG.ENTITY_PASSIVE,
@@ -100,10 +103,13 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
     for (const line of code.lines) {
       if (typeof line.const !== 'string') continue
       if (!/^[A-Za-z_\d]+$/.test(line.const) || typeof line.previous.const === 'string') continue
-      const name = toUpperCamelCase(line.const)
+      let name = toUpperCamelCase(line.const)
+      if (name === 'VillagerGolem') name = 'IronGolem'
+      if (name === 'Potion') name = 'ThrownPotion'
+      if (name === 'ThrownEnderpearl') name = 'EnderPearl'
       const fieldName = (flat ? line.const : toUnderScoreCase(line.const)).toUpperCase()
       clsInfo.field[line.nextOp('putstatic').field.fieldName] = fieldName
-      const entClass = flat ? line.next.const : line.previous.const
+      let entClass = flat ? line.next.const : line.previous.const
       const pkg = name in ENTITY_PKG ? ENTITY_PKG[name] : PKG.ENTITY
       info.class[entClass].name = pkg + '.' + name
     }

@@ -78,9 +78,22 @@ export async function analyzeClass (cls, info) {
   setStatus(`Done with ${clsInfo.name || clsInfo.obfName}`)
 }
 
-export async function runAnalyzer (analyzer, cls, clsInfo, info, GENERIC_ANALYZER) {
+const INITIALIZED = Symbol('initialized')
+
+export async function initAnalyzer (analyzer, info) {
+  if (!analyzer[INITIALIZED]) {
+    analyzer[INITIALIZED] = true
+    if (typeof analyzer.init === 'function') {
+      console.debug('Initializing analyzer %s', analyzer.name || analyzer.file)
+      await analyzer.init(info)
+    }
+  }
+}
+
+export async function runAnalyzer (analyzer, cls, clsInfo, info, runGeneric) {
+  await initAnalyzer(analyzer, info)
   const className = clsInfo.obfName
-  console.debug('Running analyzer %s for %s', analyzer.file, clsInfo.name || className)
+  console.debug('Running analyzer %s for %s', analyzer.name || analyzer.file, clsInfo.name || className)
   if (analyzer.cls) {
     if (analyzer !== GENERIC_ANALYZER) console.debug('%s: Running analyzer.cls', clsInfo.name || className)
     setStatus(`${clsInfo.name || className}`)
@@ -114,39 +127,44 @@ export async function runAnalyzer (analyzer, cls, clsInfo, info, GENERIC_ANALYZE
     }
   }
 
-  for (const method of await cls.getMethodsAsync()) {
-    const methodProxy = getCallStats(method)
-    const name = await method.getNameAsync()
-    const sig = await method.getSignatureAsync()
-    const methodInfo = clsInfo.method[name + ':' + sig]
-    methodInfo.clsInfo = clsInfo
-    methodInfo.info = info
-    methodInfo.obfName = name
-    methodInfo.sig = sig
-    methodInfo.static = await method.isStaticAsync()
-    methodInfo.args = await method.getArgumentTypesAsync()
-    if (methodInfo.done) continue
-    if (analyzer !== GENERIC_ANALYZER) console.debug('Analyzing method %s.%s:%s', (clsInfo.name || className), name, sig)
-    setStatus(`${clsInfo.name || className}.${name}${sig}`)
-    const code = methodInfo.code = methodInfo.code || await getCode(method)
-    for (const c of code.consts) if (typeof c === 'string') clsInfo.consts.add(c)
-    // for (const call of code.internalCalls) if (call.fullClassName !== className) info.queue = call.fullClassName
-    // for (const field of code.internalFields) if (field.fullClassName !== className) info.queue = field.fullClassName
-    try {
-      if (analyzer.method) {
+  if (analyzer.method) {
+    for (const method of await cls.getMethodsAsync()) {
+      const methodProxy = getCallStats(method)
+      const name = await method.getNameAsync()
+      const sig = await method.getSignatureAsync()
+      const methodInfo = clsInfo.method[name + ':' + sig]
+      methodInfo.clsInfo = clsInfo
+      methodInfo.info = info
+      methodInfo.obfName = name
+      methodInfo.sig = sig
+      methodInfo.static = await method.isStaticAsync()
+      methodInfo.args = await method.getArgumentTypesAsync()
+      if (methodInfo.done) continue
+      if (analyzer !== GENERIC_ANALYZER) console.debug('Analyzing method %s.%s:%s', (clsInfo.name || className), name, sig)
+      setStatus(`${clsInfo.name || className}.${name}${sig}`)
+      const code = methodInfo.code = methodInfo.code || await getCode(method)
+      for (const c of code.consts) if (typeof c === 'string') clsInfo.consts.add(c)
+      // for (const call of code.internalCalls) if (call.fullClassName !== className) info.queue = call.fullClassName
+      // for (const field of code.internalFields) if (field.fullClassName !== className) info.queue = field.fullClassName
+      try {
         methodInfo.done = true
-        const name = await analyzer.method(cls, methodProxy, code, methodInfo, clsInfo, info)
-        if (name) methodInfo.name = name
-        else if (GENERIC_ANALYZER && analyzer !== GENERIC_ANALYZER) {
-          const name = await GENERIC_ANALYZER.method(cls, methodProxy, code, methodInfo, clsInfo, info)
-          if (name) methodInfo.name = name
+        if (!(await callAnalyzerMethod(analyzer, methodProxy, methodInfo)) && GENERIC_ANALYZER) {
+          if (runGeneric) await callAnalyzerMethod(GENERIC_ANALYZER, methodProxy, methodInfo)
         }
-      } else if (GENERIC_ANALYZER && analyzer !== GENERIC_ANALYZER) {
-        const name = await GENERIC_ANALYZER.method(cls, methodProxy, code, methodInfo, clsInfo, info)
-        if (name) methodInfo.name = name
+      } catch (e) {
+        console.error(e)
       }
-    } catch (e) {
-      console.error(e)
     }
   }
+}
+
+async function callAnalyzerMethod (analyzer, method, methodInfo) {
+  if (analyzer.method.length === 1) {
+    const name = await analyzer.method(methodInfo)
+    if (name) methodInfo.name = name
+    return Boolean(name)
+  }
+  const name = await analyzer.method(methodInfo.clsInfo.bin, method, methodInfo.code, methodInfo, methodInfo.clsInfo, methodInfo.clsInfo.info)
+  if (name) methodInfo.name = name
+  return Boolean(name)
 }

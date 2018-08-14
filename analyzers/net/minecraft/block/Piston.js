@@ -1,10 +1,6 @@
 import {signatureTag as s, getMethodInheritance} from '../../../../util/code'
 import * as CLASS from '../../../../ClassNames'
 
-export function cls (cls, clsInfo, info) {
-  info.class[cls.getSuperclassName()].name = CLASS.DIRECTIONAL_BLOCK
-}
-
 export function field (field, clsInfo, info) {
   const sig = field.getType().getSignature()
   switch (sig) {

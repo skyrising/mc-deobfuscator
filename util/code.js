@@ -1,4 +1,15 @@
 import util from 'util'
+import {parseClassSignature} from './parse'
+
+const ACC_PUBLIC = 0x0001
+const ACC_PRIVATE = 0x0002
+const ACC_PROTECTED = 0x0004
+const ACC_STATIC = 0x0008
+const ACC_FINAL = 0x0010
+const ACC_VOLATILE = 0x0040
+const ACC_TRANSIENT = 0x0080
+const ACC_SYNTHETIC = 0x1000
+const ACC_ENUM = 0x4000
 
 export async function getCode (method) {
   let code
@@ -196,10 +207,44 @@ export async function enrichClsInfo (cls, info) {
   for (const ifn of clsInfo.interfaces) info.class[ifn].subClasses.add(className)
   clsInfo.bin = cls
   clsInfo.isInterface = await cls.isInterfaceAsync()
+  for (const attr of await cls.getAttributes()) {
+    const name = await attr.getNameAsync()
+    clsInfo.attributes[name] = attr
+    if (name === 'Signature') {
+      clsInfo.rawGenericSignature = await attr.getSignatureAsync()
+      ;[clsInfo.genericSignature] = parseClassSignature(clsInfo.rawGenericSignature)
+      console.debug(clsInfo.obfName, clsInfo.rawGenericSignature, JSON.stringify(clsInfo.genericSignature))
+    }
+  }
   for (const md of await cls.getMethodsAsync()) {
     const methodInfo = clsInfo.method[(await md.getNameAsync()) + ':' + (await md.getSignatureAsync())]
     methodInfo.bin = md
     methodInfo.isAbstract = await md.isAbstract()
+  }
+  for (const fd of await cls.getFieldsAsync()) {
+    const acc = await fd.getAccessFlags()
+    const fieldInfo = {
+      clsInfo,
+      obfName: await fd.getNameAsync(),
+      type: await fd.getTypeAsync(),
+      public: Boolean(acc & ACC_PUBLIC),
+      private: Boolean(acc & ACC_PRIVATE),
+      protected: Boolean(acc & ACC_PROTECTED),
+      static: Boolean(acc & ACC_STATIC),
+      final: Boolean(acc & ACC_FINAL),
+      volatile: Boolean(acc & ACC_VOLATILE),
+      transient: Boolean(acc & ACC_TRANSIENT),
+      synthetic: Boolean(acc & ACC_SYNTHETIC),
+      enum: Boolean(acc & ACC_ENUM),
+      get name () {
+        return clsInfo.field[this.obfName]
+      },
+      set name (name) {
+        clsInfo.field[this.obfName] = name
+      }
+    }
+    fieldInfo.sig = await fieldInfo.type.getSignatureAsync()
+    clsInfo.fields[fieldInfo.obfName] = fieldInfo
   }
   return clsInfo
 }

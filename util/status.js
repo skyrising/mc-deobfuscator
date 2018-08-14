@@ -1,3 +1,5 @@
+import fs from 'fs'
+import path from 'path'
 import util from 'util'
 const {getPromiseDetails} = process.binding('util')
 
@@ -62,7 +64,10 @@ console.warn = (...args) => {
   printStatus()
 }
 
+const errorLog = fs.createWriteStream(path.resolve(__dirname, '../error.log'))
+
 console.error = (...args) => {
   printLine(31, ...args)
+  errorLog.write(util.format(...args) + '\n')
   printStatus()
 }

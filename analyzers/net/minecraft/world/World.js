@@ -1,11 +1,6 @@
 import {signatureTag as s} from '../../../../util/code'
 import * as CLASS from '../../../../ClassNames'
 
-export function cls (cls, clsInfo, info) {
-  const ifs = cls.getInterfaces()
-  if (ifs.length === 1) info.class[ifs[0].getClassName()].name = CLASS.WORLD_STATE
-}
-
 export function field (field, clsInfo, info) {
   const sig = field.getType().getSignature()
   switch (sig) {
@@ -60,6 +55,7 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
   if (s`()Ljava/lang/String;`.matches(methodInfo) && code.consts.includes('All: ')) return 'getLoadedEntitiesString'
   if (s`(${CLASS.LIGHT_TYPE}${CLASS.BLOCK_POS})Z` && code.consts.includes('getBrightness')) return 'checkLight'
   if (s`()${CLASS.GAME_RULES}`.matches(methodInfo)) return 'getGameRules'
+  if (s`(${CLASS.HEIGHTMAP$TYPE}${CLASS.BLOCK_POS})${CLASS.BLOCK_POS}`.matches(methodInfo)) return 'getHighestBlock'
   if (code.consts.includes('Playing level event')) return 'playEvent'
   if (s`()I`.matches(methodInfo)) {
     if (code.consts.includes(128)) return 'getGenerationHeight'

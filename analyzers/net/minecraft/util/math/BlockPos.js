@@ -1,10 +1,6 @@
 import {signatureTag as s} from '../../../../../util/code'
 import * as CLASS from '../../../../../ClassNames'
 
-export function cls (cls, clsInfo, info) {
-  info.class[cls.getSuperclassName()].name = CLASS.VEC_3I
-}
-
 export function field (field, clsInfo, info) {
   const BlockPos = clsInfo.obfName
   const sig = field.getType().getSignature()

@@ -1,4 +1,5 @@
 import util from 'util'
+import EventEmitter from 'events'
 import {getExtendedVersionInfo} from './version'
 import {printStatus} from './status'
 import {getMethodInheritance} from './code'
@@ -12,77 +13,22 @@ const debugCl = require('debug')('deobf:cl')
 
 const slash = s => s.replace(/\./g, '/')
 
-export async function createInfo ({version, side, classNames}) {
-  const [, versionMajor, versionMinor, versionPatch] = version.match(/^(\d+)\.(\d+)(\.\d+)?/) || []
-  const info = {
-    side,
-    version: {
-      ...(await getExtendedVersionInfo(version)),
-      major: versionMajor && +versionMajor,
-      minor: versionMinor && +versionMinor,
-      patch: versionPatch && +versionPatch,
-      toString () {
-        return version
-      }
-    },
-    running: 0,
-    pass: 0,
-    maxParallel: 0,
-    numAnalyzed: 0,
-    classAnalyzeAvg: 0,
-    classNames,
-    _queue: [...classNames],
-    genericAnalyzed: {},
-    specialAnalyzed: {},
-    totalAnalyzed: {},
-    namedQueue: [],
-    get hasWork () {
-      return !!info._queue.length
-    },
-    get queue () {
-      const name = info.namedQueue.shift()
-      if (info.genericAnalyzed[name] === -1) {
-        info.specialAnalyzed[name] = (info.specialAnalyzed[name] || 0) + 1
-      } else {
-        info.genericAnalyzed[name] = (info.genericAnalyzed[name] || 0) + 1
-      }
-      info.totalAnalyzed[name] = (info.totalAnalyzed[name] || 0) + 1
-      return info._queue.shift()
-    },
-    set queue (items) {
-      if (!items) return
-      if (!Array.isArray(items)) items = [items]
-      for (const item of items) {
-        const name = typeof item === 'string' ? item : item.getClassName()
-        if (info.namedQueue.includes(name)) continue
-        if (info.genericAnalyzed[name] >= MAX_GENERIC_PASSES) continue
-        if (info.specialAnalyzed[name] >= MAX_SPECIAL_PASSES) continue
-        if (info.totalAnalyzed[name] >= MAX_TOTAL_PASSES) continue
-        if (info.totalAnalyzed[name] >= info.pass) info.pass = info.totalAnalyzed[name] + 1
-        ;(info.class[name].analyzing || Promise.resolve()).then(() => {
-          if (info.namedQueue.includes(name)) return
-          console.debug('Queueing %s (%s, back)', (info.class[name].name || name), Math.max(info.genericAnalyzed[name], info.specialAnalyzed[name]) || 'new')
-          info._queue.push(item)
-          info.namedQueue.push(name)
-        })
-      }
-    },
-    queueFront (items) {
-      if (!items) return
-      if (!Array.isArray(items)) items = [items]
-      for (const item of items) {
-        const name = typeof item === 'string' ? item : item.getClassName()
-        if (info.totalAnalyzed[name] >= MAX_TOTAL_PASSES) continue
-        ;(info.class[name].analyzing || Promise.resolve()).then(() => {
-          info.class[name].done = false
-          console.debug('Queueing %s (%s, front)', (info.class[name].name || name), Math.max(info.genericAnalyzed[name], info.specialAnalyzed[name]) || 'new')
-          info._queue.unshift(item)
-          info.namedQueue.unshift(name)
-        })
-      }
-    },
-    classReverse: {},
-    class: new Proxy({
+class Info extends EventEmitter {
+  constructor () {
+    super()
+    const info = this
+    this.running = 0
+    this.pass = 0
+    this.maxParallel = 0
+    this.numAnalyzed = 0
+    this.classAnalyzeAvg = 0
+    this._queue = []
+    this.genericAnalyzed = {}
+    this.specialAnalyzed = {}
+    this.totalAnalyzed = {}
+    this.namedQueue = []
+    this.classReverse = {}
+    this.class = new Proxy({
       [util.inspect.custom] (depth, opts) {
         return opts.stylize('[Classes: ', 'special') +
           opts.stylize(Object.keys(this).filter(name => Boolean(this[name].bin)).length, 'number') +
@@ -122,21 +68,28 @@ export async function createInfo ({version, side, classNames}) {
               if (info.classReverse[deobfName] && info.classReverse[deobfName] !== slash(clsObfName)) {
                 throw Error(`Duplicate name ${deobfName}: ${info.classReverse[deobfName]}, ${slash(clsObfName)}`)
               }
-              const origDeobfName = deobfName
               if (this.isInnerClass) deobfName = deobfName.slice(deobfName.lastIndexOf(deobfName.includes('$') ? '$' : '.') + 1)
               if (this._name !== deobfName) {
                 info.genericAnalyzed[deobfName] = -1
                 info.specialAnalyzed[deobfName] = 0
                 debugCl('CL: %s %s', slash(clsObfName), slash(deobfName))
                 printStatus(clsObfName + ' -> ' + deobfName)
+                info.emit('class-name', {obf: clsObfName, deobf: deobfName, clsInfo})
                 info.queue = clsObfName
                 for (const sc of this.subClasses) info.queue = sc
               }
               this._name = deobfName
-              info.classReverse[origDeobfName] = slash(clsObfName)
+              info.classReverse[deobfName] = slash(clsObfName)
             },
             get name () {
               return this._name
+            },
+            set package (pkg) {
+              if (this._name) return console.warn('Cannot set package: already named')
+              this._package = pkg
+            },
+            get package () {
+              return this._package
             },
             get numLines () {
               return Object.values(this.method).reduce((sum, m) => sum + (m.code ? m.code.lines.length : 0), 0)
@@ -147,6 +100,8 @@ export async function createInfo ({version, side, classNames}) {
               }
               */
             }),
+            fields: {},
+            attributes: {},
             reverseMethod: {},
             method: new Proxy({
               [util.inspect.custom] (depth, opts) {
@@ -171,6 +126,7 @@ export async function createInfo ({version, side, classNames}) {
                         (this._name ? ' (' + opts.stylize(this._name, 'string') + ')' : '') +
                         opts.stylize(']', 'special')
                     },
+                    info,
                     clsInfo,
                     origName,
                     sig,
@@ -224,8 +180,8 @@ export async function createInfo ({version, side, classNames}) {
       set (classes, clsObfName, value) {
         throw Error(`Setting info.class.${clsObfName} to ${value} is not allowed`)
       }
-    }),
-    method: new Proxy({}, {
+    })
+    this.method = new Proxy({}, {
       get (obj, fullSig) {
         if (typeof fullSig !== 'string') return
         const className = fullSig.slice(0, fullSig.lastIndexOf('.', fullSig.indexOf(':')))
@@ -234,5 +190,85 @@ export async function createInfo ({version, side, classNames}) {
       }
     })
   }
+
+  async init ({version, side, classNames}) {
+    this.side = side
+    this.classNames = classNames
+    const [, versionMajor, versionMinor, versionPatch] = version.match(/^(\d+)\.(\d+)(\.\d+)?/) || []
+    this.version = {
+      ...(await getExtendedVersionInfo(version)),
+      major: versionMajor && +versionMajor,
+      minor: versionMinor && +versionMinor,
+      patch: versionPatch && +versionPatch,
+      toString () {
+        return version
+      }
+    }
+    this._queue.push(...classNames)
+  }
+
+  get hasWork () {
+    return !!this._queue.length
+  }
+
+  dequeue () {
+    const name = this.namedQueue.shift()
+    if (this.genericAnalyzed[name] === -1) {
+      this.specialAnalyzed[name] = (this.specialAnalyzed[name] || 0) + 1
+    } else {
+      this.genericAnalyzed[name] = (this.genericAnalyzed[name] || 0) + 1
+    }
+    this.totalAnalyzed[name] = (this.totalAnalyzed[name] || 0) + 1
+    return this._queue.shift()
+  }
+
+  get queue () {
+    return this.dequeue()
+  }
+
+  set queue (items) {
+    this.queueBack(items)
+  }
+
+  queueBack (items) {
+    if (!items) return
+    if (!Array.isArray(items)) items = [items]
+    for (const item of items) {
+      const name = typeof item === 'string' ? item : item.getClassName()
+      if (this.namedQueue.includes(name)) continue
+      if (this.genericAnalyzed[name] >= MAX_GENERIC_PASSES) continue
+      if (this.specialAnalyzed[name] >= MAX_SPECIAL_PASSES) continue
+      if (this.totalAnalyzed[name] >= MAX_TOTAL_PASSES) continue
+      if (this.totalAnalyzed[name] >= this.pass) this.pass = this.totalAnalyzed[name] + 1
+      ;(this.class[name].analyzing || Promise.resolve()).then(() => {
+        if (this.namedQueue.includes(name)) return
+        console.debug('Queueing %s (%s, back)', (this.class[name].name || name), Math.max(this.genericAnalyzed[name], this.specialAnalyzed[name]) || 'new')
+        this.emit('queue', {item, name, position: 'back'})
+        this._queue.push(item)
+        this.namedQueue.push(name)
+      })
+    }
+  }
+
+  queueFront (items) {
+    if (!items) return
+    if (!Array.isArray(items)) items = [items]
+    for (const item of items) {
+      const name = typeof item === 'string' ? item : item.getClassName()
+      if (this.totalAnalyzed[name] >= MAX_TOTAL_PASSES) continue
+      ;(this.class[name].analyzing || Promise.resolve()).then(() => {
+        this.class[name].done = false
+        console.debug('Queueing %s (%s, front)', (this.class[name].name || name), Math.max(this.genericAnalyzed[name], this.specialAnalyzed[name]) || 'new')
+        this.emit('queue', {item, name, position: 'front'})
+        this._queue.unshift(item)
+        this.namedQueue.unshift(name)
+      })
+    }
+  }
+}
+
+export async function createInfo (base) {
+  const info = new Info()
+  await info.init(base)
   return info
 }

@@ -1,56 +1,9 @@
 import * as PKG from '../PackageNames'
 import * as CLASS from '../ClassNames'
-import {hasSuperClass, doesImplement, toUpperCamelCase, decodeType, getDefaultName} from '../util'
+import {hasSuperClass, toUpperCamelCase, decodeType} from '../util'
 
-export function cls (cls, clsInfo, info) {
-  clsInfo.done = false
-  const Block = info.classReverse[CLASS.BLOCK]
-  const Item = info.classReverse[CLASS.ITEM]
-  const Entity = info.classReverse[CLASS.ENTITY]
-  const Enchantment = info.classReverse[CLASS.ENCHANTMENT]
-  const Biome = info.classReverse[CLASS.BIOME]
-  const Fluid = info.classReverse[CLASS.FLUID]
-  const Gui = info.classReverse[CLASS.GUI]
-  const NBTBase = info.classReverse[CLASS.NBT_BASE]
-  const RenderEntity = info.classReverse[CLASS.RENDER_ENTITY]
-  const Packet = info.classReverse[CLASS.PACKET]
-  const BlockEntity = info.classReverse[CLASS.BLOCK_ENTITY]
-  const AbstractClientPlayer = info.classReverse[CLASS.ABSTRACT_CLIENT_PLAYER]
-  const GenLayer = info.classReverse[CLASS.GEN_LAYER]
-  const DataProvider = info.classReverse[CLASS.DATA_PROVIDER]
-  const AdvancementTrigger = info.classReverse[CLASS.ADVANCEMENT_TRIGGER]
-  if (!clsInfo.name) {
-    if (Block && hasSuperClass(cls, Block)) return PKG.BLOCK + '.' + getDefaultName(clsInfo)
-    if (Item && hasSuperClass(cls, Item)) return PKG.ITEM + '.' + getDefaultName(clsInfo)
-    if (Entity && hasSuperClass(cls, Entity)) return PKG.ENTITY + '.' + getDefaultName(clsInfo)
-    if (Enchantment && hasSuperClass(cls, Enchantment)) return PKG.ENCHANTMENT + '.' + getDefaultName(clsInfo)
-    if (Biome && hasSuperClass(cls, Biome)) return PKG.BIOME + '.' + getDefaultName(clsInfo)
-    if (Fluid && hasSuperClass(cls, Fluid)) return PKG.FLUID + '.' + getDefaultName(clsInfo)
-    if (Gui && hasSuperClass(cls, Gui)) return PKG.GUI + '.' + getDefaultName(clsInfo)
-    if (NBTBase && (hasSuperClass(cls, NBTBase) || doesImplement(cls, NBTBase))) {
-      if (cls.isAbstract()) return CLASS.NBT_PRIMITIVE
-      return PKG.NBT + '.' + getDefaultName(clsInfo)
-    }
-    if (RenderEntity && hasSuperClass(cls, RenderEntity)) return PKG.RENDER_ENTITY + '.' + getDefaultName(clsInfo)
-    if (Packet && hasSuperClass(cls, Packet)) return PKG.NETWORK + '.' + getDefaultName(clsInfo)
-    if (Packet && doesImplement(cls, Packet)) return PKG.NETWORK + '.' + getDefaultName(clsInfo)
-    if (BlockEntity && hasSuperClass(cls, BlockEntity)) return PKG.BLOCK_ENTITY + '.' + getDefaultName(clsInfo)
-    if (AbstractClientPlayer && hasSuperClass(cls, AbstractClientPlayer)) return PKG.CLIENT_ENTITY + '.' + getDefaultName(clsInfo)
-    if (GenLayer && hasSuperClass(cls, GenLayer)) return PKG.WORLD_GEN_LAYER + '.' + getDefaultName(clsInfo)
-    if (DataProvider && doesImplement(cls, DataProvider)) return PKG.DATA + '.' + getDefaultName(clsInfo)
-    if (AdvancementTrigger && doesImplement(cls, AdvancementTrigger)) return PKG.ADVANCEMENT_TRIGGERS + '.' + getDefaultName(clsInfo)
-  }
-  if (hasSuperClass(cls, 'com.mojang.datafixers.DataFix')) return PKG.DATAFIX + '.' + getDefaultName(clsInfo)
-  if (hasSuperClass(cls, 'com.mojang.datafixers.schemas.Schema')) return PKG.DATAFIX_SCHEMAS + '.' + getDefaultName(clsInfo)
-  if (clsInfo.isInnerClass) {
-    if (clsInfo.outerClassName === info.classReverse[CLASS.PROFILER]) return 'Result'
-    if (clsInfo.outerClassName === info.classReverse[CLASS.BLOCK_POS] && hasSuperClass(cls, info.classReverse[CLASS.BLOCK_POS])) {
-      return cls.getSuperclassName() === info.classReverse[CLASS.BLOCK_POS]
-        ? CLASS.BLOCK_POS$MUTABLE_BLOCK_POS
-        : CLASS.BLOCK_POS$POOLED_MUTABLE_BLOCK_POS
-    }
-  }
-}
+export const generic = true
+export const name = 'generic'
 
 const simpleConstToClass = Object.freeze({
   'box[': CLASS.AABB,
@@ -226,7 +179,7 @@ const simpleConstToClass = Object.freeze({
     args: [CLASS.PACKET_DIRECTION]
   },
   'Unknown synced attribute modifier': {
-    name: PKG.PACKET_PLAY_SERVER + '.S2CEntityProperties',
+    name: CLASS.PACKET_ENTITY_PROPERTIES,
     method: 'read'
   },
   'Root tag must be a named compound tag': {
@@ -572,7 +525,13 @@ const simpleConstToClass = Object.freeze({
   'textures/gui/container/creative_inventory/tabs.png': CLASS.GUI_CREATIVE_INVENTORY,
   'textures/gui/container/dispenser.png': CLASS.GUI_DISPENSER,
   'textures/gui/container/enchanting_table.png': CLASS.GUI_ENCHANTING_TABLE,
-  'textures/gui/container/furnace.png': CLASS.GUI_FURNACE
+  'textures/gui/container/furnace.png': CLASS.GUI_FURNACE,
+  'Unexpected key packet': CLASS.SERVER_HANDLER_LOGIN,
+  'Failed to add player. {} already is in chunk {}, {}': {
+    name: CLASS.PLAYER_CHUNK_MAP_ENTRY,
+    method: 'addPlayer',
+    args: [CLASS.SERVER_PLAYER]
+  }
 })
 
 function handleSimple (obj, params) {
@@ -744,10 +703,9 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
 
 function enumClinit (cls, method, code, methodInfo, clsInfo, info) {
   const names = []
-  const self = clsInfo.obfName.replace(/\./g, '/')
   for (let i = 0; i < code.lines.length; i++) {
     const line = code.lines[i]
-    if (line.op === 'new' && line.className === self) {
+    if (line.op === 'new') {
       const ldc = line.nextOp(['ldc', 'ldc_w'])
       if (!ldc) continue
       const putstatic = ldc.nextOp('putstatic')
@@ -790,8 +748,12 @@ function getEnumName (names, cls, clsInfo, info) {
     case 'HARP,BASEDRUM,SNARE,HAT,BASS': return CLASS.NOTE_BLOCK_INSTRUMENT
     case 'EMPTY,BASE,CARVED,LIQUID_CARVED,LIGHTED': // TODO: why?
     case 'EMPTY,BASE,CARVED,LIQUID_CARVED,DECORATED': return CLASS.CHUNK_STAGE
+    case 'NORMAL,DESTROY,BLOCK,IGNORE,PUSH_ONLY': return CLASS.PISTON_BEHAVIOR
     case 'GROWING,SHRINKING,STATIONARY': return CLASS.BORDER_STATUS
     case 'SAVE,LOAD,CORNER,DATA': return CLASS.STRUCTURE_BLOCK_MODE
+    case 'BITMAP,TTF,LEGACY_UNICODE': return CLASS.FONT_TYPE
+    case 'CHAT,SYSTEM,GAME_INFO': return CLASS.CHAT_TYPE
+    case 'NEVER,SOURCE_ONLY,ALWAYS': return CLASS.RAY_TRACE_FLUID_MODE
     case 'PROTOCHUNK,LEVELCHUNK': return CLASS.CHUNK_STAGE$TYPE
     case 'DEFAULT,STICKY': return CLASS.PISTON_TYPE
     case 'SKY,BLOCK': return CLASS.LIGHT_TYPE
@@ -811,6 +773,15 @@ function getEnumName (names, cls, clsInfo, info) {
     case 'PROGRESS,NOTCHED_6,NOTCHED_10,NOTCHED_12,NOTCHED_20':
       info.class[clsInfo.outerClassName].name = CLASS.BOSS_INFO
       return CLASS.BOSS_INFO$OVERLAY
+    case 'WORLD_SURFACE_WG,OCEAN_FLOOR_WG,LIGHT_BLOCKING,MOTION_BLOCKING,MOTION_BLOCKING_NO_LEAVES':
+      info.class[clsInfo.outerClassName].name = CLASS.HEIGHTMAP
+      return CLASS.HEIGHTMAP$TYPE
+    case 'LINUX,SOLARIS,WINDOWS,OSX,UNKNOWN':
+      info.class[clsInfo.outerClassName].name = CLASS.UTILS
+      return CLASS.UTILS$OS
+    case 'MISS,BLOCK,ENTITY':
+      info.class[clsInfo.outerClassName].name = CLASS.HIT_RESULT
+      return CLASS.HIT_RESULT$TYPE
   }
 }
 

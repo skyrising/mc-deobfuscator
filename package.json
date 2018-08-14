@@ -4,13 +4,12 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "env BABEL_ENV=test nyc ava"
+    "test": "env BABEL_ENV=test nyc ava",
+    "dev": "node -r @babel/register index.js",
+    "dl-server": "node -r @babel/register util/version.js"
   },
   "author": "",
   "license": "ISC",
-  "ava": {
-    "babel": "inherit"
-  },
   "nyc": {
     "check-coverage": true,
     "exclude": [
@@ -25,18 +24,18 @@
     "sourceMap": false,
     "instrument": false,
     "require": [
-      "babel-register"
+      "@babel/register"
     ]
   },
   "dependencies": {
-    "@babel/cli": "^7.0.0-beta.47",
-    "@babel/core": "^7.0.0-beta.47",
-    "@babel/node": "^7.0.0-beta.47",
-    "@babel/plugin-proposal-class-properties": "^7.0.0-beta.47",
-    "@babel/plugin-proposal-decorators": "^7.0.0-beta.47",
-    "@babel/plugin-proposal-object-rest-spread": "^7.0.0-beta.47",
-    "@babel/plugin-syntax-dynamic-import": "^7.0.0-beta.47",
-    "@babel/preset-env": "^7.0.0-beta.47",
+    "@babel/cli": "^7.0.0-beta.51",
+    "@babel/core": "^7.0.0-beta.51",
+    "@babel/node": "^7.0.0-beta.51",
+    "@babel/plugin-proposal-class-properties": "^7.0.0-beta.51",
+    "@babel/plugin-proposal-decorators": "^7.0.0-beta.51",
+    "@babel/plugin-proposal-object-rest-spread": "^7.0.0-beta.51",
+    "@babel/plugin-syntax-dynamic-import": "^7.0.0-beta.51",
+    "@babel/preset-env": "^7.0.0-beta.51",
     "@babel/preset-flow": "^7.0.0-beta.51",
     "babel-plugin-transform-dirname-filename": "^1.1.0",
     "debug": "^2.6.8",
@@ -44,13 +43,13 @@
     "mz": "^2.6.0",
     "node-java-maven": "^0.0.12",
     "request": "^2.81.0",
-    "request-promise-native": "^1.0.3",
-    "rimraf": "^2.6.1",
+    "request-promise-native": "^1.0.5",
+    "rimraf": "^2.6.2",
     "standard": "^10.0.1"
   },
   "devDependencies": {
-    "ava": "^0.19.1",
-    "babel-plugin-istanbul": "^4.1.3",
+    "ava": "^1.0.0-beta.6",
+    "babel-plugin-istanbul": "^4.1.6",
     "nyc": "^10.3.2"
   },
   "java": {

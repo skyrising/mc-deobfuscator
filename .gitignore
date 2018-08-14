@@ -2,3 +2,5 @@
 work/*
 temp/*
 node_modules/
+.nyc_output/
+coverage/
