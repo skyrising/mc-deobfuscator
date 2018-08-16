@@ -64,10 +64,23 @@ console.warn = (...args) => {
   printStatus()
 }
 
-const errorLog = fs.createWriteStream(path.resolve('error.log'))
+let errorLog
 
 console.error = (...args) => {
   printLine(31, ...args)
-  errorLog.write(util.format(...args) + '\n')
+  if (errorLog) errorLog.write(util.format(...args) + '\n')
   printStatus()
 }
+
+Object.assign(console.error, {
+  set log (value) {
+    if (value) {
+      if (!errorLog) errorLog = fs.createWriteStream(path.resolve('error.log'))
+    } else {
+      errorLog = undefined
+    }
+  },
+  get log () {
+    return Boolean(errorLog)
+  }
+})

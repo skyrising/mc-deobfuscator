@@ -5,25 +5,35 @@ import {getDefaultName} from './util'
 import {enrichClsInfo} from './util/code'
 import {createInfo} from './util/info'
 import {startStatus, endStatus, setStatus} from './util/status'
-import {specialSource, extractJar} from './util/tools'
+import {specialSource as runSpecialSource, extractJar as runExtractJar} from './util/tools'
+import {generateSrgs} from './util/srg'
 import {getAllClasses, initJava} from './util/java'
 import {analyzeClassWrapper, runAnalyzer, initAnalyzer} from './util/analyzers'
 import * as renameGetterSetter from './analyzers/getterSetter'
 import * as hierarchyAnalyzer from './analyzers/hierarchy'
 
-const debugConsole = new console.Console(fs.createWriteStream('debug.log'))
+let debugConsole
 const dbg = require('debug')('mc:deobf')
-const debug = (...args) => {
-  debugConsole.log(...args)
+let debug = (...args) => {
+  if (debugConsole) debugConsole.log(...args)
   dbg(...args)
 }
 console.debug = debug
 
-const version = process.argv[2] || '1.12'
-if (version.endsWith('.jar')) analyzeJar(path.resolve(version), []).catch(console.error)
-else analyzeVersion(version).catch(console.error)
+function enableDebugLog () {
+  if (debugConsole) return
+  debugConsole = new console.Console(fs.createWriteStream('debug.log'))
+}
 
-async function analyzeVersion (version) {
+if (require.main === module) {
+  enableDebugLog()
+  const version = process.argv[2] || '1.12'
+  const options = {specialSource: true, extractJar: true}
+  if (version.endsWith('.jar')) analyzeJar(path.resolve(version), [], options).catch(console.error)
+  else analyzeVersion(version, options).catch(console.error)
+}
+
+export async function analyzeVersion (version, options) {
   console.log('Analyzing Minecraft version %s', version)
   const versionDir = path.resolve(process.env.HOME, '.minecraft/versions', version)
   console.log('Version directory: %s', versionDir)
@@ -37,10 +47,21 @@ async function analyzeVersion (version) {
   }))]
   console.log('Type: %s, Main class: %s', meta.type, meta.mainClass)
   const jarFile = path.resolve(versionDir, version + '.jar')
-  return analyzeJar(jarFile, classPath)
+  return analyzeJar(jarFile, classPath, options)
 }
 
-async function analyzeJar (jarFile, classPath) {
+export async function analyzeJar (jarFile, classPath, options = {}) {
+  const {specialSource, extractJar, debugLog, errorLog, version, status} = {
+    specialSource: false,
+    extractJar: false,
+    debugLog: false,
+    errorLog: false,
+    status: false,
+    version: path.basename(jarFile, '.jar').split('.').filter(p => /\d/.test(p)).join('.'),
+    ...options
+  }
+  if (debugLog) enableDebugLog()
+  if (errorLog) console.error.log = true
   const fullClassPath = [jarFile, ...classPath]
   console.log('Class path: ' + fullClassPath)
   const Repository = await initJava(fullClassPath)
@@ -56,9 +77,8 @@ async function analyzeJar (jarFile, classPath) {
   }))
   console.log(classNames.length + ' classes, ' + classNames.filter(name => !name.includes('$')).length + ' outer classes')
   const side = jarFile.includes('server') ? 'server' : 'client'
-  const version = path.basename(jarFile, '.jar').split('.').filter(p => /\d/.test(p)).join('.')
   const info = await createInfo({version, side, classNames})
-  startStatus(info)
+  if (status) startStatus(info)
   console.log('Enriching class info')
   await forEachClass(cls => enrichClsInfo(cls, info))
   await initAnalyzer(hierarchyAnalyzer, info)
@@ -78,13 +98,11 @@ async function analyzeJar (jarFile, classPath) {
   await forEachClass((cls, clsInfo) => runAnalyzer(hierarchyAnalyzer, cls, clsInfo, info))
   console.log('Renaming getters & setters')
   await forEachClass((cls, clsInfo) => runAnalyzer(renameGetterSetter, cls, clsInfo, info))
-  endStatus()
-  const deobfJar = path.resolve('work', path.basename(jarFile, '.jar') + '-deobf.jar')
+  if (status) endStatus()
   // await renderGraph(info)
   const unknownClasses = Object.values(info.class).filter(c => !c.name)
   console.log(Object.values(info.classReverse).filter(name => !info.class[name].name.endsWith(getDefaultName(info.class[name]))).length + ' class names found')
   console.log(Object.values(info.classReverse).length + ' classes packaged')
-  await specialSource(jarFile, deobfJar, info)
   console.log('Max parallel: %d, avg time %dms/class (sum: %dms)', info.maxParallel, Math.round(info.classAnalyzeAvg), Math.round(info.classAnalyzeAvg * info.numAnalyzed))
   console.log(unknownClasses.length + ' unknown classes: (Top 100)')
   console.log(unknownClasses
@@ -114,8 +132,16 @@ async function analyzeJar (jarFile, classPath) {
     .slice(0, 100)
     .map(c => c.obfName + ': ' + c.enumNames)
     .join('\n'))
-  const binDir = path.resolve('./work/bin/')
-  await extractJar(deobfJar, binDir)
+  if (specialSource) {
+    const deobfJar = path.resolve('work', path.basename(jarFile, '.jar') + '-deobf.jar')
+    await runSpecialSource(jarFile, deobfJar, info)
+    if (extractJar) {
+      const binDir = path.resolve('./work/bin/')
+      await runExtractJar(deobfJar, binDir)
+    }
+  } else {
+    await generateSrgs(info)
+  }
   // const srcDir = path.resolve('./work/src/')
   // await procyon(deobfJar, srcDir)
   // await fernflower(deobfJar, srcDir)

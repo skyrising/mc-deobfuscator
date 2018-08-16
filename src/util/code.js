@@ -202,9 +202,8 @@ export async function enrichClsInfo (cls, info) {
   if (clsInfo.bin) return clsInfo
   clsInfo.superClassName = await cls.getSuperclassNameAsync()
   info.class[clsInfo.superClassName].subClasses.add(className)
-  clsInfo.interfaces = await cls.getInterfacesAsync()
-  clsInfo.interfaceNames = await Promise.all(clsInfo.interfaces.map(i => i.getClassNameAsync()))
-  for (const ifn of clsInfo.interfaces) info.class[ifn].subClasses.add(className)
+  clsInfo.interfaceNames = await cls.getInterfaceNamesAsync()
+  for (const ifn of clsInfo.interfaceNames) info.class[ifn].subClasses.add(className)
   clsInfo.bin = cls
   clsInfo.isInterface = await cls.isInterfaceAsync()
   for (const attr of await cls.getAttributes()) {

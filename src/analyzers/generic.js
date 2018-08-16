@@ -573,13 +573,13 @@ function handleSimple (obj, params) {
     if (putfield) clsInfo.field[putfield.field.fieldName] = obj.field
   }
   if (obj.interfaces) {
-    const ifs = cls.getInterfaces()
-    if (obj.interfaces.length === ifs.length) {
+    const ifn = clsInfo.interfaceNames
+    if (obj.interfaces.length === ifn.length) {
       for (let i = 0; i < obj.interfaces.length; i++) {
-        if (obj.interfaces[i]) info.class[ifs[i].getClassName()].name = obj.interfaces[i]
+        if (obj.interfaces[i]) info.class[ifn[i]].name = obj.interfaces[i]
       }
     } else {
-      console.log('Number of interfaces for ' + (obj.name || clsInfo.obfName) + ' mismatch: expected ' + obj.interfaces.length + ' got ' + ifs.length)
+      console.log('Number of interfaces for ' + (obj.name || clsInfo.obfName) + ' mismatch: expected ' + obj.interfaces.length + ' got ' + ifn.length)
     }
   }
   if (obj.eval) obj.eval(params)
@@ -598,10 +598,10 @@ function getClassNameForConstant (c, line, cls, method, code, methodInfo, clsInf
       return CLASS.GAME_SETTINGS
     case 'TransferCooldown': {
       if (Entity && hasSuperClass(cls, Entity)) return CLASS.ENTITY_MINECART_HOPPER
-      const ifn = cls.getInterfaces()
+      const ifn = clsInfo.interfaceNames
       if (ifn.length === 2) {
-        info.class[ifn[0].getClassName()].name = CLASS.HOPPER_BASE
-        info.class[ifn[1].getClassName()].name = CLASS.TICKABLE
+        info.class[ifn[0]].name = CLASS.HOPPER_BASE
+        info.class[ifn[1]].name = CLASS.TICKABLE
         info.class[cls.getSuperclassName()].name = CLASS.LOCKABLE_LOOT_CONTAINER
         return CLASS.BLOCK_ENTITY_HOPPER
       }
@@ -759,7 +759,7 @@ function getEnumName (names, cls, clsInfo, info) {
     case 'SKY,BLOCK': return CLASS.LIGHT_TYPE
     case 'DOWN,UP,NORTH,SOUTH,WEST':
       if (clsInfo.isInnerClass) return
-      if (cls.getInterfaces().length) return CLASS.FACING
+      if (clsInfo.interfaceNames.length) return CLASS.FACING
       return
     case 'NONE,TAIGA,EXTREME_HILLS,JUNGLE,MESA':
       info.class[clsInfo.outerClassName].name = CLASS.BIOME

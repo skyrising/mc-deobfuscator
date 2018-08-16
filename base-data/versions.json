@@ -1,0 +1,97 @@
+[{
+  "id": "18w33a",
+  "type": "snapshot",
+  "time": "2018-08-15T14:47:49+00:00",
+  "releaseTime": "2018-08-15T14:28:56+00:00",
+  "url": "https://launchermeta.mojang.com/mc/game/fc14fd826663b025e2d4600523aa5b50bcf62a94/18w33a.json"
+}, {
+  "id": "18w32a",
+  "type": "snapshot",
+  "time": "2018-08-08T13:25:22+00:00",
+  "releaseTime": "2018-08-08T13:16:57+00:00",
+  "url": "https://launchermeta.mojang.com/mc/game/7eb858d300e55e2240ab92abbb0179656ac8f710/18w32a.json"
+}, {
+  "id": "18w31a",
+  "type": "snapshot",
+  "time": "2018-08-01T13:02:16+00:00",
+  "releaseTime": "2018-08-01T12:54:44+00:00",
+  "url": "https://launchermeta.mojang.com/mc/game/824b860a1f3b8a7e6d4b433a73e787be57a66f16/18w31a.json"
+}, {
+  "id": "18w30b",
+  "type": "snapshot",
+  "time": "2018-07-26T16:15:13+00:00",
+  "releaseTime": "2018-07-26T16:06:57+00:00",
+  "url": "https://launchermeta.mojang.com/mc/game/9e0841c5a5db7efdef2f8ebe6147440dfad38a70/18w30b.json"
+}, {
+  "id": "18w30a",
+  "type": "snapshot",
+  "time": "2018-07-25T14:36:57+00:00",
+  "releaseTime": "2018-07-25T14:29:31+00:00",
+  "url": "https://launchermeta.mojang.com/mc/game/7fc78b1de5a9d288a7279524aa071bef2c5160dd/18w30a.json"
+}, {
+  "id": "1.13",
+  "type": "release",
+  "time": "2018-07-20T13:11:52+00:00",
+  "releaseTime": "2018-07-18T15:11:46+00:00",
+  "url": "https://launchermeta.mojang.com/mc/game/3132596cced9f9d6f1ca97aeec75651e6a9df0bc/1.13.json"
+}, {
+  "id": "1.13-pre10",
+  "type": "snapshot",
+  "time": "2018-07-19T14:47:31+00:00",
+  "releaseTime": "2018-07-17T14:48:06+00:00",
+  "url": "https://launchermeta.mojang.com/mc/game/d47ad89224d8bf79d6cd71619e9699ad4083f47c/1.13-pre10.json"
+}, {
+  "id": "1.13-pre9",
+  "type": "snapshot",
+  "time": "2018-07-19T14:47:31+00:00",
+  "releaseTime": "2018-07-16T14:17:42+00:00",
+  "url": "https://launchermeta.mojang.com/mc/game/cb10cf2c867006d90e91044edde94eeea95f710f/1.13-pre9.json"
+}, {
+  "id": "1.13-pre8",
+  "type": "snapshot",
+  "time": "2018-07-19T14:47:31+00:00",
+  "releaseTime": "2018-07-13T11:45:00+00:00",
+  "url": "https://launchermeta.mojang.com/mc/game/934629cee90d584c649c8d288d3737ae558f3405/1.13-pre8.json"
+}, {
+  "id": "1.13-pre7",
+  "releaseTime": "2018-07-10T14:21:42+00:00",
+  "time": "2018-07-16T14:27:39+00:00",
+  "type": "snapshot",
+  "url": "https://launchermeta.mojang.com/mc/game/4aa225abb7ac2763f683aa7490226660c3462341/1.13-pre7.json"
+}, {
+  "id": "1.13-pre6",
+  "releaseTime": "2018-07-04T12:36:00+00:00",
+  "time": "2018-07-16T14:27:39+00:00",
+  "type": "snapshot",
+  "url": "https://launchermeta.mojang.com/mc/game/0815eae6f719740cc0ea69be6e2b715ae15191fb/1.13-pre6.json"
+}, {
+  "id": "1.13-pre5",
+  "releaseTime": "2018-06-28T13:58:53+00:00",
+  "time": "2018-07-16T14:27:39+00:00",
+  "type": "snapshot",
+  "url": "https://launchermeta.mojang.com/mc/game/1bc3bb4054ddac170c970c936975cc4a7e4d8855/1.13-pre5.json"
+}, {
+  "id": "1.13-pre4",
+  "releaseTime": "2018-06-26T13:00:55+00:00",
+  "time": "2018-07-16T14:27:39+00:00",
+  "type": "snapshot",
+  "url": "https://launchermeta.mojang.com/mc/game/5dd6bac3d40c95db2fe8718ab0bb507f74ad4c00/1.13-pre4.json"
+}, {
+  "id": "1.13-pre3",
+  "releaseTime": "2018-06-21T12:57:11+00:00",
+  "time": "2018-07-16T14:27:39+00:00",
+  "type": "snapshot",
+  "url": "https://launchermeta.mojang.com/mc/game/f703320e27cb311c757cf320deb1ae96d8cf78b2/1.13-pre3.json"
+}, {
+  "id": "1.13-pre2",
+  "releaseTime": "2018-06-15T09:20:00+00:00",
+  "time": "2018-06-21T12:53:31+00:00",
+  "type": "snapshot",
+  "url": "https://launchermeta.mojang.com/mc/game/6b31fc4f3cf1672bd4cf49d2f1fc39facc2af4f3/1.13-pre2.json"
+}, {
+  "id": "1.13-pre1",
+  "releaseTime": "2018-06-04T15:17:34+00:00",
+  "time": "2018-06-21T12:53:31+00:00",
+  "type": "snapshot",
+  "url": "https://launchermeta.mojang.com/mc/game/8dbe24cb291acdf402a110ec922a15ec59d02a22/1.13-pre1.json"
+}]

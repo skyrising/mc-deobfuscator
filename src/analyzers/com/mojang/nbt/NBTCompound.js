@@ -3,7 +3,7 @@ import * as CLASS from '../../../../ClassNames'
 export function cls (cls, clsInfo, info) {
   const scl = cls.getSuperclassName()
   if (scl === 'java.lang.Object') {
-    info.class[cls.getInterfaces()[0].getClassName()].name = CLASS.NBT_BASE
+    info.class[clsInfo.interfaceNames[0]].name = CLASS.NBT_BASE
   } else {
     info.class[scl].name = CLASS.NBT_BASE
   }

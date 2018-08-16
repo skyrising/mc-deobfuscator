@@ -16,6 +16,10 @@ export async function getVersionInfo (id) {
 }
 
 export async function getExtendedVersionInfo (id) {
+  if (typeof id === 'object') {
+    const {downloads} = await getVersionManifest(id) || {}
+    return {...id, downloads}
+  }
   const file = path.resolve('data', id, 'version.json')
   if (await fs.exists(file)) return JSON.parse(await fs.readFile(file, 'utf8'))
   const version = await getVersionInfo(id)
@@ -25,7 +29,11 @@ export async function getExtendedVersionInfo (id) {
 
 const versionManifest = {}
 export async function getVersionManifest (id) {
-  if (!versionManifest[id]) {
+  if (!versionManifest[id.id || id]) {
+    if (id.url) {
+      versionManifest[id.id] = await request(id.url, {json: true})
+      return versionManifest[id.id]
+    }
     const manifest = await getManifest()
     for (const version of manifest.versions) {
       if (version.id === id) {
@@ -34,15 +42,19 @@ export async function getVersionManifest (id) {
       }
     }
   }
-  return versionManifest[id]
+  return versionManifest[id.id || id]
 }
 
 export async function downloadJar (version, download = 'server') {
-  const filename = (download === 'server' ? 'minecraft_server.' : '') + version + '.jar'
-  const versionManifest = await getVersionManifest(version)
+  const filename = (download === 'server' ? 'minecraft_server.' : '') + (version.id || version) + '.jar'
+  const file = path.resolve(process.env.MINECRAFT_JARS_CACHE || 'work/', filename)
+  if (await fs.exists(file)) return file
+  const versionManifest = typeof version === 'object' ? version : await getVersionManifest(version)
   if (!versionManifest) throw Error('Could not find version ' + version)
-  const out = fs.createWriteStream(path.resolve('work/', filename))
-  return request(versionManifest.downloads[download].url).pipe(out)
+  const out = fs.createWriteStream(file)
+  return new Promise((resolve, reject) => {
+    request(versionManifest.downloads[download].url).on('error', reject).on('end', () => resolve(file)).pipe(out)
+  })
 }
 
 if (require.main === module) {

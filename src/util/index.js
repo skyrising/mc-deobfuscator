@@ -26,7 +26,7 @@ export function getSuperclassNames (cls) {
 }
 
 export function doesImplement (cls, name) {
-  return cls.getInterfaces().map(c => c.getClassName()).includes(name)
+  return cls.getInterfaceNames().includes(name)
 }
 
 export const slash = s => s.replace(/\./g, '/')

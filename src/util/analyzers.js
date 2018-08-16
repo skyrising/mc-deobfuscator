@@ -40,7 +40,7 @@ export async function analyzeClassWrapper (next, info, Repository) {
     try {
       next = await Repository.lookupClass(next)
     } catch (e) {
-      console.warn(e)
+      console.warn('Could not load class ' + next)
       return
     }
   } else {

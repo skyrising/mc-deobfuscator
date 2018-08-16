@@ -149,13 +149,13 @@ class Info extends EventEmitter {
                           return
                         }
                         if (this._name) {
-                          console.info('%s.%s%s renamed to %s', (clsInfo.name || clsObfName), this._name, argSig, deobfName)
+                          console.debug('%s.%s%s renamed to %s', (clsInfo.name || clsObfName), this._name, argSig, deobfName)
                         }
                         debugMd('MD: %s/%s %s %s/%s %s', slash(clsObfName), origName, sig, slash(classes[clsObfName].name || clsObfName), deobfName, sig)
                         const inherited = getMethodInheritance(this)[1]
                         if (inherited) {
                           info.class[inherited].method[fullSig].name = deobfName
-                          console.log('renaming super(' + inherited + ') ' + fullSig + ' -> ' + deobfName)
+                          console.debug('renaming super(' + inherited + ') ' + fullSig + ' -> ' + deobfName)
                         }
                       }
                       this._name = deobfName
@@ -194,14 +194,14 @@ class Info extends EventEmitter {
   async init ({version, side, classNames}) {
     this.side = side
     this.classNames = classNames
-    const [, versionMajor, versionMinor, versionPatch] = version.match(/^(\d+)\.(\d+)(\.\d+)?/) || []
+    const [, versionMajor, versionMinor, versionPatch] = (version.id || version).match(/^(\d+)\.(\d+)(\.\d+)?/) || []
     this.version = {
       ...(await getExtendedVersionInfo(version)),
       major: versionMajor && +versionMajor,
       minor: versionMinor && +versionMinor,
       patch: versionPatch && +versionPatch,
       toString () {
-        return version
+        return version.id || version
       }
     }
     this._queue.push(...classNames)

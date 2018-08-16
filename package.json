@@ -8,7 +8,8 @@
     "build": "babel src -d build",
     "start": "node build/index.js",
     "dev": "node -r @babel/register src/index.js",
-    "dl-server": "node -r @babel/register src/util/version.js"
+    "dl-server": "node -r @babel/register src/util/version.js",
+    "data": "node build/util/mc-data.js"
   },
   "author": "",
   "license": "ISC",
