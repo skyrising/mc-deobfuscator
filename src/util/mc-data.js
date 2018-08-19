@@ -72,7 +72,7 @@ export async function updateDataRepo (from, to) {
     await git('tag', [id])
   }
   await git('remote', ['add', 'origin', 'git@github.com:skyrising/mc-data.git'])
-  await git('push', ['-f', '--tags', 'origin', 'master'])
+  // await git('push', ['-f', '--tags', 'origin', 'master'])
 }
 
 function git (command, args = [], options = {}) {
