@@ -189,6 +189,7 @@ class Info extends EventEmitter {
         return info.class[className].method[methodSig]
       }
     })
+    this.data = {}
   }
 
   async init ({version, side, classNames}) {

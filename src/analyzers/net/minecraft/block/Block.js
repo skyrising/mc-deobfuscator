@@ -6,14 +6,24 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
   const {sig} = methodInfo
   const Block = clsInfo.obfName
   if (code.consts.includes('cobblestone')) {
+    info.data.blocks = {
+      post () {
+        for (const data of Object.values(this)) {
+          data.class = info.class[data.class].name || data.class
+        }
+      }
+    }
     for (const line of code.lines) {
-      if (!line.const) continue
+      if (typeof line.const !== 'string') continue
+      const data = {}
+      if (line.next.op === 'new') data.class = line.next.className
       const blockClass = classNames[line.const]
       if (blockClass) {
-        const newCls = line.nextOp('new').arg.slice(1, -1)
+        const newCls = line.nextOp('new').className
         if (newCls !== Block) info.class[newCls].name = PKG.BLOCK + '.' + blockClass
       }
       const regBlock = line.nextOp('invokestatic')
+      if (regBlock) info.data.blocks[line.const] = data
       if (!regBlock || !/^\(IL[^;]+;L[^;]+;\)V$/.test(regBlock.call.signature)) continue
       info.method[regBlock.call.fullSig].name = 'registerBlock'
     }

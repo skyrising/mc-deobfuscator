@@ -1,5 +1,6 @@
 export function method (cls, method, code, methodInfo, clsInfo, info) {
   if (methodInfo.origName === '<clinit>') {
+    info.data.mobeffects = {}
     for (const line of code.lines) {
       if (typeof line.const !== 'string') continue
       if (!/^[a-z_\d]+$/.test(line.const)) continue
@@ -7,6 +8,7 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
       const putstatic = line.nextOp('putstatic')
       if (!putstatic) continue
       clsInfo.field[putstatic.field.fieldName] = name.toUpperCase()
+      info.data.mobeffects[name] = {}
     }
   }
 }

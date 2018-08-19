@@ -99,6 +99,7 @@ const ENTITY_PKG = {
 
 export function method (cls, method, code, methodInfo, clsInfo, info) {
   if (code.consts.includes('pig')) {
+    info.data.entities = {}
     const flat = code.consts.includes('falling_block')
     for (const line of code.lines) {
       if (typeof line.const !== 'string') continue
@@ -112,6 +113,7 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
       let entClass = flat ? line.next.const : line.previous.const
       const pkg = name in ENTITY_PKG ? ENTITY_PKG[name] : PKG.ENTITY
       info.class[entClass].name = pkg + '.' + name
+      info.data.entities[line.const] = {name, class: pkg + '.' + name}
     }
   }
   const {sig} = methodInfo

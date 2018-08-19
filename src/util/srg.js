@@ -1,8 +1,10 @@
+// TODO: rename file
 import * as PKG from '../PackageNames'
 import fs from 'fs'
 import path from 'path'
 import {getMappedClassName, sortObfClassName, slash} from './index'
 
+// TODO: rename
 export function generateSrgs (info) {
   const dataDir = path.resolve('data')
   if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir)
@@ -19,12 +21,14 @@ export function generateSrgs (info) {
   const obfClasses = path.resolve(sideDir, 'classes-obf.txt')
   const deobfClasses = path.resolve(sideDir, 'classes-deobf.txt')
   generateClassLists(info, obfClasses, deobfClasses)
+  const dataFiles = generateDataFiles(info, sideDir)
   console.log(version)
   console.log(srg)
   console.log(tsrg)
   console.log(obfClasses)
   console.log(deobfClasses)
-  return {version, srg, tsrg, obfClasses, deobfClasses}
+  for (const file of dataFiles) console.log(file)
+  return {version, srg, tsrg, obfClasses, deobfClasses, dataFiles}
 }
 
 export function generateClassLists (info, obfFile, deobfFile) {
@@ -84,4 +88,25 @@ export function generateTsrg (info, tsrgFile) {
     }
   }
   fs.writeFileSync(tsrgFile, lines.join('\n'))
+}
+
+export function generateDataFiles (info, dir) {
+  const files = []
+  for (const basename in info.data) {
+    let data
+    if (typeof info.data[basename].post === 'function') {
+      const post = info.data[basename].post
+      delete info.data[basename].post
+      post.call(info.data[basename])
+    }
+    if (Array.isArray(info.data[basename])) data = info.data[basename].sort()
+    else {
+      data = {}
+      for (const key of Object.keys(info.data[basename]).sort()) data[key] = info.data[basename][key]
+    }
+    const file = path.resolve(dir, basename + '.json')
+    fs.writeFileSync(file, JSON.stringify(data, null, 2))
+    files.push(file)
+  }
+  return files
 }

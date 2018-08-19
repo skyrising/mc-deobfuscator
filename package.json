@@ -9,7 +9,8 @@
     "start": "node build/index.js",
     "dev": "node -r @babel/register src/index.js",
     "dl-server": "node -r @babel/register src/util/version.js",
-    "data": "node build/util/mc-data.js"
+    "data": "node build/util/mc-data.js",
+    "add-version": "node -r @babel/register src/util/version.js add"
   },
   "author": "",
   "license": "ISC",

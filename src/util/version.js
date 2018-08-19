@@ -1,5 +1,6 @@
 import fs from 'mz/fs'
 import path from 'path'
+import request0 from 'request'
 import request from 'request-promise-native'
 
 let manifest
@@ -53,10 +54,38 @@ export async function downloadJar (version, download = 'server') {
   if (!versionManifest) throw Error('Could not find version ' + version)
   const out = fs.createWriteStream(file)
   return new Promise((resolve, reject) => {
-    request(versionManifest.downloads[download].url).on('error', reject).on('end', () => resolve(file)).pipe(out)
+    request0(versionManifest.downloads[download].url).on('error', reject).on('end', () => resolve(file)).pipe(out)
   })
 }
 
+export async function addVersion (info) {
+  if (typeof info === 'object') {
+    const newVersions = info.versions || (Array.isArray(info) ? info : [info])
+    const versions = {}
+    const oldVersions = JSON.parse(await fs.readFile('base-data/versions.json', 'utf8'))
+    for (const v of oldVersions) versions[v.id] = v
+    for (const v of newVersions) versions[v.id] = v
+    const numNew = Object.keys(versions).length - oldVersions.length
+    const numChanged = newVersions.length - numNew
+    console.log(`Added ${numNew} versions${numChanged ? ` (${numChanged} updated)` : ''}`)
+    await fs.writeFile('base-data/versions.json', JSON.stringify(Object.values(versions)
+      .sort((a, b) => new Date(b.releaseTime) - new Date(a.releaseTime))
+      .map(({id, type, releaseTime, url}) => ({id, type, releaseTime, url})), null, 2))
+  } else {
+    await addVersion({...await request(info, {json: true}), info})
+  }
+}
+
 if (require.main === module) {
-  downloadJar(process.argv[2]).then(console.log)
+  (async () => {
+    try {
+      if (process.argv[2] === 'add') {
+        await addVersion(process.argv[3])
+      } else {
+        await downloadJar(process.argv[2])
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  })()
 }
