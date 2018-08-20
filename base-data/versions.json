@@ -1,5 +1,11 @@
 [
   {
+    "id": "1.13.1-pre2",
+    "type": "snapshot",
+    "releaseTime": "2018-08-20T13:52:09+00:00",
+    "url": "https://launchermeta.mojang.com/mc/game/4f2100e24eb32ab94447de5808b96fdade6badd3/1.13.1-pre2.json"
+  },
+  {
     "id": "1.13.1-pre1",
     "type": "snapshot",
     "releaseTime": "2018-08-16T13:08:44+00:00",
