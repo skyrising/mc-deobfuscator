@@ -1,3 +1,4 @@
+import {signatureTag as s} from '../../../../util/code'
 import * as CLASS from '../../../../ClassNames'
 
 export function cls (cls, clsInfo, info) {
@@ -48,12 +49,8 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
     case '()Ljava/util/Set;': return 'keySet'
     case '()I': return 'size'
   }
-  const NBTList = info.classReverse[CLASS.NBT_LIST]
-  if (!NBTList) clsInfo.done = methodInfo.done = false
-  else {
-    if (sig === '(Ljava/lang/String;L' + NBTList + ';)V') return 'setList'
-    if (sig === '(Ljava/lang/String;)L' + NBTList + ';') return 'getList'
-  }
+  if (s`(Ljava/lang/String;${CLASS.NBT_LIST})V`.matches(methodInfo)) return 'setList'
+  if (s`(Ljava/lang/String;)${CLASS.NBT_LIST}`.matches(methodInfo)) return 'getList'
 }
 
 export function field (field) {

@@ -72,15 +72,15 @@ console.error = (...args) => {
   printStatus()
 }
 
-Object.assign(console.error, {
-  set log (value) {
+Object.defineProperty(console.error, 'log', {
+  set (value) {
     if (value) {
       if (!errorLog) errorLog = fs.createWriteStream(path.resolve('error.log'))
     } else {
       errorLog = undefined
     }
   },
-  get log () {
-    return Boolean(errorLog)
+  get () {
+    return errorLog
   }
 })

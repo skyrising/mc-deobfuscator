@@ -73,6 +73,11 @@ export async function getCode (method) {
       line.returnType = op[0]
     }
     Object.assign(line, {
+      nextMatching (predicate, includeSelf = false) {
+        if (includeSelf && predicate(this)) return this
+        if (!this.next) return
+        return this.next.nextMatching(predicate, true)
+      },
       nextOp (line, includeSelf = false) {
         line = Array.isArray(line) ? line : [line]
         for (const candidate of line) {
@@ -81,6 +86,11 @@ export async function getCode (method) {
         }
         if (!this.next) return
         return this.next.nextOp(line, true)
+      },
+      prevMatching (predicate, includeSelf = false) {
+        if (includeSelf && predicate(this)) return this
+        if (!this.next) return
+        return this.next.prevMatching(predicate, true)
       },
       prevOp (line, includeSelf = false) {
         line = Array.isArray(line) ? line : [line]

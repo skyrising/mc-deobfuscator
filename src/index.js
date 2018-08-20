@@ -28,7 +28,13 @@ function enableDebugLog () {
 if (require.main === module) {
   enableDebugLog()
   const version = process.argv[2] || '1.12'
-  const options = {specialSource: true, extractJar: true}
+  const options = {
+    specialSource: true,
+    extractJar: true,
+    debugLog: true,
+    errorLog: true,
+    status: true
+  }
   if (version.endsWith('.jar')) analyzeJar(path.resolve(version), [], options).catch(console.error)
   else analyzeVersion(version, options).catch(console.error)
 }

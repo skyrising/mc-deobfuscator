@@ -1,16 +1,21 @@
+import {signatureTag as s} from '../../../../util/code'
 import * as CLASS from '../../../../ClassNames'
 import * as PKG from '../../../../PackageNames'
 import {toUpperCamelCase, toUnderScoreCase} from '../../../../util'
 
 const ENTITY_PKG = {
+  AreaEffectCloud: PKG.ENTITY_EFFECT,
+  ArmorStand: PKG.ENTITY_ITEM,
   Arrow: PKG.ENTITY_PROJECTILE,
   Bat: PKG.ENTITY_PASSIVE,
   Blaze: PKG.ENTITY_MONSTER,
   Boat: PKG.ENTITY_ITEM,
   CaveSpider: PKG.ENTITY_MONSTER,
+  ChestMinecart: PKG.ENTITY_ITEM,
   Chicken: PKG.ENTITY_PASSIVE,
+  CommandblockMinecart: PKG.ENTITY_ITEM,
   CommandBlockMinecart: PKG.ENTITY_ITEM,
-  Cod: PKG.ENTITY_PASSIVE,
+  Cod: PKG.ENTITY_WATER,
   Cow: PKG.ENTITY_PASSIVE,
   Creeper: PKG.ENTITY_MONSTER,
   Dolphin: PKG.ENTITY_PASSIVE,
@@ -29,26 +34,34 @@ const ENTITY_PKG = {
   EvocationIllager: PKG.ENTITY_MONSTER,
   Evoker: PKG.ENTITY_MONSTER,
   EvokerFangs: PKG.ENTITY_PROJECTILE,
+  ExperienceBottle: PKG.ENTITY_ITEM,
+  ExperienceOrb: PKG.ENTITY_ITEM,
   EyeOfEnder: PKG.ENTITY_ITEM,
   EyeOfEnderSignal: PKG.ENTITY_ITEM,
   FallingBlock: PKG.ENTITY_ITEM,
   FallingSand: PKG.ENTITY_ITEM,
   Fireball: PKG.ENTITY_PROJECTILE,
+  FireworkRocket: PKG.ENTITY_PROJECTILE,
   FireworksRocketEntity: PKG.ENTITY_PROJECTILE,
+  FishingBobber: PKG.ENTITY_ITEM,
   Ghast: PKG.ENTITY_MONSTER,
   Giant: PKG.ENTITY_MONSTER,
   Guardian: PKG.ENTITY_MONSTER,
   Horse: PKG.ENTITY_PASSIVE,
   Husk: PKG.ENTITY_MONSTER,
+  Illusioner: PKG.ENTITY_MONSTER,
   IllusionIllager: PKG.ENTITY_MONSTER,
   Item: PKG.ENTITY_ITEM,
   ItemFrame: PKG.ENTITY_ITEM,
   IronGolem: PKG.ENTITY_PASSIVE,
   LavaSlime: PKG.ENTITY_MONSTER,
   LeashKnot: PKG.ENTITY_ITEM,
+  LightningBolt: PKG.ENTITY_EFFECT,
   Llama: PKG.ENTITY_PASSIVE,
   LlamaSpit: PKG.ENTITY_PROJECTILE,
+  MagmaCube: PKG.ENTITY_MONSTER,
   Minecart: PKG.ENTITY_ITEM,
+  Mooshroom: PKG.ENTITY_PASSIVE,
   Mule: PKG.ENTITY_PASSIVE,
   MushroomCow: PKG.ENTITY_PASSIVE,
   Ozelot: PKG.ENTITY_PASSIVE,
@@ -59,7 +72,9 @@ const ENTITY_PKG = {
   PigZombie: PKG.ENTITY_MONSTER,
   PolarBear: PKG.ENTITY_MONSTER,
   PrimedTnt: PKG.ENTITY_ITEM,
+  Pufferfish: PKG.ENTITY_WATER,
   Rabbit: PKG.ENTITY_PASSIVE,
+  Salmon: PKG.ENTITY_WATER,
   Sheep: PKG.ENTITY_PASSIVE,
   Shulker: PKG.ENTITY_MONSTER,
   ShulkerBullet: PKG.ENTITY_PROJECTILE,
@@ -73,7 +88,7 @@ const ENTITY_PKG = {
   SnowMan: PKG.ENTITY_PASSIVE,
   SpectralArrow: PKG.ENTITY_PROJECTILE,
   Spider: PKG.ENTITY_MONSTER,
-  Squid: PKG.ENTITY_PASSIVE,
+  Squid: PKG.ENTITY_WATER,
   Stray: PKG.ENTITY_MONSTER,
   ThrownEgg: PKG.ENTITY_PROJECTILE,
   ThrownEnderpearl: PKG.ENTITY_PROJECTILE,
@@ -81,11 +96,15 @@ const ENTITY_PKG = {
   ThrownPotion: PKG.ENTITY_PROJECTILE,
   Tnt: PKG.ENTITY_ITEM,
   Trident: PKG.ENTITY_PROJECTILE,
+  TropicalFish: PKG.ENTITY_WATER,
+  Turtle: PKG.ENTITY_PASSIVE,
   Vex: PKG.ENTITY_MONSTER,
   Villager: PKG.ENTITY_PASSIVE,
   VillagerGolem: PKG.ENTITY_PASSIVE,
   VindicationIllager: PKG.ENTITY_MONSTER,
+  Vindicator: PKG.ENTITY_MONSTER,
   Witch: PKG.ENTITY_MONSTER,
+  Wither: PKG.ENTITY_BOSS,
   WitherBoss: PKG.ENTITY_BOSS,
   WitherSkeleton: PKG.ENTITY_MONSTER,
   WitherSkull: PKG.ENTITY_ITEM,
@@ -117,6 +136,11 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
     }
   }
   const {sig} = methodInfo
+  if (sig.startsWith('(Ljava/lang/String;II)L')) return 'registerSpawnEgg'
+  if (sig === '(Ljava/lang/Class;Ljava/lang/String;I)V') return 'registerEntity'
+  if (s`(Ljava/lang/String;${CLASS.ENTITIES$BUILDER})${CLASS.ENTITIES}`.matches(methodInfo)) return 'registerEntity'
+  // TODO: matches register
+  // if (sig.startsWith('(Ljava/lang/String;L') && methodInfo.static) return 'createEntity'
   for (const c of code.consts) {
     if (typeof c === 'string' && c.startsWith('Skipping Entity with id ')) {
       if (!sig.startsWith('(IL')) {
@@ -126,14 +150,13 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
       return 'createEntity'
     }
   }
-  if (sig.startsWith('(Ljava/lang/String;II)L')) return 'registerSpawnEgg'
-  if (sig === '(Ljava/lang/Class;Ljava/lang/String;I)V') return 'registerEntity'
-  if (sig.startsWith('(Ljava/lang/String;L') && methodInfo.static) return 'createEntity'
 }
 
 export function field (field, clsInfo, info, cls) {
   const sig = field.getType().getSignature()
   switch (sig) {
     case 'Ljava/util/Map;': return field.isPublic() ? 'SPAWN_EGGS' : undefined
+    case 'Ljava/lang/Class;': return 'entityClass'
+    case 'Ljava/util/function/Function;': return 'constructor'
   }
 }

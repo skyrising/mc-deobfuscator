@@ -63,7 +63,10 @@ const simpleConstToClass = Object.freeze({
   'texturePack.openFolder': CLASS.GUI_OPTIONS_TEXTURE_PACKS,
   'options.sounds.title': CLASS.GUI_OPTIONS_SOUNDS,
   'Invalid Biome id': CLASS.BIOME_PROVIDER,
-  'Unable to serialize an anonymous value to json!': CLASS.DATA_GENERATOR,
+  'Unable to serialize an anonymous value to json!': {
+    predicate: ({clsInfo}) => !clsInfo.isInnerClass,
+    name: CLASS.DATA_GENERATOR
+  },
   'BiomeBuilder{\nsurfaceBuilder=': CLASS.BIOME$BIOME_BUILDER,
   'Something went wrong when converting from HSV to RGB. Input was ': CLASS.MATH_HELPER,
   'blockDiamond': CLASS.BLOCK,
@@ -387,14 +390,17 @@ const simpleConstToClass = Object.freeze({
       method: 'start'
     }
   },
-  'falling_block': {
+  'falling_block': [{
+    predicate: ({methodInfo}) => methodInfo.origName !== '<clinit>',
     name: CLASS.ENTITIES,
     method: 'init',
     call: {
       next: 'invokestatic',
       method: 'registerEntity'
     }
-  },
+  }, {
+    name: CLASS.ENTITIES
+  }],
   'Banned by an operator.': {
     name: CLASS.BAN_DETAIL,
     field: 'reason'
@@ -512,7 +518,7 @@ const simpleConstToClass = Object.freeze({
   'textures/gui/container/brewing_stand.png': CLASS.GUI_BREWING_STAND,
   'textures/gui/bars.png': CLASS.GUI_BOSS_BAR,
   '>': {
-    predicate: ({code}) => !code.consts.includes('+=') && code.consts.includes('<'),
+    predicate: ({code}) => !code.consts.includes('+=') && code.consts.includes('<') && code.consts.includes(0xcc000000 | 0),
     name: CLASS.GUI_SUBTITLE
   },
   'chat.link.confirmTrusted': CLASS.GUI_CHAT_LINK_CONFIRM,
@@ -531,6 +537,13 @@ const simpleConstToClass = Object.freeze({
     name: CLASS.PLAYER_CHUNK_MAP_ENTRY,
     method: 'addPlayer',
     args: [CLASS.SERVER_PLAYER]
+  },
+  'argument.id.invalid': CLASS.RESOURCE_LOCATION,
+  'FromBucket': CLASS.FISH,
+  'No data fixer registered for entity {}': CLASS.ENTITIES$BUILDER,
+  'inFire': {
+    predicate: ({code}) => code.consts.includes('fall'),
+    name: CLASS.DAMAGE_SOURCE
   }
 })
 
