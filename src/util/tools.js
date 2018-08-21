@@ -3,10 +3,10 @@ import path from 'path'
 import cp from 'child_process'
 import {sync as rmrf} from 'rimraf'
 
-import {generateSrgs} from './srg'
+import {generateOutput} from './output'
 
 export function specialSource (inFile, outFile, info, format = 'srg') {
-  const mapping = generateSrgs(info)[format]
+  const mapping = generateOutput(info)[format]
   console.log('Deobfuscating with SpecialSource')
   cp.spawnSync('java', ['-jar', 'work/specialsource.jar', '-i', inFile, '-o', outFile, '-m', mapping, '--kill-lvt'], {
     stdio: ['ignore', 'inherit', fs.openSync('./temp/specialsource.warn', 'w')]

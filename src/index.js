@@ -6,7 +6,7 @@ import {enrichClsInfo} from './util/code'
 import {createInfo} from './util/info'
 import {startStatus, endStatus, setStatus} from './util/status'
 import {specialSource as runSpecialSource, extractJar as runExtractJar} from './util/tools'
-import {generateSrgs} from './util/srg'
+import {generateOutput} from './util/output'
 import {getAllClasses, initJava} from './util/java'
 import {analyzeClassWrapper, runAnalyzer, initAnalyzer} from './util/analyzers'
 import * as renameGetterSetter from './analyzers/getterSetter'
@@ -146,7 +146,7 @@ export async function analyzeJar (jarFile, classPath, options = {}) {
       await runExtractJar(deobfJar, binDir)
     }
   } else {
-    await generateSrgs(info)
+    await generateOutput(info)
   }
   // const srcDir = path.resolve('./work/src/')
   // await procyon(deobfJar, srcDir)

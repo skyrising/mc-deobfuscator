@@ -1,11 +1,9 @@
-// TODO: rename file
 import * as PKG from '../PackageNames'
 import fs from 'fs'
 import path from 'path'
 import {getMappedClassName, sortObfClassName, slash} from './index'
 
-// TODO: rename
-export function generateSrgs (info) {
+export function generateOutput (info) {
   const dataDir = path.resolve('data')
   if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir)
   const versionDir = path.resolve(dataDir, info.version.toString())
