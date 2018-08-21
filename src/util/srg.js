@@ -20,22 +20,36 @@ export function generateSrgs (info) {
   generateTsrg(info, tsrg)
   const obfClasses = path.resolve(sideDir, 'classes-obf.txt')
   const deobfClasses = path.resolve(sideDir, 'classes-deobf.txt')
-  generateClassLists(info, obfClasses, deobfClasses)
+  const hashClasses = path.resolve(sideDir, 'class-hashes.txt')
+  generateClassLists(info, obfClasses, deobfClasses, hashClasses)
   const dataFiles = generateDataFiles(info, sideDir)
   console.log(version)
   console.log(srg)
   console.log(tsrg)
   console.log(obfClasses)
   console.log(deobfClasses)
+  console.log(hashClasses)
   for (const file of dataFiles) console.log(file)
-  return {version, srg, tsrg, obfClasses, deobfClasses, dataFiles}
+  return {version, srg, tsrg, obfClasses, deobfClasses, hashClasses, dataFiles}
 }
 
-export function generateClassLists (info, obfFile, deobfFile) {
+export function generateClassLists (info, obfFile, deobfFile, hashFile) {
   const obfClasses = info.classNames.sort(sortObfClassName)
   const deobfClasses = obfClasses.map(cls => getMappedClassName(info, cls)).filter(Boolean)
+  const hashCount = {}
+  const hashIndex = {}
+  for (const cls of obfClasses) {
+    const hash = info.class[cls].hashBase26
+    hashIndex[hash] = 0
+    hashCount[hash] = (hashCount[hash] || 0) + 1
+  }
+  const hashClasses = obfClasses.map(cls => {
+    const hash = info.class[cls].hashBase26
+    return hashCount[hash] > 1 ? hash + hashIndex[hash]++ : hash
+  })
   fs.writeFileSync(obfFile, obfClasses.map(cls => cls + '\n').join(''))
   fs.writeFileSync(deobfFile, deobfClasses.map(cls => cls + '\n').join(''))
+  fs.writeFileSync(hashFile, hashClasses.map(cls => cls + '\n').join(''))
 }
 
 export function generateSrg (info, srgFile) {

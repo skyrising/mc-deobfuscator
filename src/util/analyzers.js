@@ -2,7 +2,7 @@ import fs from 'mz/fs'
 import path from 'path'
 import {setStatus} from './status'
 import {getCallStats, waiter, getMappedClassName} from './index'
-import {getCode, enrichClsInfo} from './code'
+import {enrichClsInfo} from './code'
 
 const dbgSearch = require('debug')('mc:deobf:search')
 const debugSearch = (...args) => {
@@ -133,19 +133,9 @@ export async function runAnalyzer (analyzer, cls, clsInfo, info, runGeneric) {
       const name = await method.getNameAsync()
       const sig = await method.getSignatureAsync()
       const methodInfo = clsInfo.method[name + ':' + sig]
-      methodInfo.clsInfo = clsInfo
-      methodInfo.info = info
-      methodInfo.obfName = name
-      methodInfo.sig = sig
-      methodInfo.static = await method.isStaticAsync()
-      methodInfo.args = await method.getArgumentTypesAsync()
       if (methodInfo.done) continue
       if (analyzer !== GENERIC_ANALYZER) console.debug('Analyzing method %s.%s:%s', (clsInfo.name || className), name, sig)
       setStatus(`${clsInfo.name || className}.${name}${sig}`)
-      const code = methodInfo.code = methodInfo.code || await getCode(method)
-      for (const c of code.consts) if (typeof c === 'string') clsInfo.consts.add(c)
-      // for (const call of code.internalCalls) if (call.fullClassName !== className) info.queue = call.fullClassName
-      // for (const field of code.internalFields) if (field.fullClassName !== className) info.queue = field.fullClassName
       try {
         methodInfo.done = true
         if (!(await callAnalyzerMethod(analyzer, methodProxy, methodInfo)) && GENERIC_ANALYZER) {

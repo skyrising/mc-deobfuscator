@@ -76,10 +76,12 @@ export function decodeType (type) {
   return type.slice(1, type.indexOf(';')).replace(/\//g, '.')
 }
 
+const useHashNaming = true
 export function getDefaultName (clsInfo) {
-  if (clsInfo.enumNames) return 'Enum' + ucFirst(clsInfo.obfName)
-  if (clsInfo.isInterface) return 'If' + ucFirst(clsInfo.obfName)
-  return 'Cls' + ucFirst(clsInfo.obfName)
+  const main = ucFirst(clsInfo.obfName) + (useHashNaming ? ucFirst(clsInfo.hashBase26) : '')
+  if (clsInfo.enumNames) return 'Enum' + main
+  if (clsInfo.isInterface) return 'If' + main
+  return 'Cls' + main
 }
 
 export function sortObfClassNamePart (a, b) {

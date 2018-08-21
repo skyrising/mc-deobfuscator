@@ -206,16 +206,69 @@ export function getMethodInheritance (methodInfo, clsInfo) {
   return methodInheritance[key]
 }
 
+function h (item) {
+  if (!item) return h(typeof item)
+  if (typeof item === 'number' || typeof item === 'boolean') return Math.abs(Math.floor(+item))
+  if (typeof item === 'string') {
+    let hash = 324
+    for (let i = 0; i < item.length; i++) hash = (31 * hash + item.charCodeAt(i)) | 0
+    return hash
+  }
+  if (Array.isArray(item)) {
+    let hash = 2347
+    for (const x of item) hash = (31 * hash + h(x)) | 0
+    return hash
+  }
+  if (typeof item === 'object') {
+    let hash = 9876
+    for (const k of Object.keys(item)) {
+      hash = (31 * hash + h(k)) | 0
+      hash = (31 * hash + h(item[k])) | 0
+    }
+    return hash
+  }
+  return 541
+}
+
+function hsig (sig, alt = 0) {
+  switch (sig[0]) {
+    case 'L': return sig.startsWith('Ljava') ? sig : alt
+    case '[': return '[' + hsig(sig.slice(1), alt)
+  }
+  return sig
+}
+
+function h2 (hash, item) {
+  return (hash * 31 + h(item)) | 0
+}
+
+const BASE26_ALPHABET = 'abcdefghijklmnopqrstuvwxyz'
+
+function base26 (n) {
+  if (n === 0 || typeof n !== 'number') return 'a'
+  let s = ''
+  n = Math.abs(Math.floor(n))
+  while (n > 0) {
+    s = BASE26_ALPHABET[n % 26] + s
+    n = Math.floor(n / 26)
+  }
+  return s
+}
+
 export async function enrichClsInfo (cls, info) {
   const className = await cls.getClassNameAsync()
   const clsInfo = info.class[className]
   if (clsInfo.bin) return clsInfo
+  let hash = 1
   clsInfo.superClassName = await cls.getSuperclassNameAsync()
+  if (clsInfo.superClassName.startsWith('java')) hash = h2(hash, clsInfo.superClassName)
   info.class[clsInfo.superClassName].subClasses.add(className)
   clsInfo.interfaceNames = await cls.getInterfaceNamesAsync()
+  hash = h2(hash, clsInfo.interfaceNames.map((s, i) => s.startsWith('java') ? s : i))
   for (const ifn of clsInfo.interfaceNames) info.class[ifn].subClasses.add(className)
   clsInfo.bin = cls
   clsInfo.isInterface = await cls.isInterfaceAsync()
+  hash = h2(hash, clsInfo.isInterface)
   for (const attr of await cls.getAttributes()) {
     const name = await attr.getNameAsync()
     clsInfo.attributes[name] = attr
@@ -226,25 +279,39 @@ export async function enrichClsInfo (cls, info) {
     }
   }
   for (const md of await cls.getMethodsAsync()) {
-    const methodInfo = clsInfo.method[(await md.getNameAsync()) + ':' + (await md.getSignatureAsync())]
+    const name = await md.getNameAsync()
+    const sig = await md.getSignatureAsync()
+    const methodInfo = clsInfo.method[name + ':' + sig]
+    const acc = await md.getAccessFlags()
+    hash = h2(hash, acc)
     methodInfo.bin = md
+    methodInfo.acc = acc
+    Object.assign(methodInfo, decodeAccessFlags(acc))
+    methodInfo.clsInfo = clsInfo
+    methodInfo.info = info
+    methodInfo.obfName = name
+    methodInfo.sig = sig
+    methodInfo.static = await md.isStaticAsync()
+    methodInfo.args = await md.getArgumentTypesAsync()
+    methodInfo.argSigs = methodInfo.args.map(t => t.getSignature())
+    hash = h2(hash, methodInfo.argSigs.map(hsig))
+    methodInfo.ret = await md.getReturnTypeAsync()
+    methodInfo.retSig = await methodInfo.ret.getSignatureAsync()
+    hash = h2(hash, hsig(methodInfo.retSig))
     methodInfo.isAbstract = await md.isAbstract()
+    hash = h2(hash, methodInfo.isAbstract)
+    methodInfo.code = await getCode(md)
+    for (const c of methodInfo.code.consts) if (typeof c === 'string') clsInfo.consts.add(c)
   }
+  hash = h2(hash, [...clsInfo.consts])
   for (const fd of await cls.getFieldsAsync()) {
     const acc = await fd.getAccessFlags()
     const fieldInfo = {
       clsInfo,
       obfName: await fd.getNameAsync(),
       type: await fd.getTypeAsync(),
-      public: Boolean(acc & ACC_PUBLIC),
-      private: Boolean(acc & ACC_PRIVATE),
-      protected: Boolean(acc & ACC_PROTECTED),
-      static: Boolean(acc & ACC_STATIC),
-      final: Boolean(acc & ACC_FINAL),
-      volatile: Boolean(acc & ACC_VOLATILE),
-      transient: Boolean(acc & ACC_TRANSIENT),
-      synthetic: Boolean(acc & ACC_SYNTHETIC),
-      enum: Boolean(acc & ACC_ENUM),
+      acc,
+      ...decodeAccessFlags(acc),
       get name () {
         return clsInfo.field[this.obfName]
       },
@@ -252,8 +319,26 @@ export async function enrichClsInfo (cls, info) {
         clsInfo.field[this.obfName] = name
       }
     }
+    hash = h2(hash, acc)
     fieldInfo.sig = await fieldInfo.type.getSignatureAsync()
+    hash = h2(hash, hsig(fieldInfo.sig))
     clsInfo.fields[fieldInfo.obfName] = fieldInfo
   }
+  clsInfo.hash = hash
+  clsInfo.hashBase26 = base26(hash)
   return clsInfo
+}
+
+function decodeAccessFlags (acc) {
+  return {
+    public: Boolean(acc & ACC_PUBLIC),
+    private: Boolean(acc & ACC_PRIVATE),
+    protected: Boolean(acc & ACC_PROTECTED),
+    static: Boolean(acc & ACC_STATIC),
+    final: Boolean(acc & ACC_FINAL),
+    volatile: Boolean(acc & ACC_VOLATILE),
+    transient: Boolean(acc & ACC_TRANSIENT),
+    synthetic: Boolean(acc & ACC_SYNTHETIC),
+    enum: Boolean(acc & ACC_ENUM)
+  }
 }
