@@ -1,0 +1,27 @@
+{
+  "parser": "babel-eslint",
+  "parserOptions": {
+    "ecmaVersion": 6,
+    "sourceType": "module",
+    "ecmaFeatures": {
+      "jsx": true
+    }
+  },
+  "env": {
+    "node": true
+  },
+  "plugins": [
+    "flowtype",
+    "standard"
+  ],
+  "extends": [
+    "standard",
+    "plugin:flowtype/recommended"
+  ],
+  "rules": {
+    "prefer-const": 2,
+    "flowtype/union-intersection-spacing": 0,
+    "flowtype/no-types-missing-file-annotation": 0,
+    "no-unused-vars": 1
+  }
+}
