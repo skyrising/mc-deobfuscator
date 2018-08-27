@@ -1,14 +1,14 @@
 import {signatureTag as s} from '../../../../util/code'
 import * as CLASS from '../../../../ClassNames'
 
-export function field (field, clsInfo, info) {
-  const sig = field.getType().getSignature()
+export function field (fieldInfo) {
+  const {sig, clsInfo, info} = fieldInfo
   switch (sig) {
     case 'Ljava/util/Random;': return 'rand'
     case '[I': return 'lightUpdateBlockList'
     case 'J': return 'cloudColor'
     case 'I':
-      if (field.isProtected() && field.isFinal()) return 'TICK_RANDOM_ADDEND'
+      if (fieldInfo.protected && fieldInfo.final) return 'TICK_RANDOM_ADDEND'
       break
   }
   const WorldInfo = info.classReverse[CLASS.WORLD_INFO]

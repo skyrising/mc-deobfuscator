@@ -1,5 +1,6 @@
-export function field (field, clsInfo, info) {
-  const sig = field.getType().getSignature()
+
+export function field (fieldInfo) {
+  const {sig} = fieldInfo
   switch (sig) {
     case 'Ljava/lang/String;': return 'name'
     case 'Ljava/lang/Class;': return 'type'

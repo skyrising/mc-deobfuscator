@@ -17,8 +17,8 @@ const FIELD_TYPE_NAME_MAP = {
   [CLASS.ENTITY]: 'entity'
 }
 
-export function field (field, clsInfo, info) {
-  const sig = field.getType().getSignature()
+export function field (fieldInfo) {
+  const {sig, clsInfo, info} = fieldInfo
   for (const deobfType in FIELD_TYPE_NAME_MAP) {
     const obfType = info.classReverse[deobfType]
     if (!obfType) {

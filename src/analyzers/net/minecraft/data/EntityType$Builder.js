@@ -6,8 +6,8 @@ export function method (methodInfo) {
   if (s`(Ljava/lang/Class;)${CLASS.ENTITIES$BUILDER}`.matches(methodInfo)) return 'create'
 }
 
-export function field (field, clsInfo, info, cls) {
-  const sig = field.getType().getSignature()
+export function field (fieldInfo) {
+  const {sig} = fieldInfo
   switch (sig) {
     case 'Ljava/lang/Class;': return 'entityClass'
     case 'Ljava/util/function/Function;': return 'constructor'

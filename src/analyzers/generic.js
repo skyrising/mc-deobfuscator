@@ -795,11 +795,14 @@ function getEnumName (names, cls, clsInfo, info) {
     case 'MISS,BLOCK,ENTITY':
       info.class[clsInfo.outerClassName].name = CLASS.HIT_RESULT
       return CLASS.HIT_RESULT$TYPE
+    case 'ON_GROUND,IN_WATER':
+      info.class[clsInfo.outerClassName].name = CLASS.SPAWN_CONDITIONS
+      return CLASS.SPAWN_CONDITIONS$PLACE
   }
 }
 
-export function field (field, clsInfo, info, cls) {
-  const sig = field.getType().getSignature()
+export function field (fieldInfo) {
+  const {sig, clsInfo, info} = fieldInfo
   const Profiler = info.classReverse[CLASS.PROFILER]
   if (Profiler && sig === 'L' + Profiler + ';') return 'profiler'
   if (!Profiler) clsInfo.done = false

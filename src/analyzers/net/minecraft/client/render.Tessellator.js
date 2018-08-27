@@ -56,12 +56,10 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
       return 'setTexCoord'
   }
 }
-
-export function field (field, clsInfo, info, cls) {
-  const sig = field.getType().getSignature()
-  const className = cls.getClassName()
+export function field (fieldInfo) {
+  const {sig, clsInfo} = fieldInfo
   switch (sig) {
-    case 'L' + className + ';': return 'instance'
+    case 'L' + clsInfo.obfName + ';': return 'instance'
     case 'Ljava/nio/ByteBuffer;': return 'buf'
     case '[I': return 'data'
   }

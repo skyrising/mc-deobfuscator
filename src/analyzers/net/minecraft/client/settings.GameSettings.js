@@ -21,8 +21,8 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
   }
 }
 
-export function field (field, clsInfo, info, cls) {
-  const sig = field.getType().getSignature()
+export function field (fieldInfo) {
+  const {sig, clsInfo, info} = fieldInfo
   const Minecraft = info.classReverse[CLASS.MINECRAFT]
   const KeyBinding = info.classReverse[CLASS.KEY_BINDING]
   if (!Minecraft || !KeyBinding) clsInfo.done = false

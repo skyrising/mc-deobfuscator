@@ -10,8 +10,8 @@ export function method (methodInfo) {
   }
 }
 
-export function field (field, clsInfo, info, cls) {
-  const sig = field.getType().getSignature()
+export function field (fieldInfo) {
+  const {sig} = fieldInfo
   switch (sig) {
     case 'Ljava/util/function/LongSupplier;': return 'nanoTimeSupplier'
     case 'Ljava/util/regex/Pattern;': return 'RESERVED_WINDOWS_FILENAMES'

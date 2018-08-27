@@ -1,13 +1,12 @@
 import * as CLASS from '../../../../ClassNames'
 
-export function field (field, clsInfo, info) {
-  const sig = field.getType().getSignature()
+export function field (fieldInfo) {
+  const {sig} = fieldInfo
   switch (sig) {
     case 'Ljava/util/Collection;': return 'inputPaths'
     case 'Ljava/nio/file/Path;': return 'outputPath'
     case 'Ljava/util/List;': return 'providers'
   }
-  if (sig === '[L' + clsInfo.obfName + ';') return 'WORLD_TYPES'
 }
 
 export function method (cls, method, code, methodInfo, clsInfo, info) {

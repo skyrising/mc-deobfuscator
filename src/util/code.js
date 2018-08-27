@@ -284,23 +284,25 @@ export async function enrichClsInfo (cls, info) {
     const methodInfo = clsInfo.method[name + ':' + sig]
     const acc = await md.getAccessFlags()
     hash = h2(hash, acc)
-    methodInfo.bin = md
-    methodInfo.acc = acc
-    Object.assign(methodInfo, decodeAccessFlags(acc))
-    methodInfo.clsInfo = clsInfo
-    methodInfo.info = info
-    methodInfo.obfName = name
-    methodInfo.sig = sig
-    methodInfo.static = await md.isStaticAsync()
-    methodInfo.args = await md.getArgumentTypesAsync()
+    Object.assign(methodInfo, {
+      bin: md,
+      acc,
+      ...decodeAccessFlags(acc),
+      clsInfo,
+      info,
+      obfName: name,
+      sig,
+      static: await md.isStaticAsync(),
+      args: await md.getArgumentTypesAsync(),
+      ret: await md.getReturnTypeAsync(),
+      isAbstract: await md.isAbstract(),
+      code: await getCode(md)
+    })
     methodInfo.argSigs = methodInfo.args.map(t => t.getSignature())
     hash = h2(hash, methodInfo.argSigs.map(hsig))
-    methodInfo.ret = await md.getReturnTypeAsync()
     methodInfo.retSig = await methodInfo.ret.getSignatureAsync()
     hash = h2(hash, hsig(methodInfo.retSig))
-    methodInfo.isAbstract = await md.isAbstract()
     hash = h2(hash, methodInfo.isAbstract)
-    methodInfo.code = await getCode(md)
     for (const c of methodInfo.code.consts) if (typeof c === 'string') clsInfo.consts.add(c)
   }
   hash = h2(hash, [...clsInfo.consts])
@@ -308,6 +310,7 @@ export async function enrichClsInfo (cls, info) {
     const acc = await fd.getAccessFlags()
     const fieldInfo = {
       clsInfo,
+      info,
       obfName: await fd.getNameAsync(),
       type: await fd.getTypeAsync(),
       acc,

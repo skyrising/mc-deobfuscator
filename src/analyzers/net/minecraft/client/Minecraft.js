@@ -21,8 +21,8 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
   }
 }
 
-export function field (field, clsInfo, info, cls) {
-  const sig = field.getType().getSignature()
+export function field (fieldInfo) {
+  const {sig, clsInfo} = fieldInfo
   switch (sig) {
     case 'Ljava/awt/Canvas;': return 'canvas'
     case 'Lnet/minecraft/client/MinecraftApplet;': return 'applet'

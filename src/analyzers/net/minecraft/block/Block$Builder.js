@@ -18,8 +18,8 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
   }
 }
 
-export function field (field, clsInfo, info) {
-  const sig = field.getType().getSignature()
+export function field (fieldInfo) {
+  const {sig, clsInfo, info} = fieldInfo
   const MapColor = info.classReverse[CLASS.MAP_COLOR]
   const Material = info.classReverse[CLASS.MATERIAL]
   if (!MapColor || !Material) clsInfo.done = false

@@ -1,5 +1,5 @@
-export function field (field) {
-  const sig = field.getType().getSignature()
+export function field (fieldInfo) {
+  const {sig} = fieldInfo
   switch (sig) {
   }
 }

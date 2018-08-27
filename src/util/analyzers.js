@@ -33,7 +33,7 @@ export async function findAnalyzer (name) {
 }
 
 export async function analyzeClassWrapper (next, info, Repository) {
-  let w = waiter()
+  const w = waiter()
   const start = Date.now()
   if (typeof next === 'string') {
     info.class[next].analyzing = w
@@ -109,17 +109,14 @@ export async function runAnalyzer (analyzer, cls, clsInfo, info, runGeneric) {
       const fieldProxy = field// getCallStats(field)
       const obfName = await field.getNameAsync()
       if (clsInfo.field[obfName]) continue
+      const fieldInfo = clsInfo.fields[obfName]
       clsInfo.field[obfName] = null
       if (analyzer !== GENERIC_ANALYZER) console.debug('%s.%s: Running analyzer.field', (clsInfo.name || className), obfName)
       setStatus(`${clsInfo.name || className}.${obfName}`)
       try {
-        const deobfName = await analyzer.field(fieldProxy, clsInfo, info, cls)
-        if (deobfName) {
-          clsInfo.field[obfName] = deobfName
-          clsInfo.done = false
-        } else if (GENERIC_ANALYZER && analyzer !== GENERIC_ANALYZER) {
-          const deobfName = await GENERIC_ANALYZER.field(fieldProxy, clsInfo, info, cls)
-          if (deobfName) clsInfo.field[obfName] = deobfName
+        fieldInfo.done = true
+        if (!(await callAnalyzerField(analyzer, fieldProxy, fieldInfo)) && GENERIC_ANALYZER) {
+          if (runGeneric) await callAnalyzerField(GENERIC_ANALYZER, fieldProxy, fieldInfo)
         }
       } catch (e) {
         console.error(e)
@@ -154,7 +151,18 @@ async function callAnalyzerMethod (analyzer, method, methodInfo) {
     if (name) methodInfo.name = name
     return Boolean(name)
   }
-  const name = await analyzer.method(methodInfo.clsInfo.bin, method, methodInfo.code, methodInfo, methodInfo.clsInfo, methodInfo.clsInfo.info)
+  const name = await analyzer.method(methodInfo.clsInfo.bin, method, methodInfo.code, methodInfo, methodInfo.clsInfo, methodInfo.info)
   if (name) methodInfo.name = name
+  return Boolean(name)
+}
+
+async function callAnalyzerField (analyzer, field, fieldInfo) {
+  if (analyzer.field.length === 1) {
+    const name = await analyzer.field(fieldInfo)
+    if (name) fieldInfo.name = name
+    return Boolean(name)
+  }
+  const name = await analyzer.field(field, fieldInfo.clsInfo, fieldInfo.info, fieldInfo.clsInfo.bin)
+  if (name) fieldInfo.name = name
   return Boolean(name)
 }

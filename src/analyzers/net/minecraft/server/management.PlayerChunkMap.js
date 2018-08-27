@@ -12,8 +12,8 @@ export function method (methodInfo) {
   if (s`(${CLASS.SERVER_PLAYER}II)Z`.matches(methodInfo)) return 'isPlayerWatchingChunk'
 }
 
-export function field (field, clsInfo, info) {
-  const sig = field.getType().getSignature()
+export function field (fieldInfo) {
+  const {sig, clsInfo, info} = fieldInfo
   const WorldServer = info.classReverse[CLASS.WORLD_SERVER]
   if (!WorldServer) clsInfo.done = false
   if (WorldServer && sig === 'L' + WorldServer + ';') return 'world'

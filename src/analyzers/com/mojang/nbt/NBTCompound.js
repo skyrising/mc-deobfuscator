@@ -53,8 +53,8 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
   if (s`(Ljava/lang/String;)${CLASS.NBT_LIST}`.matches(methodInfo)) return 'getList'
 }
 
-export function field (field) {
-  const sig = field.getType().getSignature()
+export function field (fieldInfo) {
+  const {sig} = fieldInfo
   switch (sig) {
     case 'Ljava/util/Map;': return 'map'
   }

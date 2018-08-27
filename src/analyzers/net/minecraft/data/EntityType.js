@@ -129,7 +129,7 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
       if (name === 'ThrownEnderpearl') name = 'EnderPearl'
       const fieldName = (flat ? line.const : toUnderScoreCase(line.const)).toUpperCase()
       clsInfo.field[line.nextOp('putstatic').field.fieldName] = fieldName
-      let entClass = flat ? line.next.const : line.previous.const
+      const entClass = flat ? line.next.const : line.previous.const
       const pkg = name in ENTITY_PKG ? ENTITY_PKG[name] : PKG.ENTITY
       info.class[entClass].name = pkg + '.' + name
       info.data.entities[line.const] = {name, class: pkg + '.' + name}
@@ -152,10 +152,10 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
   }
 }
 
-export function field (field, clsInfo, info, cls) {
-  const sig = field.getType().getSignature()
+export function field (fieldInfo) {
+  const {sig} = fieldInfo
   switch (sig) {
-    case 'Ljava/util/Map;': return field.isPublic() ? 'SPAWN_EGGS' : undefined
+    case 'Ljava/util/Map;': return fieldInfo.public ? 'SPAWN_EGGS' : undefined
     case 'Ljava/lang/Class;': return 'entityClass'
     case 'Ljava/util/function/Function;': return 'constructor'
   }

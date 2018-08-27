@@ -16,8 +16,8 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
   }
 }
 
-export function field (field, clsInfo, info) {
-  const sig = field.getType().getSignature()
+export function field (fieldInfo) {
+  const {sig} = fieldInfo
   switch (sig) {
     case 'Ljava/io/File;': return 'dimensionDirectory'
     case 'Lit/unimi/dsi/fastutil/objects/Object2ObjectMap;': return 'saveQueue'

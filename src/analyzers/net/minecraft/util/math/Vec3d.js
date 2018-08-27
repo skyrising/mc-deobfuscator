@@ -1,6 +1,7 @@
-export function field (field, clsInfo, info) {
+
+export function field (fieldInfo) {
+  const {sig, clsInfo} = fieldInfo
   const Vec3d = clsInfo.obfName
-  const sig = field.getType().getSignature()
   switch (sig) {
     case 'L' + Vec3d + ';': return 'ZERO'
   }

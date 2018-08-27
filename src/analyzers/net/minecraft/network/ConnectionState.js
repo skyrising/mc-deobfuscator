@@ -11,10 +11,10 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
   if (sig === '()I') return 'getId'
 }
 
-export function field (field, clsInfo, info) {
-  const sig = field.getType().getSignature()
+export function field (fieldInfo) {
+  const {sig, clsInfo} = fieldInfo
   switch (sig) {
-    case 'Ljava/util/Map;': return field.isStatic() ? 'BACKWARD' : 'FORWARD'
+    case 'Ljava/util/Map;': return fieldInfo.static ? 'BACKWARD' : 'FORWARD'
     case '[L' + clsInfo.obfName + ';': return 'STATES'
   }
 }

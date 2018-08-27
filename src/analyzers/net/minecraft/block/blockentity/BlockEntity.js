@@ -18,8 +18,8 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
   }
 }
 
-export function field (field, clsInfo, info) {
-  const sig = field.getType().getSignature()
+export function field (fieldInfo) {
+  const {sig, clsInfo, info} = fieldInfo
   const Block = info.classReverse[CLASS.BLOCK]
   const World = info.classReverse[CLASS.WORLD]
   const BlockPos = info.classReverse[CLASS.BLOCK_POS]

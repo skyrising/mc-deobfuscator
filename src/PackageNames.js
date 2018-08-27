@@ -50,6 +50,8 @@ export const CLIENT = BASE + '.client'
 export const CLIENT_SETTINGS = CLIENT + '.settings'
 export const CLIENT_ENTITY = CLIENT + '.entity'
 export const CLIENT_MULTIPLAYER = CLIENT + '.multiplayer'
+export const CLIENT_WORLD = CLIENT + '.world'
+
 export const RESOURCES = CLIENT + '.resources'
 export const RESOURCES_DATA = RESOURCES + '.data'
 export const RENDERER = CLIENT + '.renderer'
@@ -75,6 +77,8 @@ export const RENDER_BLOCK = RENDER + '.block'
 export const BLOCK_MODEL = RENDER_BLOCK + '.model'
 
 export const SERVER = BASE + '.server'
+export const SERVER_WORLD = SERVER + '.world'
+
 export const DEDICATED_SERVER = SERVER + '.dedicated'
 export const INTEGRATED_SERVER = SERVER + '.integrated'
 export const COMMAND = SERVER + '.command'

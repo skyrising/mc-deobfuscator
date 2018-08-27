@@ -1,7 +1,7 @@
 import * as CLASS from '../../../../../ClassNames'
 
-export function field (field, clsInfo, info) {
-  const sig = field.getType().getSignature()
+export function field (fieldInfo) {
+  const {sig, clsInfo, info} = fieldInfo
   const World = info.classReverse[CLASS.WORLD]
   if (!World) clsInfo.done = false
   if (World && sig === 'L' + World + ';') return 'world'

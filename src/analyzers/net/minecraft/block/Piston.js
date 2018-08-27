@@ -1,8 +1,8 @@
 import {signatureTag as s, getMethodInheritance} from '../../../../util/code'
 import * as CLASS from '../../../../ClassNames'
 
-export function field (field, clsInfo, info) {
-  const sig = field.getType().getSignature()
+export function field (fieldInfo) {
+  const {sig, clsInfo, info} = fieldInfo
   switch (sig) {
     case 'Z': return 'sticky'
   }

@@ -7,8 +7,8 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
   }
 }
 
-export function field (field, clsInfo, info) {
-  const sig = field.getType().getSignature()
+export function field (fieldInfo) {
+  const {sig, clsInfo, info} = fieldInfo
   const MapColor = info.classReverse[CLASS.MAP_COLOR]
   const PistonBehavior = info.classReverse[CLASS.PISTON_BEHAVIOR]
   if (!MapColor || !PistonBehavior) clsInfo.done = false

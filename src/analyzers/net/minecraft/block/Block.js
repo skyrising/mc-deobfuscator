@@ -52,8 +52,8 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
   }
 }
 
-export function field (field, clsInfo, info) {
-  const sig = field.getType().getSignature()
+export function field (fieldInfo) {
+  const {sig, clsInfo, info} = fieldInfo
   switch (sig) {
     case 'Ljava/lang/String;': return 'name'
     case 'I': return 'lightOpacity'

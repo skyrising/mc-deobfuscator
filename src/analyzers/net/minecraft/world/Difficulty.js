@@ -1,7 +1,7 @@
 import * as CLASS from '../../../../ClassNames'
 
-export function field (field, clsInfo, info) {
-  const sig = field.getType().getSignature()
+export function field (fieldInfo) {
+  const {sig, clsInfo} = fieldInfo
   switch (sig) {
     case '[L' + clsInfo.obfName + ';': return 'DIFFICULTIES'
     case 'I': return 'id'

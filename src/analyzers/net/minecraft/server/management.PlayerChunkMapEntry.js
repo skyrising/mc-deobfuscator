@@ -6,8 +6,8 @@ export function method (methodInfo) {
   }
 }
 
-export function field (field, clsInfo, info) {
-  const sig = field.getType().getSignature()
+export function field (fieldInfo) {
+  const {sig, clsInfo, info} = fieldInfo
   const Chunk = info.classReverse[CLASS.CHUNK]
   const ChunkPos = info.classReverse[CLASS.CHUNK_POS]
   const PlayerChunkMap = info.classReverse[CLASS.PLAYER_CHUNK_MAP]

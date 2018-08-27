@@ -7,10 +7,10 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
   }
 }
 
-export function field (field, clsInfo, info, cls) {
-  const sig = field.getType().getSignature()
+export function field (fieldInfo) {
+  const {sig, clsInfo} = fieldInfo
   switch (sig) {
     case 'Ljava/util/Properties;': return 'translations'
-    case 'L' + cls.getClassName() + ';': return 'instance'
+    case 'L' + clsInfo.obfName + ';': return 'instance'
   }
 }

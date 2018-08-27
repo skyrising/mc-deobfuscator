@@ -1,3 +1,4 @@
+import * as CLASS from '../../../../ClassNames'
 // TODO: use ClassNames.js
 
 export function method (cls, method, code, methodInfo, clsInfo, info) {
@@ -20,7 +21,7 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
       else if (c === 'sendCommandFeedback') return 'sendCommandFeedback'
       else if (c === 'save' || c === 'tallying') return 'tick'
       else if (c === 'spawnRadius') {
-        info.class[methodInfo.args[0].getClassName()].name = 'net.minecraft.world.WorldServer'
+        info.class[methodInfo.args[0].getClassName()].name = CLASS.SERVER_WORLD
         return 'getSpawnRadius'
       } else if (c === 'server-icon.png') {
         info.class[methodInfo.args[0].getClassName()].name = 'net.minecraft.network.ServerStatusResponse'
@@ -34,7 +35,7 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
   for (const line of code.lines) {
     if (typeof line.const !== 'string') continue
     if (line.const === 'doDaylightCycle') {
-      info.class[line.next.call.fullClassName].name = 'net.minecraft.world.GameRules'
+      info.class[line.next.call.fullClassName].name = CLASS.GAME_RULES
       info.method[line.next.call.fullSig].name = 'getBoolean'
       info.method[line.previous.call.fullSig].name = 'getGameRules'
     } else if (line.const === 'whitelist_enabled') {
@@ -54,21 +55,20 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
   // if (code.consts.length) console.log(code.consts)
 }
 
-export function field (field, clsInfo, info) {
-  const sig = field.getType().getSignature()
+export function field (fieldInfo) {
+  const {sig, clsInfo, info} = fieldInfo
   const Snooper = info.classReverse['net.minecraft.profiler.Snooper']
   const PlayerProfileCache = info.classReverse['net.minecraft.server.management.PlayerProfileCache']
-  const ServerStatusResponse = info.classReverse['net.minecraft.network.ServerStatusResponse']
-  const WorldServer = info.classReverse['net.minecraft.world.WorldServer']
+  const ServerStatusResponse = info.classReverse[CLASS.SERVER_STATUS_RESPONSE]
+  const WorldServer = info.classReverse[CLASS.SERVER_WORLD]
   if (!PlayerProfileCache || !ServerStatusResponse || !WorldServer || !Snooper) clsInfo.done = false
   if (Snooper && sig === 'L' + Snooper + ';') return 'snooper'
   if (PlayerProfileCache && sig === 'L' + PlayerProfileCache + ';') return 'playerProfileCache'
   if (ServerStatusResponse && sig === 'L' + ServerStatusResponse + ';') return 'serverStatusResponse'
-  if (WorldServer && sig === '[L' + WorldServer + ';') return 'worldServers'
+  if (WorldServer && sig === '[L' + WorldServer + ';') return 'worlds'
   switch (sig) {
-    case 'Lorg/apache/logging/log4j/Logger;': return 'LOG'
     case 'Ljava/io/File;':
-      return field.isStatic() ? 'USERCACHE_FILE' : 'anvilFile'
+      return fieldInfo.static ? 'USERCACHE_FILE' : 'anvilFile'
     case 'Lcom/mojang/authlib/yggdrasil/YggdrasilAuthenticationService;': return 'authService'
     case 'Lcom/mojang/authlib/minecraft/MinecraftSessionService;': return 'sessionService'
     case 'Lcom/mojang/authlib/GameProfileRepository;': return 'profileRepo'
