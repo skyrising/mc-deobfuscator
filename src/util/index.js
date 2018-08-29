@@ -122,6 +122,10 @@ export function waiter () {
 }
 
 export function getMappedClassName (info, from) {
+  if (info.obfName) {
+    from = info.obfName
+    info = info.info
+  }
   const to = info.class[from]
   if (from.indexOf('$') < 0) {
     if (to.name) return to.name.replace(/\./g, '/')

@@ -74,30 +74,3 @@ export async function procyon (jar, to) {
   console.log('Decompiling with procyon')
   cp.spawnSync('procyon-decompiler', ['-v', 0, '-jar', jar, '-r', '-o', to], {stdio: 'inherit'})
 }
-
-/*
-function renderGraph (info) {
-  if (fs.existsSync('temp/graph.dot')) fs.unlinkSync('temp/graph.dot')
-  const g = graph({
-    fontname: 'sans-serif',
-    overlap: false
-  })
-  const sgs = {}
-  const getSubgraph = name => {
-    if (!name) return g
-    if (name in sgs) return sgs[name]
-    const p = name.indexOf('.') === -1 ? g : getSubgraph(name.slice(0, name.lastIndexOf('.')))
-    const sg = p.subgraph({name: JSON.stringify(name)})
-    sgs[name] = sg
-    return sg
-  }
-  for (const c of Object.values(info.class)) {
-    let s = c.name && c.name.indexOf('.') > 0 ? getSubgraph(c.name.slice(0, c.name.lastIndexOf('.'))) : g
-    s.node({name: JSON.stringify(c.obfName), label: c.name || c.obfName})
-    if (c.superClassName) {
-      g.edge(JSON.stringify(c.obfName), JSON.stringify(c.superClassName), {})
-    }
-  }
-  fs.writeFileSync('temp/graph.dot', g.toString())
-}
-*/

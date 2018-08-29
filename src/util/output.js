@@ -2,6 +2,7 @@ import * as PKG from '../PackageNames'
 import fs from 'fs'
 import path from 'path'
 import {getMappedClassName, sortObfClassName, slash} from './index'
+import {digraph} from './graphviz'
 
 export function generateOutput (info) {
   const dataDir = path.resolve('data')
@@ -20,6 +21,8 @@ export function generateOutput (info) {
   const deobfClasses = path.resolve(sideDir, 'classes-deobf.txt')
   const hashClasses = path.resolve(sideDir, 'class-hashes.txt')
   generateClassLists(info, obfClasses, deobfClasses, hashClasses)
+  const inheritanceGraph = path.resolve(sideDir, 'inheritance.dot')
+  renderGraph(info, inheritanceGraph)
   const dataFiles = generateDataFiles(info, sideDir)
   console.log(version)
   console.log(srg)
@@ -27,8 +30,9 @@ export function generateOutput (info) {
   console.log(obfClasses)
   console.log(deobfClasses)
   console.log(hashClasses)
+  console.log(inheritanceGraph)
   for (const file of dataFiles) console.log(file)
-  return {version, srg, tsrg, obfClasses, deobfClasses, hashClasses, dataFiles}
+  return {version, srg, tsrg, obfClasses, deobfClasses, hashClasses, dataFiles, inheritanceGraph}
 }
 
 export function generateClassLists (info, obfFile, deobfFile, hashFile) {
@@ -121,4 +125,30 @@ export function generateDataFiles (info, dir) {
     files.push(file)
   }
   return files
+}
+
+export function renderGraph (info, file) {
+  const g = digraph({
+    fontname: 'sans-serif',
+    overlap: false
+  })
+  const sgs = {}
+  const getSubgraph = name => {
+    if (!name || name.startsWith(PKG.DEFAULT)) return g
+    if (name in sgs) return sgs[name]
+    const p = name.indexOf('.') === -1 ? g : getSubgraph(name.slice(0, name.lastIndexOf('.')))
+    const sg = p.subgraph({name: JSON.stringify('cluster_' + name)})
+    sgs[name] = sg
+    return sg
+  }
+  for (const clsInfo of Object.values(info.class)) {
+    const inheritsFrom = [clsInfo.superClassName, ...clsInfo.interfaceNames]
+      .filter(c => c && c !== 'java.lang.Object' && c !== 'java.lang.Enum')
+    const name = getMappedClassName(clsInfo).replace(/\//g, '.')
+    const s = name.indexOf('.') > 0 ? getSubgraph(name.slice(0, name.lastIndexOf('.'))) : g
+    s.node({name: JSON.stringify(clsInfo.obfName), label: name})
+    for (const sc of inheritsFrom) g.edge(JSON.stringify(clsInfo.obfName), JSON.stringify(sc), {})
+  }
+  g.killOrphans()
+  fs.writeFileSync(file, g.toString())
 }

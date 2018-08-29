@@ -1,0 +1,13 @@
+[ignore]
+.*/node_modules/babel-react-components/test.js
+.*/dist/.*
+[include]
+
+[libs]
+[lints]
+
+[options]
+module.use_strict=true
+module.ignore_non_literal_requires=true
+unsafe.enable_getters_and_setters=true
+esproposal.decorators=ignore
