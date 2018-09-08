@@ -119,7 +119,13 @@ class Info extends EventEmitter {
               return ((Object.values(this.method): any): Array<MethodInfo>)
                 .reduce((sum, m) => sum + (m.code ? m.code.lines.length : 0), 0)
             },
-            fields: {},
+            fields: new Proxy({}, {
+              get (base, key) {
+                if (key in base) return base[key]
+                const sc = info.class[clsInfo.superClassName]
+                if (sc.infoComplete) return sc.fields[key]
+              }
+            }),
             attributes: {},
             reverseMethod: {},
             method: new Proxy({
