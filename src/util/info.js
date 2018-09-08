@@ -1,5 +1,7 @@
+// @flow
 import util from 'util'
 import EventEmitter from 'events'
+import {perf} from './index'
 import {getExtendedVersionInfo} from './version'
 import {printStatus} from './status'
 import {getMethodInheritance} from './code'
@@ -14,11 +16,33 @@ const debugCl = require('debug')('deobf:cl')
 const slash = s => s.replace(/\./g, '/')
 
 class Info extends EventEmitter {
+  running: number;
+  pass: number;
+  passAnalyzed: number;
+  maxParallel: number;
+  numAnalyzed: number;
+  classAnalyzeAvg: number;
+  _queue: Array<string>;
+  genericAnalyzed: {[string]: number};
+  specialAnalyzed: {[string]: number};
+  totalAnalyzed: {[string]: number};
+  classReverse: {[string]: ?string};
+  class: {[string]: ClassInfo};
+  method: {[string]: MethodInfo};
+  data: {[string]: any};
+  classNames: Array<string>;
+  side: Side;
+  version: Version;
+  passes: Array<Pass>;
+  currentPass: ?Pass;
+
   constructor () {
     super()
     const info = this
     this.running = 0
-    this.pass = 0
+    this.pass = -1
+    this.passes = []
+    this.passAnalyzed = 0
     this.maxParallel = 0
     this.numAnalyzed = 0
     this.classAnalyzeAvg = 0
@@ -26,15 +50,14 @@ class Info extends EventEmitter {
     this.genericAnalyzed = {}
     this.specialAnalyzed = {}
     this.totalAnalyzed = {}
-    this.namedQueue = []
     this.classReverse = {}
-    this.class = new Proxy({
+    this.class = new Proxy(({
       [util.inspect.custom] (depth, opts) {
         return opts.stylize('[Classes: ', 'special') +
           opts.stylize(Object.keys(this).filter(name => Boolean(this[name].bin)).length, 'number') +
           opts.stylize(']', 'special')
       }
-    }, {
+    }: {[string]: ClassInfo}), {
       ownKeys (classes) {
         return Object.keys(classes).filter(name => Boolean(classes[name].bin))
       },
@@ -42,7 +65,7 @@ class Info extends EventEmitter {
         if (typeof clsObfName !== 'string') return classes[clsObfName]
         clsObfName = clsObfName.replace(/\//g, '.')
         if (!classes[clsObfName]) {
-          const clsInfo = classes[clsObfName] = {
+          const clsInfo: ClassInfo = classes[clsObfName] = ({
             [util.inspect.custom] (depth, opts) {
               return opts.stylize('[Class ', 'special') +
                 opts.stylize(clsObfName, 'string') +
@@ -51,15 +74,16 @@ class Info extends EventEmitter {
             },
             info,
             obfName: clsObfName,
+            enumNames: [],
             consts: new Set(),
             subClasses: new Set(),
             outerClassName: clsObfName.indexOf('$') > 0 ? clsObfName.slice(0, clsObfName.lastIndexOf('$')) : undefined,
-            get outerClass () {
+            get outerClass (): ClassInfo {
               if (!this.outerClassName) throw Error(`${this.name || this.obfName} is not an inner class`)
               return info.class[this.outerClassName]
             },
             isInnerClass: clsObfName.indexOf('$') > 0,
-            set name (deobfName) {
+            set name (deobfName: string) {
               if (clsObfName.startsWith('java.')) {
                 console.warn(Error('Tried renaming ' + clsObfName))
                 return
@@ -75,31 +99,26 @@ class Info extends EventEmitter {
                 debugCl('CL: %s %s', slash(clsObfName), slash(deobfName))
                 printStatus(clsObfName + ' -> ' + deobfName)
                 info.emit('class-name', {obf: clsObfName, deobf: deobfName, clsInfo})
-                info.queue = clsObfName
-                for (const sc of this.subClasses) info.queue = sc
+                this.done = false
+                for (const sc of this.subClasses) info.class[sc].done = false
               }
               this._name = deobfName
               info.classReverse[deobfName] = slash(clsObfName)
             },
-            get name () {
+            get name (): ?string {
               return this._name
             },
-            set package (pkg) {
+            set package (pkg: string) {
               if (this._name) return console.warn('Cannot set package: already named')
               this._package = pkg
             },
-            get package () {
+            get package (): ?string {
               return this._package
             },
-            get numLines () {
-              return Object.values(this.method).reduce((sum, m) => sum + (m.code ? m.code.lines.length : 0), 0)
+            get numLines (): number {
+              return ((Object.values(this.method): any): Array<MethodInfo>)
+                .reduce((sum, m) => sum + (m.code ? m.code.lines.length : 0), 0)
             },
-            field: new Proxy({}, {
-              /*
-              set (base, key, value) {
-              }
-              */
-            }),
             fields: {},
             attributes: {},
             reverseMethod: {},
@@ -173,7 +192,7 @@ class Info extends EventEmitter {
                 return mds[fullSig]
               }
             })
-          }
+          }: any)
         }
         return classes[clsObfName]
       },
@@ -192,10 +211,11 @@ class Info extends EventEmitter {
     this.data = {}
   }
 
-  async init ({version, side, classNames}) {
+  async init ({version, side, classNames}: {version: Version|string, side: Side, classNames: Array<string>}) {
     this.side = side
     this.classNames = classNames
-    const [, versionMajor, versionMinor, versionPatch] = (version.id || version).match(/^(\d+)\.(\d+)(\.\d+)?/) || []
+    const [, versionMajor, versionMinor, versionPatch] = (typeof version === 'string' ? version : version.id)
+      .match(/^(\d+)\.(\d+)(\.\d+)?/) || []
     this.version = {
       ...(await getExtendedVersionInfo(version)),
       major: versionMajor && +versionMajor,
@@ -208,67 +228,110 @@ class Info extends EventEmitter {
     this._queue.push(...classNames)
   }
 
-  get hasWork () {
-    return !!this._queue.length
+  newPass (name: string, passInfo: {weight: number} = {weight: 1}) {
+    const info = this
+    const pass = {
+      name,
+      ...passInfo,
+      started: false,
+      ended: false,
+      analyzed: 0,
+      start () {
+        if (this.ended) throw Error('Tried to restart pass')
+        if (this.started) throw Error('Pass already started')
+        if (info.currentPass) {
+          const current = info.currentPass
+          console.warn(`Pass '${current.name}' already running`)
+          current.end()
+        }
+        info.pass++
+        info.passAnalyzed = 0
+        info.currentPass = this
+        const end = perf('pass::' + name)
+        this.end = () => {
+          this.started = false
+          this.ended = true
+          info.currentPass = undefined
+          end()
+        }
+        this.started = true
+      },
+      end () {
+        throw Error('Pass has not started yet')
+      }
+    }
+    this.passes.push(pass)
+    return pass
   }
 
-  dequeue () {
-    const name = this.namedQueue.shift()
+  get hasWork (): boolean {
+    return Boolean(this._queue.length)
+  }
+
+  dequeue (): ?string {
+    const name = this._queue.shift()
+    if (!name) return
     if (this.genericAnalyzed[name] === -1) {
       this.specialAnalyzed[name] = (this.specialAnalyzed[name] || 0) + 1
     } else {
       this.genericAnalyzed[name] = (this.genericAnalyzed[name] || 0) + 1
     }
     this.totalAnalyzed[name] = (this.totalAnalyzed[name] || 0) + 1
-    return this._queue.shift()
+    return name
   }
 
-  get queue () {
+  get queue (): ?string {
     return this.dequeue()
   }
 
-  set queue (items) {
+  set queue (items: string | Array<string>) {
     this.queueBack(items)
   }
 
-  queueBack (items) {
+  queueBack (items: string | Array<string>) {
     if (!items) return
     if (!Array.isArray(items)) items = [items]
-    for (const item of items) {
-      const name = typeof item === 'string' ? item : item.getClassName()
-      if (this.namedQueue.includes(name)) continue
+    for (const name of items) {
+      if (this._queue.includes(name)) continue
+      if (!this.classNames.includes(name)) {
+        console.warn('Not queueing unknown class %s', name)
+        continue
+      }
       if (this.genericAnalyzed[name] >= MAX_GENERIC_PASSES) continue
       if (this.specialAnalyzed[name] >= MAX_SPECIAL_PASSES) continue
       if (this.totalAnalyzed[name] >= MAX_TOTAL_PASSES) continue
       if (this.totalAnalyzed[name] >= this.pass) this.pass = this.totalAnalyzed[name] + 1
       ;(this.class[name].analyzing || Promise.resolve()).then(() => {
-        if (this.namedQueue.includes(name)) return
+        if (this._queue.includes(name)) return
         console.debug('Queueing %s (%s, back)', (this.class[name].name || name), Math.max(this.genericAnalyzed[name], this.specialAnalyzed[name]) || 'new')
-        this.emit('queue', {item, name, position: 'back'})
-        this._queue.push(item)
-        this.namedQueue.push(name)
+        this.emit('queue', {name, position: 'back'})
+        this._queue.push(name)
       })
     }
   }
 
-  queueFront (items) {
+  queueFront (items: string | Array<string>) {
     if (!items) return
     if (!Array.isArray(items)) items = [items]
-    for (const item of items) {
-      const name = typeof item === 'string' ? item : item.getClassName()
+    for (const name of items) {
+      if (!this.classNames.includes(name)) {
+        console.warn('Not queueing unknown class %s', name)
+        continue
+      }
       if (this.totalAnalyzed[name] >= MAX_TOTAL_PASSES) continue
       ;(this.class[name].analyzing || Promise.resolve()).then(() => {
         this.class[name].done = false
         console.debug('Queueing %s (%s, front)', (this.class[name].name || name), Math.max(this.genericAnalyzed[name], this.specialAnalyzed[name]) || 'new')
-        this.emit('queue', {item, name, position: 'front'})
-        this._queue.unshift(item)
-        this.namedQueue.unshift(name)
+        this.emit('queue', {name, position: 'front'})
+        const pos = this._queue.indexOf(name)
+        if (pos >= 0) this._queue.splice(pos, 1)
+        this._queue.unshift(name)
       })
     }
   }
 }
 
-export async function createInfo (base) {
+export async function createInfo (base: {version: Version|string, side: Side, classNames: Array<string>}): Promise<FullInfo> {
   const info = new Info()
   await info.init(base)
   return info

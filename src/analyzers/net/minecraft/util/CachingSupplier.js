@@ -1,15 +1,14 @@
+// @flow
 
-export function field (fieldInfo) {
-  const {sig} = fieldInfo
-  switch (sig) {
+export function field (fieldInfo: FieldInfo) {
+  switch (fieldInfo.sig) {
     case 'Ljava/util/function/Supplier;': return 'supplier'
     case 'Ljava/lang/Object;': return 'cache'
   }
 }
 
-export function method (cls, method, code, methodInfo, clsInfo, info) {
-  const {sig} = methodInfo
-  switch (sig) {
+export function method (methodInfo: MethodInfo) {
+  switch (methodInfo.sig) {
     case '()Ljava/lang/Object;': return 'get'
   }
 }

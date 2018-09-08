@@ -1,4 +1,6 @@
-export function method (methodInfo) {
+// @flow
+
+export function method (methodInfo: MethodInfo) {
   switch (methodInfo.sig) {
     case '(Ljava/io/File;)V':
     case '(Ljava/net/URL;)V':

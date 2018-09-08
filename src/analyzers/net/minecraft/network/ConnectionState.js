@@ -1,17 +1,18 @@
+// @flow
 import * as CLASS from '../../../../ClassNames'
 
-export function method (cls, method, code, methodInfo, clsInfo, info) {
-  const {sig} = methodInfo
+export function method (methodInfo: MethodInfo) {
+  const {sig, clsInfo, info} = methodInfo
   if (methodInfo.origName === '<clinit>') return clinit(methodInfo)
   if (sig.endsWith(')Ljava/lang/Integer;')) {
-    info.class[methodInfo.args[1].getClassName()].name = CLASS.PACKET
+    info.class[methodInfo.argSigs[1].slice(1, -1)].name = CLASS.PACKET
     return 'getPacketId'
   }
   if (sig.endsWith('L' + clsInfo.obfName + ';') && methodInfo.static && !methodInfo.origName.startsWith('value')) return 'get'
   if (sig === '()I') return 'getId'
 }
 
-export function field (fieldInfo) {
+export function field (fieldInfo: FieldInfo) {
   const {sig, clsInfo} = fieldInfo
   switch (sig) {
     case 'Ljava/util/Map;': return fieldInfo.static ? 'BACKWARD' : 'FORWARD'
@@ -19,7 +20,7 @@ export function field (fieldInfo) {
   }
 }
 
-function clinit (methodInfo) {
+function clinit (methodInfo: MethodInfo) {
   console.log('ConnectionState.<clinit>')
   const {code, clsInfo} = methodInfo
   let current = {}
@@ -32,7 +33,7 @@ function clinit (methodInfo) {
       console.log(line.const)
       current.name = line.const
     } else if (line.op === 'putstatic' && current.instanceClass) {
-      clsInfo.field[line.field.fieldName] = current.name
+      clsInfo.fields[line.field.fieldName].name = current.name
       console.log(current)
       current = {}
     }

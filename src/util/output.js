@@ -69,10 +69,10 @@ export function generateSrg (info, srgFile) {
     const to = info.class[from]
     const toName = getMappedClassName(info, from)
     if (toName) srg.push(`CL: ${slash(from)} ${slash(toName)}`)
-    for (const fd in to.field) srg.push(`FD: ${slash(from)}/${fd} ${slash(toName)}/${to.field[fd] || fd}`)
+    for (const fd in to.fields) srg.push(`FD: ${slash(from)}/${fd} ${slash(toName)}/${to.fields[fd].name || fd}`)
     for (const mdFrom in to.method) {
       const md = to.method[mdFrom]
-      if (md.name) srg.push(`MD: ${slash(from)}/${md.origName} ${md.sig} ${slash(toName)}/${md.name} ${md.sig}`)
+      if (md.name) srg.push(`MD: ${slash(from)}/${md.origName} ${md.sig} ${slash(toName)}/${md.name || md.origName} ${md.sig}`)
     }
   }
   const sectionOrder = ['PK:', 'CL:', 'FD:', 'MD:']
@@ -97,10 +97,10 @@ export function generateTsrg (info, tsrgFile) {
     const to = info.class[from]
     const toName = getMappedClassName(info, from)
     lines.push(slash(from) + ' ' + slash(toName))
-    for (const fd in to.field) lines.push(`\t${fd} ${to.field[fd] || fd}`)
+    for (const fd in to.fields) lines.push(`\t${fd} ${to.fields[fd].name || fd}`)
     for (const mdFrom in to.method) {
       const md = to.method[mdFrom]
-      lines.push(`\t${md.origName} ${md.sig} ${md.name}`)
+      lines.push(`\t${md.origName} ${md.sig} ${md.name || md.origName}`)
     }
   }
   fs.writeFileSync(tsrgFile, lines.join('\n'))

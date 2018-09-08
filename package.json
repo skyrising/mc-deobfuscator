@@ -10,7 +10,9 @@
     "dev": "node -r @babel/register src/index.js",
     "dl-server": "node -r @babel/register src/util/version.js",
     "data": "node build/util/mc-data.js",
-    "add-version": "node -r @babel/register src/util/version.js add"
+    "add-version": "node -r @babel/register src/util/version.js add",
+    "check:eslint": "eslint .",
+    "check:flow": "flow"
   },
   "author": "",
   "license": "ISC",
@@ -32,31 +34,37 @@
     ]
   },
   "dependencies": {
-    "@babel/cli": "^7.0.0-beta.51",
-    "@babel/core": "^7.0.0-beta.51",
-    "@babel/node": "^7.0.0-beta.51",
-    "@babel/plugin-proposal-class-properties": "^7.0.0-beta.51",
-    "@babel/plugin-proposal-decorators": "^7.0.0-beta.51",
-    "@babel/plugin-proposal-object-rest-spread": "^7.0.0-beta.51",
-    "@babel/plugin-syntax-dynamic-import": "^7.0.0-beta.51",
-    "@babel/preset-env": "^7.0.0-beta.51",
-    "@babel/preset-flow": "^7.0.0-beta.51",
-    "babel-eslint": "^8.2.6",
-    "babel-plugin-transform-dirname-filename": "^1.1.0",
-    "debug": "^2.6.8",
-    "eslint-plugin-flowtype": "^2.50.0",
-    "java": "^0.9.1",
-    "mz": "^2.6.0",
-    "node-java-maven": "^0.0.12",
-    "request": "^2.81.0",
+    "debug": "^3.1.0",
+    "java": "^0.10.0",
+    "mz": "^2.7.0",
+    "node-java-maven": "^0.1.1",
+    "request": "^2.88.0",
     "request-promise-native": "^1.0.5",
-    "rimraf": "^2.6.2",
-    "standard": "^10.0.1"
+    "rimraf": "^2.6.2"
   },
   "devDependencies": {
-    "ava": "^1.0.0-beta.6",
-    "babel-plugin-istanbul": "^4.1.6",
-    "nyc": "^10.3.2"
+    "@babel/cli": "^7.0.0",
+    "@babel/core": "^7.0.0",
+    "@babel/node": "^7.0.0",
+    "@babel/plugin-proposal-class-properties": "^7.0.0",
+    "@babel/plugin-proposal-decorators": "^7.0.0",
+    "@babel/plugin-proposal-object-rest-spread": "^7.0.0",
+    "@babel/plugin-syntax-dynamic-import": "^7.0.0",
+    "@babel/preset-env": "^7.0.0",
+    "@babel/preset-flow": "^7.0.0",
+    "ava": "^1.0.0-beta.8",
+    "babel-eslint": "^9.0.0",
+    "babel-plugin-istanbul": "^5.0.1",
+    "babel-plugin-transform-dirname-filename": "^1.1.0",
+    "eslint": "^5.5.0",
+    "eslint-config-standard": "^12.0.0",
+    "eslint-plugin-flowtype": "^2.50.0",
+    "eslint-plugin-import": "^2.14.0",
+    "eslint-plugin-node": "^7.0.1",
+    "eslint-plugin-promise": "^4.0.1",
+    "eslint-plugin-standard": "^4.0.0",
+    "flow-bin": "^0.80.0",
+    "nyc": "^13.0.1"
   },
   "java": {
     "dependencies": [
@@ -66,8 +74,5 @@
         "version": "6.0"
       }
     ]
-  },
-  "standard": {
-    "ignore": []
   }
 }

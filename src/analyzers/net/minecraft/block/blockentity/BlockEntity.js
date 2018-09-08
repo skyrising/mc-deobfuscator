@@ -1,7 +1,9 @@
+// @flow
 import {toUpperCamelCase} from '../../../../../util'
 import * as CLASS from '../../../../../ClassNames'
 
-export function method (cls, method, code, methodInfo, clsInfo, info) {
+export function method (methodInfo: MethodInfo) {
+  const {code, info} = methodInfo
   if (methodInfo.origName === '<clinit>') {
     for (const line of code.lines) {
       if (typeof line.const !== 'string') continue
@@ -18,7 +20,7 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
   }
 }
 
-export function field (fieldInfo) {
+export function field (fieldInfo: FieldInfo) {
   const {sig, clsInfo, info} = fieldInfo
   const Block = info.classReverse[CLASS.BLOCK]
   const World = info.classReverse[CLASS.WORLD]

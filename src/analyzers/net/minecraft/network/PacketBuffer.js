@@ -1,9 +1,10 @@
+// @flow
 import * as CLASS from '../../../../ClassNames'
 import {signatureTag as s} from '../../../../util/code'
 
-export function method (cls, method, code, methodInfo, clsInfo, info) {
-  const {sig} = methodInfo
-  const PacketBuffer = cls.getClassName()
+export function method (methodInfo: MethodInfo) {
+  const {sig, code, clsInfo} = methodInfo
+  const PacketBuffer = clsInfo.obfName
   if (sig.endsWith('[B')) return 'readByteArray'
   else if (sig.endsWith('[I')) return 'readVarIntArray'
   else if (sig.endsWith('[J')) return 'readLongArray'

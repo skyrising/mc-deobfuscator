@@ -1,9 +1,8 @@
-export function cls (cls, clsInfo, info) {
-}
+// @flow
 
-export function method (cls, method, code, methodInfo, clsInfo, info) {
+export function method (methodInfo: MethodInfo) {
+  const {sig, code} = methodInfo
   if (methodInfo.origName === '<init>') return
-  const {sig} = methodInfo
   switch (sig) {
     case '(Ljava/util/function/Supplier;)V': return 'start'
     case '()V': return 'end'

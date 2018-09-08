@@ -1,6 +1,7 @@
+// @flow
 import * as CLASS from '../../../../ClassNames'
 
-export function field (fieldInfo) {
+export function field (fieldInfo: FieldInfo) {
   const {sig, clsInfo, info} = fieldInfo
   const WorldType = info.classReverse[CLASS.WORLD_TYPE]
   const GameRules = info.classReverse[CLASS.GAME_RULES]
@@ -10,8 +11,3 @@ export function field (fieldInfo) {
   if (GameRules && sig === 'L' + GameRules + ';') return 'gameRules'
   if (Difficulty && sig === 'L' + Difficulty + ';') return fieldInfo.static && fieldInfo.final ? 'DEFAULT_DIFFICULTY' : 'difficulty'
 }
-
-/*
-export function method (cls, method, code, methodInfo, clsInfo, info) {
-}
-*/

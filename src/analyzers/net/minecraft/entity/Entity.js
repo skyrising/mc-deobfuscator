@@ -1,6 +1,7 @@
+// @flow
 import * as CLASS from '../../../../ClassNames'
 
-export function field (fieldInfo) {
+export function field (fieldInfo: FieldInfo) {
   const {sig, clsInfo, info} = fieldInfo
   const World = info.classReverse[CLASS.WORLD]
   const NBTCompound = info.classReverse[CLASS.NBT_COMPOUND]

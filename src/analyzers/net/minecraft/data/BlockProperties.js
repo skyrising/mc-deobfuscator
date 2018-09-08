@@ -1,4 +1,7 @@
-export function method (cls, method, code, methodInfo, clsInfo, info) {
+// @flow
+
+export function method (methodInfo: MethodInfo) {
+  const {code, clsInfo} = methodInfo
   if (methodInfo.origName === '<clinit>') {
     const count = {}
     for (const c of code.consts) count[c] = (count[c] || 0) + 1
@@ -12,18 +15,18 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
       switch (name) {
         case 'age': {
           const max = line.next.next.const
-          if (max) clsInfo.field[fieldName] = 'AGE_' + max
+          if (max) clsInfo.fields[fieldName].name = 'AGE_' + max
           break
         }
         case 'level': {
           const from = line.next.const
           const to = line.next.next.const
-          if (from === 1 && to === 8) clsInfo.field[fieldName] = 'WATER_LEVEL'
-          else if (to) clsInfo.field[fieldName] = 'LEVEL_' + to
+          if (from === 1 && to === 8) clsInfo.fields[fieldName].name = 'WATER_LEVEL'
+          else if (to) clsInfo.fields[fieldName].name = 'LEVEL_' + to
           break
         }
         default: {
-          if (count[name] === 1) clsInfo.field[fieldName] = name.toUpperCase()
+          if (count[name] === 1) clsInfo.fields[fieldName].name = name.toUpperCase()
         }
       }
     }

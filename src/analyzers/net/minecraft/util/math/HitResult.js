@@ -1,7 +1,8 @@
+// @flow
 import * as CLASS from '../../../../../ClassNames'
 import {signatureTag as s} from '../../../../../util/code'
 
-export function method (methodInfo) {
+export function method (methodInfo: MethodInfo) {
   const {code, info} = methodInfo
   if (methodInfo.origName === '<init>' && s`(${CLASS.ENTITY})V`) {
     const newCls = code.lines[0].nextOp('new', true)
@@ -17,7 +18,7 @@ const FIELD_TYPE_NAME_MAP = {
   [CLASS.ENTITY]: 'entity'
 }
 
-export function field (fieldInfo) {
+export function field (fieldInfo: FieldInfo) {
   const {sig, clsInfo, info} = fieldInfo
   for (const deobfType in FIELD_TYPE_NAME_MAP) {
     const obfType = info.classReverse[deobfType]

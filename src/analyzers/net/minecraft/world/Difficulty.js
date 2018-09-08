@@ -1,6 +1,7 @@
+// @flow
 import * as CLASS from '../../../../ClassNames'
 
-export function field (fieldInfo) {
+export function field (fieldInfo: FieldInfo) {
   const {sig, clsInfo} = fieldInfo
   switch (sig) {
     case '[L' + clsInfo.obfName + ';': return 'DIFFICULTIES'
@@ -9,8 +10,8 @@ export function field (fieldInfo) {
   }
 }
 
-export function method (cls, method, code, methodInfo, clsInfo, info) {
-  const {sig} = methodInfo
+export function method (methodInfo: MethodInfo) {
+  const {sig, code, clsInfo, info} = methodInfo
   const self = clsInfo.obfName
   switch (sig) {
     case '(I)L' + self + ';': return 'forId'

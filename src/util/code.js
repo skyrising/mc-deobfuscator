@@ -1,3 +1,4 @@
+// @flow
 import util from 'util'
 import {parseClassSignature} from './parse'
 
@@ -11,124 +12,169 @@ const ACC_TRANSIENT = 0x0080
 const ACC_SYNTHETIC = 0x1000
 const ACC_ENUM = 0x4000
 
-export async function getCode (method) {
-  let code
+function decodeLine (l: string, parent: Code): ?CodeLine {
+  const match = l.match(/^(\d+):\s*([^\t]+)\s*(.*?)(?: \(\d+\))?$/)
+  if (!match) return
+  const [, offset, op, arg] = match
+  const line: CodeLine = ({
+    offset: +offset,
+    op,
+    arg,
+    nextMatching (predicate: CodeLine => boolean, includeSelf = false) {
+      if (includeSelf && predicate(this)) return this
+      if (!this.next) return
+      return this.next.nextMatching(predicate, true)
+    },
+    nextOp (line: string|Array<string>, includeSelf = false) {
+      line = Array.isArray(line) ? line : [line]
+      for (const candidate of line) {
+        const [op, arg] = candidate.split(' ')
+        if (includeSelf && this.op === op && (!arg || this.arg === arg)) return this
+      }
+      if (!this.next) return
+      return this.next.nextOp(line, true)
+    },
+    prevMatching (predicate: CodeLine => boolean, includeSelf = false) {
+      if (includeSelf && predicate(this)) return this
+      if (!this.next) return
+      return this.next.prevMatching(predicate, true)
+    },
+    prevOp (line: string|Array<string>, includeSelf = false) {
+      line = Array.isArray(line) ? line : [line]
+      for (const candidate of line) {
+        const [op, arg] = candidate.split(' ')
+        if (includeSelf && this.op === op && (!arg || this.arg === arg)) return this
+      }
+      if (!this.previous) return
+      return this.previous.prevOp(line, true)
+    },
+    [util.inspect.custom]: () => op + ' ' + arg
+  }: any)
+  if (op === 'invokestatic' || op === 'invokevirtual' || op === 'invokespecial' || op === 'invokeinterface') {
+    const fullSig = arg
+    const match = fullSig.match(/(?:((?:.*\.)*(?:.*))\.)?(.*)\.(.*):(.*)$/)
+    if (match) {
+      const [, pkg, className, methodName, signature] = match
+      const call: OpCall = {
+        fullSig,
+        pkg,
+        className,
+        methodName,
+        signature,
+        fullClassName: pkg ? pkg + '.' + className : className,
+        [util.inspect.custom]: () => op + ' ' + fullSig
+      }
+      line.call = call
+      parent.calls.push(call)
+      if ((!pkg || pkg.startsWith('net.minecraft')) && className[0] !== '[') parent.internalCalls.push(call)
+    }
+  } else if (op === 'getfield' || op === 'getstatic') {
+    const match = arg.match(/(?:((?:.*\.)*(?:.*))\.)?(.*)\.(.*):(.*)$/)
+    if (match) {
+      const [, pkg, className, fieldName, type] = match
+      const field: OpField = {
+        fullSig: arg,
+        pkg,
+        className,
+        fieldName,
+        type,
+        fullClassName: pkg ? pkg + '.' + className : className,
+        [util.inspect.custom]: () => op + ' ' + arg
+      }
+      line.field = field
+      parent.fields.push(field)
+      if ((!pkg || pkg.startsWith('net.minecraft')) && className[0] !== '[') parent.internalFields.push(field)
+    }
+  } else if (op === 'putfield' || op === 'putstatic') {
+    const match = arg.match(/(?:((?:.*\.)*(?:.*))\.)?(.*)\.(.*):(.*)$/)
+    if (match) {
+      const [, pkg, className, fieldName, type] = match
+      const field: OpField = {
+        fullSig: arg,
+        pkg,
+        className,
+        fieldName,
+        type,
+        fullClassName: pkg ? pkg + '.' + className : className,
+        [util.inspect.custom]: () => op + ' ' + arg
+      }
+      line.field = field
+      parent.fields.push(field)
+      if ((!pkg || pkg.startsWith('net.minecraft')) && className[0] !== '[') parent.internalFields.push(field)
+    }
+  } else if (op === 'ldc_w' || op === 'ldc' || op === 'bipush' || op === 'sipush' || op === 'ipush') {
+    try {
+      line.const = JSON.parse(arg)
+    } catch (e) {
+      line.const = arg
+    }
+    parent.consts.push(line.const)
+  } else if (op.startsWith('iconst_')) {
+    line.const = +op[7]
+    parent.consts.push(line.const)
+  } else if (op === 'new') {
+    line.className = arg.slice(1, -1)
+  } else if (/^[ilfda]load_\d$/.test(op)) {
+    line.load = +op[6]
+    line.loadType = op[0]
+  } else if (/^[ilfda]load$/.test(op)) {
+    line.load = +arg.slice(1)
+    line.loadType = op[0]
+  } else if (/^[ilfda]return$/.test(op)) {
+    line.return = true
+    line.returnType = op[0]
+  }
+  return line
+}
+
+export async function getCode (method: BCELMethod): Promise<Code> {
+  let source
   try {
-    code = await method.getCodeAsync().then(c => c.toStringAsync())
+    source = await method.getCodeAsync().then(c => c.toStringAsync())
   } catch (e) {
     return {code: '', lines: [], calls: [], internalCalls: [], fields: [], internalFields: [], consts: []}
   }
-  const calls = []
-  const fields = []
-  const consts = []
-  const internalCalls = []
-  const internalFields = []
-  const lines = code.split('\n').filter(l => /^\d+:/.test(l)).map(l => {
-    const match = l.match(/^(\d+):\s*([^\t]+)\s*(.*?)(?: \(\d+\))?$/)
-    if (!match) return
-    const [, offset, op, arg] = match
-    const line = {offset: +offset, op, arg, [util.inspect.custom]: () => op + ' ' + arg}
-    if (op === 'invokestatic' || op === 'invokevirtual' || op === 'invokespecial' || op === 'invokeinterface') {
-      const fullSig = arg
-      const [, pkg, className, methodName, signature] = fullSig.match(/(?:((?:.*\.)*(?:.*))\.)?(.*)\.(.*):(.*)$/)
-      const call = {fullSig, pkg, className, methodName, signature, [util.inspect.custom]: () => op + ' ' + fullSig}
-      call.fullClassName = pkg ? pkg + '.' + className : className
-      line.call = call
-      calls.push(call)
-      if ((!pkg || pkg.startsWith('net.minecraft')) && className[0] !== '[') internalCalls.push(call)
-    } else if (op === 'getfield' || op === 'getstatic') {
-      const [, pkg, className, fieldName, type] = arg.match(/(?:((?:.*\.)*(?:.*))\.)?(.*)\.(.*):(.*)$/)
-      const field = {fullSig: arg, pkg, className, fieldName, type, [util.inspect.custom]: () => op + ' ' + arg}
-      field.fullClassName = pkg ? pkg + '.' + className : className
-      line.field = field
-      fields.push(field)
-      if ((!pkg || pkg.startsWith('net.minecraft')) && className[0] !== '[') internalFields.push(field)
-    } else if (op === 'putfield' || op === 'putstatic') {
-      const [, pkg, className, fieldName, type] = arg.match(/(?:((?:.*\.)*(?:.*))\.)?(.*)\.(.*):(.*)$/)
-      const field = {fullSig: arg, pkg, className, fieldName, type, [util.inspect.custom]: () => op + ' ' + arg}
-      field.fullClassName = pkg ? pkg + '.' + className : className
-      line.field = field
-      fields.push(field)
-      if ((!pkg || pkg.startsWith('net.minecraft')) && className[0] !== '[') internalFields.push(field)
-    } else if (op === 'ldc_w' || op === 'ldc' || op === 'bipush' || op === 'sipush' || op === 'ipush') {
-      try {
-        line.const = JSON.parse(arg)
-      } catch (e) {
-        line.const = arg
-      }
-      consts.push(line.const)
-    } else if (op.startsWith('iconst_')) {
-      line.const = +op[7]
-      consts.push(line.const)
-    } else if (op === 'new') {
-      line.className = arg.slice(1, -1)
-    } else if (/^[ilfda]load_\d$/.test(op)) {
-      line.load = +op[6]
-      line.loadType = op[0]
-    } else if (/^[ilfda]load$/.test(op)) {
-      line.load = +arg.slice(1)
-      line.loadType = op[0]
-    } else if (/^[ilfda]return$/.test(op)) {
-      line.return = true
-      line.returnType = op[0]
-    }
-    Object.assign(line, {
-      nextMatching (predicate, includeSelf = false) {
-        if (includeSelf && predicate(this)) return this
-        if (!this.next) return
-        return this.next.nextMatching(predicate, true)
-      },
-      nextOp (line, includeSelf = false) {
-        line = Array.isArray(line) ? line : [line]
-        for (const candidate of line) {
-          const [op, arg] = candidate.split(' ')
-          if (includeSelf && this.op === op && (!arg || this.arg === arg)) return this
-        }
-        if (!this.next) return
-        return this.next.nextOp(line, true)
-      },
-      prevMatching (predicate, includeSelf = false) {
-        if (includeSelf && predicate(this)) return this
-        if (!this.next) return
-        return this.next.prevMatching(predicate, true)
-      },
-      prevOp (line, includeSelf = false) {
-        line = Array.isArray(line) ? line : [line]
-        for (const candidate of line) {
-          const [op, arg] = candidate.split(' ')
-          if (includeSelf && this.op === op && (!arg || this.arg === arg)) return this
-        }
-        if (!this.previous) return
-        return this.previous.prevOp(line, true)
-      }
-    })
-    return line
-  }).filter(l => !!l)
-  for (let i = 0; i < lines.length - 1; i++) lines[i].next = lines[i + 1]
-  for (let i = 1; i < lines.length; i++) lines[i].previous = lines[i - 1]
-  return {code, lines, calls, internalCalls, fields, internalFields, consts}
+  const code: Code = {
+    code: source,
+    lines: [],
+    calls: [],
+    fields: [],
+    consts: [],
+    internalCalls: [],
+    internalFields: []
+  }
+  code.lines = source.split('\n')
+    .filter(l => /^\d+:/.test(l))
+    .map(l => decodeLine(l, code))
+    .filter(Boolean)
+  for (let i = 0; i < code.lines.length - 1; i++) code.lines[i].next = code.lines[i + 1]
+  for (let i = 1; i < code.lines.length; i++) code.lines[i].previous = code.lines[i - 1]
+  return code
 }
 
-function resolve (info, raw) {
+function resolve (info: FullInfo, raw: string) {
   if (raw.length === 1 || raw[0] === 'L') return raw
   const cls = info.classReverse[raw]
   if (cls) return 'L' + cls + ';'
 }
 
 class Signature {
-  constructor (args, ret) {
+  args: Array<string>;
+  return: string;
+
+  constructor (args: Array<string>, ret: string) {
     this.args = args
     this.return = ret
   }
 
-  matches (methodInfo) {
+  matches (methodInfo: MethodInfo) {
     const filled = this.fill(methodInfo.info)
     // TODO: wildcards
     if (!filled) methodInfo.clsInfo.done = false
     else return methodInfo.sig === filled
   }
 
-  fill (info) {
+  fill (info: FullInfo) {
     const args = []
     for (let i = 0; i < this.args.length; i++) {
       args[i] = resolve(info, this.args[i])
@@ -141,9 +187,9 @@ class Signature {
 }
 
 // TODO: arrays
-export function signatureTag (strings, ...args) {
+export function signatureTag (strings: Array<string>, ...args: Array<string>) {
   const parsedArgs = []
-  let parsedReturn
+  let parsedReturn = ''
   let startArgs
   let endArgs
   for (const str of strings) {
@@ -183,7 +229,7 @@ export function signatureTag (strings, ...args) {
 }
 
 const methodInheritance = {}
-export function getMethodInheritance (methodInfo, clsInfo) {
+export function getMethodInheritance (methodInfo: MethodInfo, clsInfo?: ClassInfo) {
   if (clsInfo === null) return []
   if (!clsInfo) clsInfo = methodInfo.clsInfo
   if (!clsInfo) console.warn('No clsInfo:', methodInfo)
@@ -193,7 +239,7 @@ export function getMethodInheritance (methodInfo, clsInfo) {
   if (key in methodInheritance) return methodInheritance[key]
   const check = [clsInfo.superClassName, ...clsInfo.interfaceNames]
   for (const c of check) {
-    if (!clsInfo.info.class[c].bin) continue
+    if (!clsInfo.info.class[c].infoComplete) continue
     const superInheritance = getMethodInheritance(methodInfo, clsInfo.info.class[c])
     if (superInheritance && superInheritance.length) {
       const inher = [clsInfo.obfName, ...superInheritance]
@@ -201,7 +247,7 @@ export function getMethodInheritance (methodInfo, clsInfo) {
       return inher
     }
   }
-  if (!clsInfo.method[methodFullSig].bin) return []
+  if (!clsInfo.method[methodFullSig].infoComplete) return []
   methodInheritance[key] = [clsInfo.obfName]
   return methodInheritance[key]
 }
@@ -255,10 +301,10 @@ function base26 (n) {
   return s
 }
 
-export async function enrichClsInfo (cls, info) {
+export async function enrichClsInfo (cls: BCELClass, info: FullInfo): Promise<ClassInfo> {
   const className = await cls.getClassNameAsync()
-  const clsInfo = info.class[className]
-  if (clsInfo.bin) return clsInfo
+  const clsInfo: ClassInfo = info.class[className]
+  if (clsInfo.infoComplete) return clsInfo
   let hash = 1
   clsInfo.superClassName = await cls.getSuperclassNameAsync()
   if (clsInfo.superClassName.startsWith('java')) hash = h2(hash, clsInfo.superClassName)
@@ -267,6 +313,8 @@ export async function enrichClsInfo (cls, info) {
   hash = h2(hash, clsInfo.interfaceNames.map((s, i) => s.startsWith('java') ? s : i))
   for (const ifn of clsInfo.interfaceNames) info.class[ifn].subClasses.add(className)
   clsInfo.bin = cls
+  clsInfo.isAbstract = await cls.isAbstractAsync()
+  hash = h2(hash, clsInfo.isAbstract)
   clsInfo.isInterface = await cls.isInterfaceAsync()
   hash = h2(hash, clsInfo.isInterface)
   for (const attr of await cls.getAttributes()) {
@@ -274,17 +322,17 @@ export async function enrichClsInfo (cls, info) {
     clsInfo.attributes[name] = attr
     if (name === 'Signature') {
       clsInfo.rawGenericSignature = await attr.getSignatureAsync()
-      ;[clsInfo.genericSignature] = parseClassSignature(clsInfo.rawGenericSignature)
+      clsInfo.genericSignature = parseClassSignature(clsInfo.rawGenericSignature)[0]
       console.debug(clsInfo.obfName, clsInfo.rawGenericSignature, JSON.stringify(clsInfo.genericSignature))
     }
   }
   for (const md of await cls.getMethodsAsync()) {
     const name = await md.getNameAsync()
     const sig = await md.getSignatureAsync()
-    const methodInfo = clsInfo.method[name + ':' + sig]
+    const methodInfo: MethodInfo = clsInfo.method[name + ':' + sig]
     const acc = await md.getAccessFlags()
     hash = h2(hash, acc)
-    Object.assign(methodInfo, {
+    Object.assign((methodInfo: any), {
       bin: md,
       acc,
       ...decodeAccessFlags(acc),
@@ -303,36 +351,34 @@ export async function enrichClsInfo (cls, info) {
     methodInfo.retSig = await methodInfo.ret.getSignatureAsync()
     hash = h2(hash, hsig(methodInfo.retSig))
     hash = h2(hash, methodInfo.isAbstract)
-    for (const c of methodInfo.code.consts) if (typeof c === 'string') clsInfo.consts.add(c)
+    for (const c of methodInfo.code.consts) {
+      if (typeof c === 'string') clsInfo.consts.add(c)
+    }
+    methodInfo.infoComplete = true
   }
   hash = h2(hash, [...clsInfo.consts])
   for (const fd of await cls.getFieldsAsync()) {
     const acc = await fd.getAccessFlags()
-    const fieldInfo = {
+    const fieldInfo: FieldInfo = ({
       clsInfo,
       info,
       obfName: await fd.getNameAsync(),
       type: await fd.getTypeAsync(),
       acc,
-      ...decodeAccessFlags(acc),
-      get name () {
-        return clsInfo.field[this.obfName]
-      },
-      set name (name) {
-        clsInfo.field[this.obfName] = name
-      }
-    }
+      ...decodeAccessFlags(acc)
+    }: any)
     hash = h2(hash, acc)
-    fieldInfo.sig = await fieldInfo.type.getSignatureAsync()
+    fieldInfo.sig = await (fieldInfo.type: any).getSignatureAsync()
     hash = h2(hash, hsig(fieldInfo.sig))
     clsInfo.fields[fieldInfo.obfName] = fieldInfo
   }
   clsInfo.hash = hash
   clsInfo.hashBase26 = base26(hash)
+  clsInfo.infoComplete = true
   return clsInfo
 }
 
-function decodeAccessFlags (acc) {
+function decodeAccessFlags (acc: number): AccessFlags {
   return {
     public: Boolean(acc & ACC_PUBLIC),
     private: Boolean(acc & ACC_PRIVATE),

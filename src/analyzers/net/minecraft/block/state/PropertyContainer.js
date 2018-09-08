@@ -1,6 +1,9 @@
+// @flow
+
 import * as CLASS from '../../../../../ClassNames'
 
-export function method (cls, method, code, methodInfo, clsInfo, info) {
+export function method (methodInfo: MethodInfo) {
+  const {clsInfo, info} = methodInfo
   switch (methodInfo.sig) {
     case '()Ljava/util/Collection;': return 'getPropertyNames'
     case '()Lcom/google/common/collect/ImmutableMap;': return 'getProperties'

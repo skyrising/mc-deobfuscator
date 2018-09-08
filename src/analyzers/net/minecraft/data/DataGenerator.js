@@ -1,6 +1,8 @@
+// @flow
+
 import * as CLASS from '../../../../ClassNames'
 
-export function field (fieldInfo) {
+export function field (fieldInfo: FieldInfo) {
   const {sig} = fieldInfo
   switch (sig) {
     case 'Ljava/util/Collection;': return 'inputPaths'
@@ -9,10 +11,10 @@ export function field (fieldInfo) {
   }
 }
 
-export function method (cls, method, code, methodInfo, clsInfo, info) {
-  const {sig} = methodInfo
+export function method (methodInfo: MethodInfo) {
+  const {sig, info} = methodInfo
   if (sig.startsWith('(L') && sig.endsWith(';)V')) {
-    info.class[methodInfo.args[0].getClassName()].name = CLASS.DATA_PROVIDER
+    info.class[methodInfo.argSigs[0].slice(1, -1)].name = CLASS.DATA_PROVIDER
     return 'addProvider'
   }
   if (sig === '()V' && !methodInfo.origName.endsWith('init>')) return 'generate'

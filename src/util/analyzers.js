@@ -1,7 +1,8 @@
+// @flow
 import fs from 'mz/fs'
 import path from 'path'
 import {setStatus} from './status'
-import {getCallStats, waiter, getMappedClassName} from './index'
+import {getCallStats, getMappedClassName, perf} from './index'
 import {enrichClsInfo} from './code'
 
 const dbgSearch = require('debug')('mc:deobf:search')
@@ -10,10 +11,11 @@ const debugSearch = (...args) => {
   dbgSearch(...args)
 }
 
-const GENERIC_ANALYZER = require('../analyzers/generic')
+const GENERIC_ANALYZER: Analyzer = (require('../analyzers/generic'): any)
 GENERIC_ANALYZER.file = 'generic.js'
 
-export async function findAnalyzer (name) {
+export async function findAnalyzer (name: string): ?Analyzer {
+  const end = perf(`findAnalyzer(${name})`)
   debugSearch('Searching for analyzer for %s', name)
   const parts = name.replace(/\//g, '.').split('.')
   for (let i = 1; i <= parts.length; i++) {
@@ -24,44 +26,42 @@ export async function findAnalyzer (name) {
     debugSearch('Checking %s: %s', file, exists ? 'exists' : `doesn't exist`)
     if (exists) {
       try {
+        end()
         return Object.assign(require(file), {file: dir ? dir + '/' + fname : fname})
       } catch (e) {
         console.log(e.message)
       }
     }
   }
+  end()
 }
 
-export async function analyzeClassWrapper (next, info, Repository) {
-  const w = waiter()
+export async function analyzeClassWrapper (next: string|BCELClass, info: FullInfo, Repository: BCELRepository) {
   const start = Date.now()
   if (typeof next === 'string') {
-    info.class[next].analyzing = w
+    const name = next
     try {
-      next = await Repository.lookupClass(next)
+      next = info.class[name].bin
+      if (!next) throw Error()
     } catch (e) {
-      console.warn('Could not load class ' + next)
+      console.warn('Could not load class ' + name)
       return
     }
-  } else {
-    info.class[next.getClassName()].analyzing = w
   }
   info.maxParallel = Math.max(info.maxParallel, ++info.running)
-  w.waitingFor = analyzeClass(next, info)
-  return w.then(() => {
-    info.running--
-    const sum = info.classAnalyzeAvg * info.numAnalyzed + (Date.now() - start)
-    info.classAnalyzeAvg = sum / ++info.numAnalyzed
-  })
+  await analyzeClass(next, info)
+  info.running--
+  const sum = info.classAnalyzeAvg * info.numAnalyzed + (Date.now() - start)
+  info.classAnalyzeAvg = sum / ++info.numAnalyzed
 }
 
-export async function analyzeClass (cls, info) {
-  const clsInfo = await enrichClsInfo(cls, info)
+export async function analyzeClass (cls: BCELClass, info: FullInfo) {
+  const clsInfo: ClassInfo = await enrichClsInfo(cls, info)
   if (clsInfo.done) return
   clsInfo.done = true
-  const pkg = cls.getPackageName()
+  const pkg = await cls.getPackageNameAsync() // TODO: parse name
   if (pkg.startsWith('net.minecraft')) clsInfo.name = clsInfo.obfName
-  let analyzer = GENERIC_ANALYZER
+  let analyzer: Analyzer = GENERIC_ANALYZER
   const special = clsInfo.name && (clsInfo.analyzer || await findAnalyzer(getMappedClassName(info, clsInfo.obfName)))
   if (special) {
     console.log('Special analyzer for %s: %s', clsInfo.name, Object.keys(analyzer))
@@ -71,26 +71,33 @@ export async function analyzeClass (cls, info) {
     console.debug('Generic analyzer for %s', clsInfo.name)
   }
   try {
-    await runAnalyzer(analyzer, cls, clsInfo, info, GENERIC_ANALYZER)
+    await runAnalyzer(analyzer, clsInfo, true)
   } catch (e) {
     console.error('Error while analyzing %s:\n%s', (clsInfo.name || clsInfo.obfName), e.stack)
   }
   setStatus(`Done with ${clsInfo.name || clsInfo.obfName}`)
 }
 
-const INITIALIZED = Symbol('initialized')
+const INITIALIZED_ANALYZERS: Set<Analyzer> = new Set()
 
-export async function initAnalyzer (analyzer, info) {
-  if (!analyzer[INITIALIZED]) {
-    analyzer[INITIALIZED] = true
+export async function initAnalyzer (analyzer: Analyzer, info: FullInfo) {
+  if (!INITIALIZED_ANALYZERS.has(analyzer)) {
+    INITIALIZED_ANALYZERS.add(analyzer)
     if (typeof analyzer.init === 'function') {
+      const end = perf(`initAnalyzer(${analyzer.name || analyzer.file || 'unknown'})`)
       console.debug('Initializing analyzer %s', analyzer.name || analyzer.file)
-      await analyzer.init(info)
+      if (analyzer.init) {
+        /* XXX: flow doesn't know that console.debug doesn't affect analyzer.init */
+        await analyzer.init(info)
+      }
+      end()
     }
   }
 }
 
-export async function runAnalyzer (analyzer, cls, clsInfo, info, runGeneric) {
+export async function runAnalyzer (analyzer: Analyzer, clsInfo: ClassInfo, runGeneric: boolean = false) {
+  const {info} = clsInfo
+  const end = perf(`runAnalyzer(${analyzer.name || analyzer.file || 'unknown'},${clsInfo.name || clsInfo.obfName})`)
   await initAnalyzer(analyzer, info)
   const className = clsInfo.obfName
   console.debug('Running analyzer %s for %s', analyzer.name || analyzer.file, clsInfo.name || className)
@@ -98,25 +105,24 @@ export async function runAnalyzer (analyzer, cls, clsInfo, info, runGeneric) {
     if (analyzer !== GENERIC_ANALYZER) console.debug('%s: Running analyzer.cls', clsInfo.name || className)
     setStatus(`${clsInfo.name || className}`)
     try {
-      const name = await analyzer.cls(cls, clsInfo, info)
-      if (name) clsInfo.name = name
+      clsInfo.done = true
+      if (!(await callAnalyzerClass(analyzer, clsInfo.bin, clsInfo)) && GENERIC_ANALYZER) {
+        if (runGeneric) await callAnalyzerClass(GENERIC_ANALYZER, clsInfo.bin, clsInfo)
+      }
     } catch (e) {
       console.error(e)
     }
   }
   if (analyzer.field) {
-    for (const field of await cls.getFieldsAsync()) {
-      const fieldProxy = field// getCallStats(field)
-      const obfName = await field.getNameAsync()
-      if (clsInfo.field[obfName]) continue
+    for (const obfName in clsInfo.fields) {
       const fieldInfo = clsInfo.fields[obfName]
-      clsInfo.field[obfName] = null
+      if (fieldInfo.done || fieldInfo.name) return
       if (analyzer !== GENERIC_ANALYZER) console.debug('%s.%s: Running analyzer.field', (clsInfo.name || className), obfName)
       setStatus(`${clsInfo.name || className}.${obfName}`)
       try {
         fieldInfo.done = true
-        if (!(await callAnalyzerField(analyzer, fieldProxy, fieldInfo)) && GENERIC_ANALYZER) {
-          if (runGeneric) await callAnalyzerField(GENERIC_ANALYZER, fieldProxy, fieldInfo)
+        if (!(await callAnalyzerField(analyzer, fieldInfo.bin, fieldInfo)) && GENERIC_ANALYZER) {
+          if (runGeneric) await callAnalyzerField(GENERIC_ANALYZER, fieldInfo.bin, fieldInfo)
         }
       } catch (e) {
         console.error(e)
@@ -125,12 +131,11 @@ export async function runAnalyzer (analyzer, cls, clsInfo, info, runGeneric) {
   }
 
   if (analyzer.method) {
-    for (const method of await cls.getMethodsAsync()) {
-      const methodProxy = getCallStats(method)
-      const name = await method.getNameAsync()
-      const sig = await method.getSignatureAsync()
-      const methodInfo = clsInfo.method[name + ':' + sig]
+    for (const methodFullSig of Object.keys(clsInfo.method)) {
+      const methodInfo = clsInfo.method[methodFullSig]
+      const {origName: name, sig} = methodInfo
       if (methodInfo.done) continue
+      const methodProxy = getCallStats((methodInfo: any).bin)
       if (analyzer !== GENERIC_ANALYZER) console.debug('Analyzing method %s.%s:%s', (clsInfo.name || className), name, sig)
       setStatus(`${clsInfo.name || className}.${name}${sig}`)
       try {
@@ -143,26 +148,32 @@ export async function runAnalyzer (analyzer, cls, clsInfo, info, runGeneric) {
       }
     }
   }
+  end()
 }
 
-async function callAnalyzerMethod (analyzer, method, methodInfo) {
-  if (analyzer.method.length === 1) {
-    const name = await analyzer.method(methodInfo)
-    if (name) methodInfo.name = name
-    return Boolean(name)
-  }
-  const name = await analyzer.method(methodInfo.clsInfo.bin, method, methodInfo.code, methodInfo, methodInfo.clsInfo, methodInfo.info)
-  if (name) methodInfo.name = name
+async function callAnalyzerClass (analyzer: Analyzer, cls: BCELClass, clsInfo: ClassInfo) {
+  if (!analyzer.cls) return false
+  const end = perf(`${analyzer.name || analyzer.file || 'unknown'}.cls(${clsInfo.name || clsInfo.obfName})`)
+  const name = analyzer.cls.length === 1 ? await analyzer.cls(clsInfo) : await analyzer.cls(cls, clsInfo, clsInfo.info)
+  if (name) clsInfo.name = name
+  end()
   return Boolean(name)
 }
 
-async function callAnalyzerField (analyzer, field, fieldInfo) {
-  if (analyzer.field.length === 1) {
-    const name = await analyzer.field(fieldInfo)
-    if (name) fieldInfo.name = name
-    return Boolean(name)
-  }
-  const name = await analyzer.field(field, fieldInfo.clsInfo, fieldInfo.info, fieldInfo.clsInfo.bin)
+async function callAnalyzerMethod (analyzer: Analyzer, method: BCELMethod, methodInfo: MethodInfo) {
+  if (!analyzer.method) return false
+  const end = perf(`${analyzer.name || analyzer.file || 'unknown'}.method(${methodInfo.clsInfo.name || methodInfo.clsInfo.obfName}.${methodInfo.name || methodInfo.origName}:${methodInfo.sig})`)
+  const name = analyzer.method.length === 1 ? await analyzer.method(methodInfo) : await analyzer.method((methodInfo.clsInfo: any).bin, method, methodInfo.code, methodInfo, methodInfo.clsInfo, methodInfo.info)
+  if (name) methodInfo.name = name
+  end()
+  return Boolean(name)
+}
+
+async function callAnalyzerField (analyzer: Analyzer, field: BCELField, fieldInfo: FieldInfo) {
+  if (!analyzer.field) return false
+  const end = perf(`${analyzer.name || analyzer.file || 'unknown'}.field(${fieldInfo.clsInfo.name || fieldInfo.clsInfo.obfName}.${fieldInfo.name || fieldInfo.obfName}:${fieldInfo.sig})`)
+  const name = analyzer.field.length === 1 ? await analyzer.field(fieldInfo) : await analyzer.field(field, fieldInfo.clsInfo, fieldInfo.info, (fieldInfo.clsInfo: any).bin)
   if (name) fieldInfo.name = name
+  end()
   return Boolean(name)
 }

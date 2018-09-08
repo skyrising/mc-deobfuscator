@@ -1,12 +1,14 @@
+// @flow
 
-export function field (fieldInfo) {
+export function field (fieldInfo: FieldInfo) {
   const {sig} = fieldInfo
   switch (sig) {
     case 'Ljava/util/Set;': return 'REGISTERED'
   }
 }
 
-export function method (cls, method, code, methodInfo, clsInfo, info) {
+export function method (methodInfo: MethodInfo) {
+  const {code, clsInfo, info} = methodInfo
   if (methodInfo.origName === '<clinit>') {
     const setData = !('potions' in info.data)
     if (setData) info.data.potions = {}
@@ -16,7 +18,7 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
       const name = line.const
       const putstatic = line.nextOp('putstatic')
       if (!putstatic) continue
-      clsInfo.field[putstatic.field.fieldName] = name.toUpperCase()
+      clsInfo.fields[putstatic.field.fieldName].name = name.toUpperCase()
       if (setData) info.data.potions[name] = {}
     }
   }

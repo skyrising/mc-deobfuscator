@@ -1,6 +1,7 @@
+// @flow
 
-export function method (cls, method, code, methodInfo, clsInfo, info) {
-  const NBTBase = cls.getSuperclassName()
+export function method (methodInfo: MethodInfo) {
+  const NBTBase = methodInfo.clsInfo.obfName
   switch (methodInfo.sig) {
     case '()I': return 'size'
     case '(L' + NBTBase + ';)V': return 'add'
@@ -8,7 +9,7 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
   }
 }
 
-export function field (fieldInfo) {
+export function field (fieldInfo: FieldInfo) {
   const {sig} = fieldInfo
   switch (sig) {
     case 'Ljava/util/List;': return 'list'

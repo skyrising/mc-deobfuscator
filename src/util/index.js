@@ -1,4 +1,5 @@
 import path from 'path'
+import {performance} from 'perf_hooks'
 import * as PKG from '../PackageNames'
 
 export function hasSuperClass (cls, name) {
@@ -79,7 +80,7 @@ export function decodeType (type) {
 const useHashNaming = true
 export function getDefaultName (clsInfo) {
   const main = ucFirst(clsInfo.obfName) + (useHashNaming ? ucFirst(clsInfo.hashBase26) : '')
-  if (clsInfo.enumNames) return 'Enum' + main
+  if (clsInfo.enumNames.length) return 'Enum' + main
   if (clsInfo.isInterface) return 'If' + main
   return 'Cls' + main
 }
@@ -154,4 +155,12 @@ export function getCallStats (obj) {
       return value
     }
   })
+}
+
+export function perf (name: string) {
+  performance.mark(name + '::start')
+  return () => {
+    performance.mark(name + '::end')
+    performance.measure(name, name + '::start', name + '::end')
+  }
 }

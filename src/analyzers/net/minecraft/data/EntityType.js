@@ -1,3 +1,5 @@
+// @flow
+
 import {signatureTag as s} from '../../../../util/code'
 import * as CLASS from '../../../../ClassNames'
 import * as PKG from '../../../../PackageNames'
@@ -116,7 +118,8 @@ const ENTITY_PKG = {
   XPOrb: PKG.ENTITY_ITEM
 }
 
-export function method (cls, method, code, methodInfo, clsInfo, info) {
+export function method (methodInfo: MethodInfo) {
+  const {code, clsInfo, info} = methodInfo
   if (code.consts.includes('pig')) {
     info.data.entities = {}
     const flat = code.consts.includes('falling_block')
@@ -128,7 +131,7 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
       if (name === 'Potion') name = 'ThrownPotion'
       if (name === 'ThrownEnderpearl') name = 'EnderPearl'
       const fieldName = (flat ? line.const : toUnderScoreCase(line.const)).toUpperCase()
-      clsInfo.field[line.nextOp('putstatic').field.fieldName] = fieldName
+      clsInfo.fields[line.nextOp('putstatic').field.fieldName].name = fieldName
       const entClass = flat ? line.next.const : line.previous.const
       const pkg = name in ENTITY_PKG ? ENTITY_PKG[name] : PKG.ENTITY
       info.class[entClass].name = pkg + '.' + name
@@ -152,7 +155,7 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
   }
 }
 
-export function field (fieldInfo) {
+export function field (fieldInfo: FieldInfo) {
   const {sig} = fieldInfo
   switch (sig) {
     case 'Ljava/util/Map;': return fieldInfo.public ? 'SPAWN_EGGS' : undefined

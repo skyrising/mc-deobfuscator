@@ -1,11 +1,13 @@
+// @flow
+
 import * as CLASS from '../../../../ClassNames'
 
-export function method (cls, method, code, methodInfo, clsInfo, info) {
-  const {sig} = methodInfo
+export function method (methodInfo: MethodInfo) {
+  const {sig, code, clsInfo, info} = methodInfo
   const Builder = clsInfo.obfName
   if (methodInfo.name === '<init>' && methodInfo.args.length === 2 && sig.startsWith('(L')) {
-    info.class[methodInfo.args[0].getClassName()].name = CLASS.MATERIAL
-    info.class[methodInfo.args[1].getClassName()].name = CLASS.MAP_COLOR
+    info.class[methodInfo.argSigs[0].slice(1, -1)].name = CLASS.MATERIAL
+    info.class[methodInfo.argSigs[1].slice(1, -1)].name = CLASS.MAP_COLOR
   }
   if (sig.endsWith(')L' + Builder + ';') && methodInfo.static) return 'create'
   switch (sig) {
@@ -18,7 +20,7 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
   }
 }
 
-export function field (fieldInfo) {
+export function field (fieldInfo: FieldInfo) {
   const {sig, clsInfo, info} = fieldInfo
   const MapColor = info.classReverse[CLASS.MAP_COLOR]
   const Material = info.classReverse[CLASS.MATERIAL]

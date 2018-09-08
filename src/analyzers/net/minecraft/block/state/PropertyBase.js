@@ -1,5 +1,6 @@
+// @flow
 
-export function field (fieldInfo) {
+export function field (fieldInfo: FieldInfo) {
   const {sig} = fieldInfo
   switch (sig) {
     case 'Ljava/lang/String;': return 'name'
@@ -8,8 +9,8 @@ export function field (fieldInfo) {
   }
 }
 
-export function method (cls, method, code, methodInfo, clsInfo, info) {
+export function method (methodInfo: MethodInfo) {
   switch (methodInfo.sig) {
-    case '()I': return methodInfo.obfName === 'hashCode' ? 'hashCode' : 'computeHash'
+    case '()I': return methodInfo.origName === 'hashCode' ? 'hashCode' : 'computeHash'
   }
 }

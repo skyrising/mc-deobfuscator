@@ -1,7 +1,9 @@
+// @flow
+
 import {signatureTag as s, getMethodInheritance} from '../../../../util/code'
 import * as CLASS from '../../../../ClassNames'
 
-export function field (fieldInfo) {
+export function field (fieldInfo: FieldInfo) {
   const {sig, clsInfo, info} = fieldInfo
   switch (sig) {
     case 'Z': return 'sticky'
@@ -11,10 +13,10 @@ export function field (fieldInfo) {
   if (PropertyBool && sig === 'L' + PropertyBool + ';') return 'EXTENDED'
 }
 
-export function method (cls, method, code, methodInfo, clsInfo, info) {
+export function method (methodInfo: MethodInfo) {
+  const {code, info, clsInfo} = methodInfo
   if (s`(${CLASS.WORLD}${CLASS.BLOCK_POS}${CLASS.FACING}Z)Z`.matches(methodInfo)) {
     const newHelper = code.lines[0].nextOp('new', true)
-    console.log('PistonMoveHelper: ' + newHelper)
     console.log(getMethodInheritance(methodInfo))
     if (newHelper) info.class[newHelper.className].name = CLASS.PISTON_MOVE_HELPER
     return 'doMove'
@@ -23,7 +25,7 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
     if (line.const === 'extended') {
       const field = (line.nextOp('putfield') || {}).field
       if (field) {
-        clsInfo.field[field.fieldName] = 'EXTENDED'
+        clsInfo.fields[field.fieldName].name = 'EXTENDED'
         info.class[field.type.slice(1, -1)].name = CLASS.BLOCK_PROPERTY_BOOL
       }
     }

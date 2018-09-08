@@ -1,10 +1,10 @@
+// @flow
 import * as CLASS from '../../../../ClassNames'
-import {getReturnType} from '../../../../util'
 
-export function method (cls, method, code, methodInfo, clsInfo, info) {
+export function method (methodInfo: MethodInfo) {
+  const {info} = methodInfo
   const name = methodInfo.origName
   if (name !== 'main' && name !== '<clinit>') {
-    const retType = getReturnType(method)
-    if (retType !== 'V') info.class[retType].name = CLASS.DATA_GENERATOR
+    if (methodInfo.retSig !== 'V') info.class[methodInfo.retSig.slice(1, -1)].name = CLASS.DATA_GENERATOR
   }
 }

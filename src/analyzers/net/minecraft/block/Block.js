@@ -1,9 +1,10 @@
+// @flow
 import {signatureTag as s} from '../../../../util/code'
 import * as CLASS from '../../../../ClassNames'
 import * as PKG from '../../../../PackageNames'
 
-export function method (cls, method, code, methodInfo, clsInfo, info) {
-  const {sig} = methodInfo
+export function method (methodInfo: MethodInfo) {
+  const {sig, code, clsInfo, info} = methodInfo
   const Block = clsInfo.obfName
   if (code.consts.includes('cobblestone')) {
     info.data.blocks = {
@@ -17,7 +18,7 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
       if (typeof line.const !== 'string') continue
       const data = {}
       if (line.next.op === 'new') data.class = line.next.className
-      const blockClass = classNames[line.const]
+      const blockClass = CLASS_NAMES[line.const]
       if (blockClass) {
         const newCls = line.nextOp('new').className
         if (newCls !== Block) info.class[newCls].name = PKG.BLOCK + '.' + blockClass
@@ -31,19 +32,19 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
   }
   if (code.consts.includes('Don\'t know how to convert ') && code.consts.includes(' back into data...')) {
     methodInfo.name = 'getMetaFromState'
-    info.class[methodInfo.args[0].getClassName()].name = CLASS.BLOCK_STATE
+    info.class[methodInfo.argSigs[0].slice(1, -1)].name = CLASS.BLOCK_STATE
   }
   if (methodInfo.origName === '<init>' && methodInfo.args.length === 2 && sig.startsWith('(L')) {
-    info.class[methodInfo.args[0].getClassName()].name = CLASS.MATERIAL
+    info.class[methodInfo.argSigs[0].slice(1, -1)].name = CLASS.MATERIAL
   }
   if (methodInfo.origName === '<init>' && methodInfo.args.length === 1) {
-    const arg0 = methodInfo.args[0].getClassName()
+    const arg0 = methodInfo.argSigs[0].slice(1, -1)
     info.class[arg0].name = arg0.includes('$') ? CLASS.BLOCK$BUILDER : CLASS.MATERIAL
   }
   if (methodInfo.origName === '<clinit>') {
     for (const line of code.lines) {
       if (!line.const || line.const !== 'air') continue
-      info.class[line.prevOp('new').arg.slice(1, -1)].name = CLASS.RESOURCE_LOCATION
+      info.class[line.prevOp('new').className].name = CLASS.RESOURCE_LOCATION
     }
   }
   if (s`(DDDDDD)${CLASS.VOXEL_SHAPE}`.matches(methodInfo)) return 'createShape'
@@ -52,7 +53,7 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
   }
 }
 
-export function field (fieldInfo) {
+export function field (fieldInfo: FieldInfo) {
   const {sig, clsInfo, info} = fieldInfo
   switch (sig) {
     case 'Ljava/lang/String;': return 'name'
@@ -67,7 +68,7 @@ export function field (fieldInfo) {
   if (BlockState && sig === 'L' + BlockState + ';') return 'defaultBlockState'
 }
 
-const classNames = {
+const CLASS_NAMES = {
   grass_block: 'GrassBlock',
   podzol: 'Podzol',
   bedrock: 'Bedrock',

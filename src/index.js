@@ -1,10 +1,11 @@
+// @flow
 import fs from 'mz/fs'
 import path from 'path'
 // import {graph} from './graphviz'
 import {getDefaultName} from './util'
 import {enrichClsInfo} from './util/code'
 import {createInfo} from './util/info'
-import {startStatus, endStatus, setStatus} from './util/status'
+import {startStatus, endStatus} from './util/status'
 import {specialSource as runSpecialSource, extractJar as runExtractJar} from './util/tools'
 import {generateOutput} from './util/output'
 import {getAllClasses, initJava} from './util/java'
@@ -14,15 +15,15 @@ import * as hierarchyAnalyzer from './analyzers/hierarchy'
 
 let debugConsole
 const dbg = require('debug')('mc:deobf')
-let debug = (...args) => {
+const debug = (...args) => {
   if (debugConsole) debugConsole.log(...args)
   dbg(...args)
 }
-console.debug = debug
+(console: any).debug = debug
 
 function enableDebugLog () {
   if (debugConsole) return
-  debugConsole = new console.Console(fs.createWriteStream('debug.log'))
+  debugConsole = new (console: any).Console(fs.createWriteStream('debug.log'))
 }
 
 if (require.main === module) {
@@ -56,8 +57,17 @@ export async function analyzeVersion (version, options) {
   return analyzeJar(jarFile, classPath, options)
 }
 
-export async function analyzeJar (jarFile, classPath, options = {}) {
-  const {specialSource, extractJar, debugLog, errorLog, version, status} = {
+type Options = {
+  specialSource: boolean;
+  extractJar: boolean;
+  debugLog: boolean;
+  errorLog: boolean;
+  status: boolean;
+  version: Version | string;
+}
+
+export async function analyzeJar (jarFile: string, classPath: Array<string>, options: $Shape<Options> = {}) {
+  const {specialSource, extractJar, debugLog, errorLog, version, status}: Options = {
     specialSource: false,
     extractJar: false,
     debugLog: false,
@@ -69,47 +79,52 @@ export async function analyzeJar (jarFile, classPath, options = {}) {
   if (debugLog) enableDebugLog()
   if (errorLog) console.error.log = true
   const fullClassPath = [jarFile, ...classPath]
-  console.log('Class path: ' + fullClassPath)
+  console.log('Class path: ' + fullClassPath.join(','))
   const Repository = await initJava(fullClassPath)
-  const classNames = getAllClasses(jarFile).filter(name => !name.includes('/') || name.startsWith('net/minecraft'))
-  const forEachClass = fn => Promise.all(classNames.map(async name => {
+  const classNames = getAllClasses(jarFile).filter(name => !name.includes('.') || name.startsWith('net.minecraft'))
+  const forEachClass = (fn: (BCELClass, ClassInfo) => any) => Promise.all(classNames.map(async name => {
     try {
       const cls = await Repository.lookupClass(name)
       const clsInfo = info.class[name]
       await fn(cls, clsInfo)
+      if (info.currentPass) info.currentPass.analyzed++
     } catch (e) {
       console.warn(e)
     }
   }))
   console.log(classNames.length + ' classes, ' + classNames.filter(name => !name.includes('$')).length + ' outer classes')
   const side = jarFile.includes('server') ? 'server' : 'client'
-  const info = await createInfo({version, side, classNames})
+  const info: FullInfo = await createInfo({version, side, classNames})
+  global.info = info
+  const genericPasses = []
+  const passClsInfo = info.newPass('reading classes', {weight: 2})
+  for (let i = 0; i < 3; i++) genericPasses.push(info.newPass('generic[' + i + ']'))
+  const passHierarchy = info.newPass('hierarchy', {weight: 0.3})
+  const passGetterSetter = info.newPass('getters & setters', {weight: 0.6})
   if (status) startStatus(info)
-  console.log('Enriching class info')
+  passClsInfo.start()
+  console.log('Reading classes')
   await forEachClass(cls => enrichClsInfo(cls, info))
+  passClsInfo.end()
   await initAnalyzer(hierarchyAnalyzer, info)
-  const ps = {}
-  while (true) {
-    while (info.hasWork) {
-      const name = info.dequeue()
-      ps[name] = analyzeClassWrapper(name, info, Repository)
-    }
-    setStatus('Starting pass')
-    info.analyzing = ps
-    await Promise.all(Object.values(ps))
-    if (!info.hasWork) break
+  for (const pass of genericPasses) {
+    pass.start()
+    await forEachClass(cls => analyzeClassWrapper(cls, info, Repository))
+    pass.end()
   }
-  console.log('Queue empty')
+  passHierarchy.start()
   console.log('Analyzing hierarchy')
-  await forEachClass((cls, clsInfo) => runAnalyzer(hierarchyAnalyzer, cls, clsInfo, info))
+  await forEachClass((cls, clsInfo) => runAnalyzer(hierarchyAnalyzer, clsInfo))
+  passHierarchy.end()
+  passGetterSetter.start()
   console.log('Renaming getters & setters')
-  await forEachClass((cls, clsInfo) => runAnalyzer(renameGetterSetter, cls, clsInfo, info))
+  await forEachClass((cls, clsInfo) => runAnalyzer(renameGetterSetter, clsInfo))
+  passGetterSetter.end()
   if (status) endStatus()
   // await renderGraph(info)
-  const unknownClasses = Object.values(info.class).filter(c => !c.name)
-  console.log(Object.values(info.classReverse).filter(name => !info.class[name].name.endsWith(getDefaultName(info.class[name]))).length + ' class names found')
+  const unknownClasses = ((Object.values(info.class): any): Array<ClassInfo>).filter(c => !c.name)
+  console.log(classNames.filter(name => info.class[name].name && !info.class[name].name.endsWith(getDefaultName(info.class[name]))).length + ' class names found')
   console.log(Object.values(info.classReverse).length + ' classes packaged')
-  console.log('Max parallel: %d, avg time %dms/class (sum: %dms)', info.maxParallel, Math.round(info.classAnalyzeAvg), Math.round(info.classAnalyzeAvg * info.numAnalyzed))
   console.log(unknownClasses.length + ' unknown classes: (Top 100)')
   console.log(unknownClasses
     .filter(c => !c.enumNames)
@@ -136,7 +151,7 @@ export async function analyzeJar (jarFile, classPath, options = {}) {
     .filter(c => c.enumNames)
     .sort(sortEnums)
     .slice(0, 100)
-    .map(c => c.obfName + ': ' + c.enumNames)
+    .map(c => c.obfName + ': ' + c.enumNames.join(','))
     .join('\n'))
   if (specialSource) {
     const deobfJar = path.resolve('work', path.basename(jarFile, '.jar') + '-deobf.jar')

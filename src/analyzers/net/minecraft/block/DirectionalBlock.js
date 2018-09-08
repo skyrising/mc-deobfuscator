@@ -1,3 +1,5 @@
-export function field (field, clsInfo, info) {
+// @flow
+
+export function field (fieldInfo: FieldInfo) {
   return 'FACING'
 }

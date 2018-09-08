@@ -1,4 +1,6 @@
-export function method (methodInfo) {
+// @flow
+
+export function method (methodInfo: MethodInfo) {
   if (methodInfo.origName === '<clinit>') {
     for (const line of methodInfo.code.lines) {
       if (typeof line.const !== 'string') continue
@@ -9,7 +11,7 @@ export function method (methodInfo) {
       })[line.const]
       if (fieldName) {
         const putstatic = line.nextOp('putstatic')
-        if (putstatic) methodInfo.clsInfo.field[putstatic.field.fieldName] = fieldName
+        if (putstatic) methodInfo.clsInfo.fields[putstatic.field.fieldName].name = fieldName
       }
     }
   }

@@ -1,15 +1,18 @@
+// @flow
+
 import {toUpperCamelCase} from '../../../../util'
 
-export function method (cls, method, code, methodInfo, clsInfo, info) {
+export function method (methodInfo: MethodInfo) {
+  const {code, clsInfo, info} = methodInfo
   if (methodInfo.origName === '<clinit>') {
     for (const line of code.lines) {
-      if (typeof line.const !== 'string') continue
-      if (!/^[a-z_\d]+$/.test(line.const)) continue
-      const name = line.const
+      if (typeof (line: any).const !== 'string') continue
+      const name: string = ((line: any).const: any)
+      if (!/^[a-z_\d]+$/.test(name)) continue
       const putstatic = line.nextOp('putstatic')
       if (!putstatic) continue
-      clsInfo.field[putstatic.field.fieldName] = name.toUpperCase()
-      if (putstatic.previous.op === 'checkcast') {
+      clsInfo.fields[putstatic.field.fieldName].name = name.toUpperCase()
+      if (putstatic.previous && putstatic.previous.op === 'checkcast') {
         const castTo = putstatic.previous.arg.slice(1, -1)
         if (info.class[castTo].name && info.class[castTo].name.indexOf('Block') >= 0) continue
         const ucc = ({

@@ -1,3 +1,4 @@
+// @flow
 export const BASE = 'net.minecraft'
 export const DEFAULT = BASE + '.src'
 

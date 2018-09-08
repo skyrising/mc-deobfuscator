@@ -1,7 +1,8 @@
+// @flow
 import * as CLASS from '../../../../ClassNames'
 
-export function method (cls, method, code, methodInfo, clsInfo, info) {
-  const {sig} = methodInfo
+export function method (methodInfo: MethodInfo) {
+  const {sig, clsInfo, info} = methodInfo
   if (sig.endsWith('I)I')) return 'getCombinedLight'
   if (sig.endsWith(')I')) return 'getStrongPower'
   if (sig.endsWith(')Z')) return 'isAirBlock'

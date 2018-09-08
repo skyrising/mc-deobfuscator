@@ -1,7 +1,8 @@
+// @flow
 import * as CLASS from '../../../../ClassNames'
 import {signatureTag as s} from '../../../../util/code'
 
-export function method (methodInfo) {
+export function method (methodInfo: MethodInfo) {
   switch (methodInfo.sig) {
     case '()Ljava/util/Iterator;': return 'chunkIterator'
     case '(II)Z': return 'contains'
@@ -12,9 +13,9 @@ export function method (methodInfo) {
   if (s`(${CLASS.SERVER_PLAYER}II)Z`.matches(methodInfo)) return 'isPlayerWatchingChunk'
 }
 
-export function field (fieldInfo) {
+export function field (fieldInfo: FieldInfo) {
   const {sig, clsInfo, info} = fieldInfo
-  const WorldServer = info.classReverse[CLASS.WORLD_SERVER]
+  const WorldServer = info.classReverse[CLASS.SERVER_WORLD]
   if (!WorldServer) clsInfo.done = false
   if (WorldServer && sig === 'L' + WorldServer + ';') return 'world'
   switch (sig) {

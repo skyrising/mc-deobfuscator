@@ -1,3 +1,4 @@
+// @flow
 import * as PKG from '../PackageNames'
 import * as CLASS from '../ClassNames'
 import {hasSuperClass, toUpperCamelCase, decodeType} from '../util'
@@ -5,7 +6,36 @@ import {hasSuperClass, toUpperCamelCase, decodeType} from '../util'
 export const generic = true
 export const name = 'generic'
 
-const simpleConstToClass = Object.freeze({
+type HandleFuncArg = {|
+  line: CodeLineLoadConst | CodeLineNumberConst;
+  const: string;
+  code: Code;
+  sig: string;
+  methodInfo: MethodInfo;
+  clsInfo: ClassInfo;
+  info: FullInfo;
+|}
+
+type SimpleHandler = {|
+  predicate?: HandleFuncArg => any;
+  eval?: HandleFuncArg => any;
+  name?: string;
+  method?: string;
+  args?: Array<string>;
+  return?: string;
+  superClass?: string;
+  baseClass?: string;
+  outerClass?: string;
+  call?: {|
+    next?: BytecodeOpCall;
+    method?: string;
+    class?: string;
+  |};
+  field?: string;
+  interfaces?: Array<string>;
+|}
+
+const simpleConstToClass: {[string]: string | SimpleHandler | Array<SimpleHandler>} = Object.freeze({
   'box[': CLASS.AABB,
   'Using ARB_multitexture.\n': CLASS.OPENGL_HELPER,
   '{} was kicked for floating too long!': CLASS.NET_PLAYER_HANDLER,
@@ -33,7 +63,7 @@ const simpleConstToClass = Object.freeze({
   'livingEntityBaseTick': CLASS.ENTITY_LIVING_BASE,
   'HurtTime': CLASS.ENTITY_LIVING_BASE,
   'DeathLootTableSeed': CLASS.ENTITY_LIVING,
-  'playerGameType': CLASS.ENTITY_PLAYER,
+  'playerGameType': CLASS.ENTITY_PLAYER_BASE,
   'ChestedHorse': CLASS.ENTITY_CHESTED_HORSE,
   'HorseChest': CLASS.ENTITY_ABSTRACT_HORSE,
   'ownerName': CLASS.ENTITY_THROWABLE,
@@ -297,15 +327,15 @@ const simpleConstToClass = Object.freeze({
     name: CLASS.GAME_SETTINGS_OPTION
   }],
   'Facing': {
-    predicate: ({cls}) => cls.isAbstract(),
+    predicate: ({clsInfo}) => clsInfo.isAbstract,
     name: CLASS.ENTITY_HANGING
   },
   'SpellTicks': {
-    predicate: ({cls}) => cls.isAbstract(),
+    predicate: ({clsInfo}) => clsInfo.isAbstract,
     name: CLASS.ENTITY_SPELLCASTING_ILLAGER
   },
   'pickup': {
-    predicate: ({cls}) => cls.isAbstract(),
+    predicate: ({clsInfo}) => clsInfo.isAbstract,
     name: CLASS.ENTITY_ABSTRACT_ARROW
   }, /*
   'life': {
@@ -327,7 +357,7 @@ const simpleConstToClass = Object.freeze({
   }, {
     predicate: ({sig}) => sig.endsWith('FFFFFFF)V'),
     name: 'net.minecraft.client.renderer.entity.layer.LayerDeadmau5Head',
-    metod: 'renderLayer',
+    method: 'renderLayer',
     superClass: 'net.minecraft.entity.layer.RenderLayer'
   }],
   'Batch already started.': {
@@ -364,7 +394,7 @@ const simpleConstToClass = Object.freeze({
     name: CLASS.ADVANCEMENT_TRIGGER_KILL
   }],
   'levitation': {
-    predicate: ({line}) => line.next.op === 'invokespecial',
+    predicate: ({line}) => line.next && line.next.op === 'invokespecial',
     name: CLASS.ADVANCEMENT_TRIGGER_LEVITATION
   },
   'tick': [{
@@ -415,13 +445,13 @@ const simpleConstToClass = Object.freeze({
     field: 'title'
   },
   'old! {}': {
-    predicate: ({cls}) => cls.getSuperclassName() !== 'java/lang/Enum',
+    predicate: ({clsInfo}) => clsInfo.superClassName !== 'java/lang/Enum',
     name: CLASS.GEN_LAYER_HILLS,
     method: 'getInts',
     superClass: CLASS.GEN_LAYER
   },
   'PigZombie': {
-    predicate: ({line}) => /^[a-z]{1,3}$/.test(line.previous.const),
+    predicate: ({line}) => line.previous && /^[a-z]{1,3}$/.test(line.previous.const),
     name: CLASS.ENTITIES
   },
   'Bad packet id': {
@@ -547,8 +577,10 @@ const simpleConstToClass = Object.freeze({
   }
 })
 
-function handleSimple (obj, params) {
-  const {cls, line, method, methodInfo, clsInfo, info} = params
+function handleSimple (obj: ?(string | SimpleHandler | Array<SimpleHandler>), params: HandleFuncArg) {
+  const {line, methodInfo} = params
+  const {clsInfo, info} = methodInfo
+  const cls = clsInfo.bin
   if (!obj) return
   if (typeof obj === 'string') return obj
   if (Array.isArray(obj)) {
@@ -556,22 +588,26 @@ function handleSimple (obj, params) {
       const res = handleSimple(el, params)
       if (res) return res
     }
+    return
   }
   if (obj.predicate && !obj.predicate(params)) return
-  if (obj.return) info.class[method.getReturnType().getClassName()].name = obj.return
+  if (obj.return) info.class[methodInfo.retSig.slice(1, -1)].name = obj.return
   if (obj.args) {
     obj.args.forEach((name, i) => {
-      info.class[methodInfo.args[i].getClassName()].name = name
+      info.class[methodInfo.argSigs[i].slice(1, -1)].name = name
     })
   }
   if (obj.method) methodInfo.name = obj.method
-  if (obj.superClass) info.class[cls.getSuperclassName()].name = obj.superClass
+  if (obj.superClass) info.class[clsInfo.superClassName].name = obj.superClass
   if (obj.baseClass) {
     const scs = cls.getSuperClasses()
     if (scs.length >= 2) info.class[scs[scs.length - 2].getClassName()].name = obj.baseClass
     else console.log((obj.name || clsInfo.obfName) + ' does not have enough superclasses')
   }
-  if (obj.outerClass) info.class[clsInfo.outerClassName].name = obj.outerClass
+  if (obj.outerClass) {
+    if (clsInfo.isInnerClass) info.class[clsInfo.outerClassName].name = obj.outerClass
+    else console.log((obj.name || clsInfo.obfName) + ' is not an inner class')
+  }
   if (obj.call) {
     let call
     if (obj.call.next) call = (line.nextOp(obj.call.next) || {}).call
@@ -582,8 +618,9 @@ function handleSimple (obj, params) {
     }
   }
   if (obj.field) {
+    const name = obj.field
     const putfield = line.nextOp('putfield')
-    if (putfield) clsInfo.field[putfield.field.fieldName] = obj.field
+    if (putfield) clsInfo.fields[putfield.field.fieldName].name = name
   }
   if (obj.interfaces) {
     const ifn = clsInfo.interfaceNames
@@ -599,9 +636,11 @@ function handleSimple (obj, params) {
   return obj.name
 }
 
-function getClassNameForConstant (c, line, cls, method, code, methodInfo, clsInfo, info) {
-  const {sig} = methodInfo
-  const simple = handleSimple(simpleConstToClass[c], {line, cls, method, sig, code, methodInfo, clsInfo, info})
+function getClassNameForConstant (c: string, line: CodeLineLoadConst | CodeLineNumberConst, methodInfo: MethodInfo) {
+  const {code, sig, clsInfo, info} = methodInfo
+  const cls = clsInfo.bin
+  const param: HandleFuncArg = {line, const: c, sig, code, clsInfo, info, methodInfo}
+  const simple = handleSimple(simpleConstToClass[c], param)
   if (simple) return simple
   const Entity = info.classReverse[CLASS.ENTITY]
   switch (c) {
@@ -615,7 +654,7 @@ function getClassNameForConstant (c, line, cls, method, code, methodInfo, clsInf
       if (ifn.length === 2) {
         info.class[ifn[0]].name = CLASS.HOPPER_BASE
         info.class[ifn[1]].name = CLASS.TICKABLE
-        info.class[cls.getSuperclassName()].name = CLASS.LOCKABLE_LOOT_CONTAINER
+        info.class[clsInfo.superClassName].name = CLASS.LOCKABLE_LOOT_CONTAINER
         return CLASS.BLOCK_ENTITY_HOPPER
       }
       return CLASS.ENTITY_MINECART_HOPPER
@@ -641,26 +680,28 @@ function getClassNameForConstant (c, line, cls, method, code, methodInfo, clsInf
       methodInfo.name = 'tick'
       info.method[line.next.call.fullSig].name = 'next'
       info.class[line.next.call.className].name = CLASS.PROFILER
-      info.class[cls.getSuperclassName()].name = CLASS.WORLD
+      info.class[clsInfo.superClassName].name = CLASS.WORLD
       try {
         const worldInfoLine = (line.prevOp('ldc_w "mobSpawner"') || line.prevOp('ldc_w "spawner"')).nextOp('getfield')
-        clsInfo.field[worldInfoLine.field.fieldName] = 'worldInfo'
+        clsInfo.fields[worldInfoLine.field.fieldName].name = 'worldInfo'
         info.class[decodeType(worldInfoLine.field.type)].name = CLASS.WORLD_INFO
         const entitySpawnerLine = worldInfoLine.nextOp('getfield')
-        clsInfo.field[entitySpawnerLine.field.fieldName] = 'entitySpawner'
+        clsInfo.fields[entitySpawnerLine.field.fieldName].name = 'entitySpawner'
         info.class[decodeType(entitySpawnerLine.field.type)].name = CLASS.ENTITY_SPAWNER
       } catch (e) {
         console.error(e)
       }
-      return CLASS.WORLD_SERVER
+      return CLASS.SERVER_WORLD
     }
-    case 'Accessed Items before Bootstrap!':
-      if (code.lines[0].call) {
-        const BootstrapIsRegistered = code.lines[0].call
+    case 'Accessed Items before Bootstrap!': {
+      const line0 = code.lines[0]
+      if (line0.op === 'invokestatic') {
+        const BootstrapIsRegistered = line0.call
         info.class[BootstrapIsRegistered.fullClassName].name = CLASS.BOOTSTRAP
         info.method[BootstrapIsRegistered.fullSig].name = 'isRegistered'
       } else console.log('Expected call to Bootstrap.isRegistered:', code.lines[0])
       return
+    }
   }
   if (/^commands\.(.*?)\.$/.test(c)) {
     const commandName = c.match(/^commands\.(.*?)\.$/)[1]
@@ -676,31 +717,31 @@ function getClassNameForConstant (c, line, cls, method, code, methodInfo, clsInf
     return CLASS.CHUNK
   }
   if (c.startsWith('fossils/')) {
-    info.class[cls.getSuperclassName()].name = CLASS.WORLD_GENERATOR
+    info.class[clsInfo.superClassName].name = CLASS.WORLD_GENERATOR
     return CLASS.WORLD_GEN_FOSSILS
   }
   if (c.startsWith('Starting integrated minecraft server version')) return CLASS.INTEGRATED_SERVER
   if (c.endsWith('Fix') && hasSuperClass(cls, 'com.mojang.datafixers.DataFix')) return PKG.DATAFIX + '.' + c
 }
 
-export function method (cls, method, code, methodInfo, clsInfo, info) {
+export function method (methodInfo: MethodInfo) {
+  const {sig, code, clsInfo, info} = methodInfo
   methodInfo.done = false
-  const {sig} = methodInfo
-  const sc = cls.getSuperclassName()
+  const sc = clsInfo.superClassName
   if (sc === 'java.lang.Enum') {
-    if (methodInfo.origName === '<clinit>') enumClinit(cls, method, code, methodInfo, clsInfo, info)
+    if (methodInfo.origName === '<clinit>') enumClinit(methodInfo)
     else if (methodInfo.origName === 'values') {
-      clsInfo.field[code.lines[0].field.fieldName] = '$VALUES'
+      clsInfo.fields[code.lines[0].field.fieldName].name = '$VALUES'
     }
   }
   for (const line of code.lines) {
     if (line.const === undefined) continue
-    const name = getClassNameForConstant(String(line.const), line, cls, method, code, methodInfo, clsInfo, info)
+    const name = getClassNameForConstant(String(line.const), line, methodInfo)
     if (name) clsInfo.name = name
   }
   const NBTBase = info.classReverse[CLASS.NBT_BASE]
   const Locale = info.classReverse[CLASS.I18N_LOCALE]
-  if (sig === '()B' && NBTBase && hasSuperClass(cls, NBTBase)) {
+  if (sig === '()B' && NBTBase && hasSuperClass(clsInfo.bin, NBTBase)) {
     const id = code.consts[0]
     const type = ([
       'End', 'Byte', 'Short', 'Int', 'Long', 'Float', 'Double', 'ByteArray', 'String', 'List', 'Compound', 'IntArray', 'LongArray'
@@ -714,7 +755,8 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
   if (clsInfo.name) clsInfo.done = false
 }
 
-function enumClinit (cls, method, code, methodInfo, clsInfo, info) {
+function enumClinit (methodInfo: MethodInfo) {
+  const {code, clsInfo} = methodInfo
   const names = []
   for (let i = 0; i < code.lines.length; i++) {
     const line = code.lines[i]
@@ -729,16 +771,17 @@ function enumClinit (cls, method, code, methodInfo, clsInfo, info) {
         continue
       }
       const name = ldc.const.toUpperCase()
-      clsInfo.field[putstatic.field.fieldName] = name
+      clsInfo.fields[putstatic.field.fieldName].name = name
       names.push(name)
     }
   }
   clsInfo.enumNames = names
-  const clsName = getEnumName(names, cls, clsInfo, info)
+  const clsName = getEnumName(names, methodInfo)
   if (clsName) clsInfo.name = clsName
 }
 
-function getEnumName (names, cls, clsInfo, info) {
+function getEnumName (names: Array<string>, methodInfo: MethodInfo) {
+  const {clsInfo, info} = methodInfo
   switch (names.slice(0, 5).join(',')) {
     case 'PEACEFUL,EASY,NORMAL,HARD': return CLASS.DIFFICULTY
     case 'NOT_SET,SURVIVAL,CREATIVE,ADVENTURE,SPECTATOR': return CLASS.GAME_MODE
@@ -775,33 +818,41 @@ function getEnumName (names, cls, clsInfo, info) {
       if (clsInfo.interfaceNames.length) return CLASS.FACING
       return
     case 'NONE,TAIGA,EXTREME_HILLS,JUNGLE,MESA':
+      if (!clsInfo.isInnerClass) return
       info.class[clsInfo.outerClassName].name = CLASS.BIOME
       return CLASS.BIOME$CATEGORY
     case 'NONE,RAIN,SNOW':
+      if (!clsInfo.isInnerClass) return
       info.class[clsInfo.outerClassName].name = CLASS.BIOME
       return CLASS.BIOME$PRECIPITATION
     case 'PINK,BLUE,RED,GREEN,YELLOW':
+      if (!clsInfo.isInnerClass) return
       info.class[clsInfo.outerClassName].name = CLASS.BOSS_INFO
       return CLASS.BOSS_INFO$COLOR
     case 'PROGRESS,NOTCHED_6,NOTCHED_10,NOTCHED_12,NOTCHED_20':
+      if (!clsInfo.isInnerClass) return
       info.class[clsInfo.outerClassName].name = CLASS.BOSS_INFO
       return CLASS.BOSS_INFO$OVERLAY
     case 'WORLD_SURFACE_WG,OCEAN_FLOOR_WG,LIGHT_BLOCKING,MOTION_BLOCKING,MOTION_BLOCKING_NO_LEAVES':
+      if (!clsInfo.isInnerClass) return
       info.class[clsInfo.outerClassName].name = CLASS.HEIGHTMAP
       return CLASS.HEIGHTMAP$TYPE
     case 'LINUX,SOLARIS,WINDOWS,OSX,UNKNOWN':
+      if (!clsInfo.isInnerClass) return
       info.class[clsInfo.outerClassName].name = CLASS.UTILS
       return CLASS.UTILS$OS
     case 'MISS,BLOCK,ENTITY':
+      if (!clsInfo.isInnerClass) return
       info.class[clsInfo.outerClassName].name = CLASS.HIT_RESULT
       return CLASS.HIT_RESULT$TYPE
     case 'ON_GROUND,IN_WATER':
+      if (!clsInfo.isInnerClass) return
       info.class[clsInfo.outerClassName].name = CLASS.SPAWN_CONDITIONS
       return CLASS.SPAWN_CONDITIONS$PLACE
   }
 }
 
-export function field (fieldInfo) {
+export function field (fieldInfo: FieldInfo) {
   const {sig, clsInfo, info} = fieldInfo
   const Profiler = info.classReverse[CLASS.PROFILER]
   if (Profiler && sig === 'L' + Profiler + ';') return 'profiler'

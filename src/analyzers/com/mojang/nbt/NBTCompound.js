@@ -1,8 +1,10 @@
+// @flow
 import {signatureTag as s} from '../../../../util/code'
 import * as CLASS from '../../../../ClassNames'
 
-export function cls (cls, clsInfo, info) {
-  const scl = cls.getSuperclassName()
+export function cls (clsInfo: ClassInfo) {
+  const {info} = clsInfo
+  const scl = clsInfo.superClassName
   if (scl === 'java.lang.Object') {
     info.class[clsInfo.interfaceNames[0]].name = CLASS.NBT_BASE
   } else {
@@ -10,9 +12,10 @@ export function cls (cls, clsInfo, info) {
   }
 }
 
-export function method (cls, method, code, methodInfo, clsInfo, info) {
-  const NBTCompound = cls.obfName
-  const NBTBase = cls.getSuperclassName()
+export function method (methodInfo: MethodInfo) {
+  const {clsInfo, code} = methodInfo
+  const NBTCompound = clsInfo.obfName
+  const NBTBase = clsInfo.superClassName
   switch (methodInfo.sig) {
     case '(Ljava/lang/String;B)V': return 'setByte'
     case '(Ljava/lang/String;S)V': return 'setShort'
@@ -53,7 +56,7 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
   if (s`(Ljava/lang/String;)${CLASS.NBT_LIST}`.matches(methodInfo)) return 'getList'
 }
 
-export function field (fieldInfo) {
+export function field (fieldInfo: FieldInfo) {
   const {sig} = fieldInfo
   switch (sig) {
     case 'Ljava/util/Map;': return 'map'

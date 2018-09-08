@@ -14,7 +14,7 @@ export function getAllClasses (jarFileName) {
     if (!entry) break
     const name = entry.getName()
     if (!name.endsWith('.class')) continue
-    names.push(name.slice(0, name.lastIndexOf('.')))
+    names.push(name.slice(0, name.lastIndexOf('.')).replace(/\//g, '.'))
   }
   return names.sort(sortObfClassName)
 }

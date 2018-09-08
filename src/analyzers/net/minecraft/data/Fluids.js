@@ -1,6 +1,8 @@
+// @flow
 import * as CLASS from '../../../../ClassNames'
 
-export function method (cls, method, code, methodInfo, clsInfo, info) {
+export function method (methodInfo: MethodInfo) {
+  const {code, clsInfo, info} = methodInfo
   if (methodInfo.origName === '<clinit>') {
     info.data.fluids = {
       post () {
@@ -15,7 +17,7 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
       const name = line.const
       const putstatic = line.nextOp('putstatic')
       if (!putstatic) continue
-      clsInfo.field[putstatic.field.fieldName] = name.replace(/\./g, '_').toUpperCase()
+      clsInfo.fields[putstatic.field.fieldName].name = name.replace(/\./g, '_').toUpperCase()
       info.data.fluids[name] = {class: putstatic.field.type.slice(1, -1)}
       if (name === 'flowing_water') info.class[putstatic.field.type.slice(1, -1)].name = CLASS.NON_EMPTY_FLUID
     }

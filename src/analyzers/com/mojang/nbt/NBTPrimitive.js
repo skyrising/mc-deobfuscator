@@ -1,4 +1,6 @@
-export function method (cls, method, code, methodInfo, clsInfo, info) {
+// @flow
+
+export function method (methodInfo: MethodInfo) {
   switch (methodInfo.sig) {
     case '()B': return 'getByte'
     case '()S': return 'getShort'

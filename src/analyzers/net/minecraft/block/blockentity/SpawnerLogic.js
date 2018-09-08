@@ -1,8 +1,9 @@
+// @flow
 import * as CLASS from '../../../../../ClassNames'
 import {toLowerCamelCase} from '../../../../../util'
 
-export function method (cls, method, code, methodInfo, clsInfo, info) {
-  switch (methodInfo.sig) {}
+export function method (methodInfo: MethodInfo) {
+  const {code, clsInfo, info} = methodInfo
   const NBTCompound = info.classReverse[CLASS.NBT_COMPOUND]
   if (!NBTCompound) clsInfo.done = false
   if (NBTCompound && methodInfo.sig === '(L' + NBTCompound + ';)V') {
@@ -10,7 +11,7 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
       if (typeof line.const !== 'string') continue
       if (!line.next.call) continue
       if (line.next.next.op !== 'putfield') continue
-      clsInfo.field[line.next.next.field.fieldName] = toLowerCamelCase(line.const)
+      clsInfo.fields[line.next.next.field.fieldName].name = toLowerCamelCase(line.const)
     }
     return 'readFromNBT'
   }

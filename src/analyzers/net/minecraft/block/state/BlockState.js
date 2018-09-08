@@ -1,7 +1,10 @@
+// @flow
+
 import {signatureTag as s} from '../../../../../util/code'
 import * as CLASS from '../../../../../ClassNames'
 
-export function method (cls, method, code, methodInfo, clsInfo, info) {
+export function method (methodInfo: MethodInfo) {
+  const {info} = methodInfo
   switch (methodInfo.sig) {
     case '()Ljava/util/Collection;': return 'getPropertyNames'
     case '()Lcom/google/common/collect/ImmutableMap;': return 'getProperties'

@@ -1,6 +1,8 @@
+// @flow
 import {toUpperCamelCase} from '../../../../util'
 
-export function method (cls, method, code, methodInfo, clsInfo, info) {
+export function method (methodInfo: MethodInfo) {
+  const {code, clsInfo, info} = methodInfo
   if (methodInfo.origName === '<clinit>') {
     info.data.items = {}
     for (const line of code.lines) {
@@ -10,7 +12,7 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
       const putstatic = line.nextOp('putstatic')
       if (!putstatic) continue
       info.data.items[name] = {}
-      clsInfo.field[putstatic.field.fieldName] = name.toUpperCase()
+      clsInfo.fields[putstatic.field.fieldName].name = name.toUpperCase()
       if (putstatic.previous.op === 'checkcast') {
         const castTo = putstatic.previous.arg.slice(1, -1)
         if (info.class[castTo].name && info.class[castTo].name.indexOf('Item') >= 0) continue

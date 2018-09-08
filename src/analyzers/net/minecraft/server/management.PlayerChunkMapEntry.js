@@ -1,12 +1,13 @@
+// @flow
 import * as CLASS from '../../../../ClassNames'
 
-export function method (methodInfo) {
+export function method (methodInfo: MethodInfo) {
   if (methodInfo.origName === '<init>' && methodInfo.args.length === 3) {
-    methodInfo.clsInfo.info.class[methodInfo.args[0].getClassName()].name = CLASS.PLAYER_CHUNK_MAP
+    methodInfo.clsInfo.info.class[methodInfo.argSigs[0].slice(1, -1)].name = CLASS.PLAYER_CHUNK_MAP
   }
 }
 
-export function field (fieldInfo) {
+export function field (fieldInfo: FieldInfo) {
   const {sig, clsInfo, info} = fieldInfo
   const Chunk = info.classReverse[CLASS.CHUNK]
   const ChunkPos = info.classReverse[CLASS.CHUNK_POS]

@@ -1,3 +1,4 @@
+// @flow
 import * as PKG from './PackageNames'
 export const MINECRAFT = PKG.CLIENT + '.Minecraft'
 export const BOOTSTRAP = PKG.DATA + '.Bootstrap'
@@ -197,6 +198,7 @@ export const DATA_PROVIDER_BLOCKS = PKG.DATA_PROVIDER + '.Blocks'
 export const DATA_PROVIDER_ITEMS = PKG.DATA_PROVIDER + '.Items'
 export const DATA_PROVIDER_COMMANDS = PKG.DATA_PROVIDER + '.Commands'
 export const CRASH_REPORT = PKG.CRASH + '.CrashReport'
+export const CRASH_REPORT_DETAIL = PKG.CRASH + '.CrashReportDetail'
 export const ARGUMENT_PLAYER = PKG.COMMAND + '.ArgumentPlayer'
 export const ARGUMENT_ENTITY = PKG.COMMAND + '.ArgumentEntity'
 export const ARGUMENT_BLOCKPOS = PKG.COMMAND + '.ArgumentBlockPos'

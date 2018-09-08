@@ -1,8 +1,28 @@
+// @flow
 import {range} from './util'
 
-const byValue = {}
+const byValue: Array<{[Category]: string}> = ({}: any)
 
-function register (category, value, name) {
+type Category =
+| 'array'
+| 'attrib'
+| 'boolean'
+| 'condition'
+| 'depth'
+| 'error'
+| 'light'
+| 'line'
+| 'mask'
+| 'matrix'
+| 'poly'
+| 'prop'
+| 'point'
+| 'render_primitive'
+| 'rot'
+| 'side'
+| 'type'
+
+function register (category: Category|Array<Category>, value: number, name: string) {
   module.exports[name] = value
   const glName = 'GL_' + name
   module.exports[glName] = value

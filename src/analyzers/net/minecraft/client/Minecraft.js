@@ -1,5 +1,7 @@
-export function method (cls, method, code, methodInfo, clsInfo, info) {
-  const {sig} = methodInfo
+// @flow
+
+export function method (methodInfo: MethodInfo) {
+  const {code, sig, clsInfo, info} = methodInfo
   switch (sig) {
     case '()Ljava/io/File;':
     case '(Ljava/lang/String;)Ljava/io/File;': return 'getWorkingDirectory'
@@ -15,13 +17,13 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
       case 'Pre startup': return 'init'
       case 'Minecraft main thread': return 'start'
       case 'linux':
-        info.class[method.getReturnType().getClassName()].name = 'net.minecraft.util.OperatingSystem'
+        info.class[methodInfo.retSig.slice(1, -1)].name = 'net.minecraft.util.OperatingSystem' // XXX
         return 'getOperatingSystem'
     }
   }
 }
 
-export function field (fieldInfo) {
+export function field (fieldInfo: FieldInfo) {
   const {sig, clsInfo} = fieldInfo
   switch (sig) {
     case 'Ljava/awt/Canvas;': return 'canvas'

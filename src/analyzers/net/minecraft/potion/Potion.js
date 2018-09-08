@@ -1,7 +1,8 @@
+// @flow
 import * as CLASS from '../../../../ClassNames'
 
-export function method (methodInfo) {
-  const {clsInfo, info, code} = methodInfo
+export function method (methodInfo: MethodInfo) {
+  const {code, clsInfo, info} = methodInfo
   if (methodInfo.sig === '()V' && code.consts.includes('awkward')) {
     const MobEffect = info.classReverse[CLASS.MOB_EFFECT]
     const MobEffects = info.classReverse[CLASS.MOB_EFFECTS]
@@ -33,7 +34,7 @@ export function method (methodInfo) {
         let currentEffect = {}
         for (let current = newArray; potion.effects.length < numEffects && current; current = current.next) {
           if (current.op === 'getstatic' && current.field.className === MobEffects) {
-            currentEffect.id = info.class[MobEffects].field[current.field.fieldName].toLowerCase()
+            currentEffect.id = info.class[MobEffects].fields[current.field.fieldName].name.toLowerCase()
           } else if (typeof current.const === 'number' && currentEffect.id && !('duration' in currentEffect)) {
             currentEffect.duration = current.const
           } else if (typeof current.const === 'number' && currentEffect.id) {

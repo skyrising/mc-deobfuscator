@@ -1,6 +1,8 @@
-export function method (cls, method, code, methodInfo, clsInfo, info) {
-  const NBTBase = cls.getClassName()
-  if (methodInfo.obfName === 'toString') return
+// @flow
+
+export function method (methodInfo: MethodInfo) {
+  const NBTBase = methodInfo.clsInfo.obfName
+  if (methodInfo.origName === 'toString') return
   switch (methodInfo.sig) {
     case '()Ljava/lang/String;': return 'getKey'
     case '(Ljava/lang/String;)V':
@@ -16,7 +18,7 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
   }
 }
 
-export function field (fieldInfo) {
+export function field (fieldInfo: FieldInfo) {
   const {sig} = fieldInfo
   switch (sig) {
     case 'Ljava/lang/String;': return 'key'

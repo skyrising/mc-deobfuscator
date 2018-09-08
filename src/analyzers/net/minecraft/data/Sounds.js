@@ -1,4 +1,7 @@
-export function method (cls, method, code, methodInfo, clsInfo, info) {
+// @flow
+
+export function method (methodInfo: MethodInfo) {
+  const {code, clsInfo, info} = methodInfo
   if (methodInfo.origName === '<clinit>') {
     for (const line of code.lines) {
       info.data.sounds = {}
@@ -7,7 +10,7 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
       const name = line.const
       const putstatic = line.nextOp('putstatic')
       if (!putstatic) continue
-      clsInfo.field[putstatic.field.fieldName] = name.replace(/\./g, '_').toUpperCase()
+      clsInfo.fields[putstatic.field.fieldName].name = name.replace(/\./g, '_').toUpperCase()
       info.data.sounds[name] = {}
     }
   }

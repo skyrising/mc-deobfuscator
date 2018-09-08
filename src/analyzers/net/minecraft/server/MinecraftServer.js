@@ -1,7 +1,9 @@
+// @flow
 import * as CLASS from '../../../../ClassNames'
 // TODO: use ClassNames.js
 
-export function method (cls, method, code, methodInfo, clsInfo, info) {
+export function method (methodInfo: MethodInfo) {
+  const {code, info} = methodInfo
   /*
   switch (method.getReturnType().getSignature()) {
     case 'Lcom/mojang/authlib/yggdrasil/YggdrasilAuthenticationService;': return 'getAuthService'
@@ -9,9 +11,9 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
     case 'Lcom/mojang/authlib/GameProfileRepository;': return 'getProfileRepo'
     case 'Ljava/net/Proxy;': return 'getProxy'
   } */
-  if (method.origName === '<init>' && methodInfo.args.length > 6) {
-    info.class[methodInfo.args[2].getClassName()].name = 'com.mojang.datafixers.DataFixer'
-    info.class[methodInfo.args[6].getClassName()].name = 'net.minecraft.server.management.PlayerProfileCache'
+  if (methodInfo.origName === '<init>' && methodInfo.argSigs.length > 6) {
+    info.class[methodInfo.argSigs[2].slice(1, -1)].name = 'com.mojang.datafixers.DataFixer'
+    info.class[methodInfo.argSigs[6].slice(1, -1)].name = 'net.minecraft.server.management.PlayerProfileCache'
   }
   for (const c of code.consts) {
     if (typeof c === 'string') {
@@ -21,13 +23,13 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
       else if (c === 'sendCommandFeedback') return 'sendCommandFeedback'
       else if (c === 'save' || c === 'tallying') return 'tick'
       else if (c === 'spawnRadius') {
-        info.class[methodInfo.args[0].getClassName()].name = CLASS.SERVER_WORLD
+        info.class[methodInfo.argSigs[0].slice(1, -1)].name = CLASS.SERVER_WORLD
         return 'getSpawnRadius'
       } else if (c === 'server-icon.png') {
-        info.class[methodInfo.args[0].getClassName()].name = 'net.minecraft.network.ServerStatusResponse'
+        info.class[methodInfo.argSigs[0].slice(1, -1)].name = 'net.minecraft.network.ServerStatusResponse'
         return 'addIconToResponse'
       } else if (c === 'Profiler Position') {
-        info.class[methodInfo.args[0].getClassName()].name = 'net.minecraft.crash.CrashReport'
+        info.class[methodInfo.argSigs[0].slice(1, -1)].name = 'net.minecraft.crash.CrashReport'
         return 'addServerInfoToCrashReport'
       }
     } else if (c === 29999984) return 'getMaxWorldSize'
@@ -55,7 +57,7 @@ export function method (cls, method, code, methodInfo, clsInfo, info) {
   // if (code.consts.length) console.log(code.consts)
 }
 
-export function field (fieldInfo) {
+export function field (fieldInfo: FieldInfo) {
   const {sig, clsInfo, info} = fieldInfo
   const Snooper = info.classReverse['net.minecraft.profiler.Snooper']
   const PlayerProfileCache = info.classReverse['net.minecraft.server.management.PlayerProfileCache']
