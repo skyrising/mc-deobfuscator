@@ -154,44 +154,59 @@ export async function getCode (method: BCELMethod): Promise<Code> {
 
 function resolve (info: FullInfo, raw: string) {
   if (raw.length === 1 || raw[0] === 'L') return raw
+  if (raw[0] === '[') {
+    const componentType = resolve(info, raw.slice(1))
+    return componentType && '[' + componentType
+  }
   const cls = info.classReverse[raw]
   if (cls) return 'L' + cls + ';'
 }
 
 class Signature {
-  args: Array<string>;
+  args: ?Array<string>;
   return: string;
 
-  constructor (args: Array<string>, ret: string) {
+  constructor (args: ?Array<string>, ret: string) {
     this.args = args
     this.return = ret
   }
 
-  matches (methodInfo: MethodInfo) {
-    const filled = this.fill(methodInfo.info)
+  matches (methodOrField: MethodInfo | FieldInfo) {
+    const filled = this.fill(methodOrField.info)
     // TODO: wildcards
-    if (!filled) methodInfo.clsInfo.done = false
-    else return methodInfo.sig === filled
+    if (!filled) {
+      methodOrField.done = false
+      methodOrField.clsInfo.done = false
+      return false
+    }
+    if (methodOrField.type === 'method') {
+      if (this.args) return filled === methodOrField.sig
+      return filled === methodOrField.retSig
+    }
+    return methodOrField.sig === filled
   }
 
   fill (info: FullInfo) {
-    const args = []
-    for (let i = 0; i < this.args.length; i++) {
-      args[i] = resolve(info, this.args[i])
-      if (!args[i]) return
+    let args
+    if (this.args) {
+      args = []
+      for (let i = 0; i < this.args.length; i++) {
+        args[i] = resolve(info, this.args[i])
+        if (!args[i]) return
+      }
     }
     const ret = resolve(info, this.return)
     if (!ret) return
-    return '(' + args.join('') + ')' + ret
+    return (args ? '(' + args.join('') + ')' : '') + ret
   }
 }
 
-// TODO: arrays
 export function signatureTag (strings: Array<string>, ...args: Array<string>) {
   const parsedArgs = []
   let parsedReturn = ''
   let startArgs
   let endArgs
+  let array = ''
   for (const str of strings) {
     for (let i = 0; i < str.length; i++) {
       const c = str[i]
@@ -201,20 +216,24 @@ export function signatureTag (strings: Array<string>, ...args: Array<string>) {
         continue
       }
       if (c === ')') {
-        if (endArgs) throw Error('Unexpected )')
+        if (endArgs || !startArgs) throw Error('Unexpected )')
         endArgs = true
         continue
       }
       if (startArgs) {
-        if (c === 'L') {
+        if (c === '[') {
+          array += c
+        } else if (c === 'L') {
           const colon = str.indexOf(';', i) + 1
           const cls = str.slice(i, colon)
           i = colon - 1
-          if (!endArgs) parsedArgs.push(cls)
-          else parsedReturn = cls
+          if (!endArgs) parsedArgs.push(array + cls)
+          else parsedReturn = array + cls
+          array = ''
         } else {
-          if (!endArgs) parsedArgs.push(c)
-          else parsedReturn = c
+          if (!endArgs) parsedArgs.push(array + c)
+          else parsedReturn = array + c
+          array = ''
         }
       }
     }
@@ -225,7 +244,7 @@ export function signatureTag (strings: Array<string>, ...args: Array<string>) {
       else parsedReturn = next
     }
   }
-  return new Signature(parsedArgs, parsedReturn)
+  return new Signature(startArgs ? parsedArgs : null, parsedReturn)
 }
 
 const methodInheritance = {}
@@ -340,7 +359,6 @@ export async function enrichClsInfo (cls: BCELClass, info: FullInfo): Promise<Cl
       info,
       obfName: name,
       sig,
-      static: await md.isStaticAsync(),
       args: await md.getArgumentTypesAsync(),
       ret: await md.getReturnTypeAsync(),
       isAbstract: await md.isAbstract(),
@@ -360,15 +378,16 @@ export async function enrichClsInfo (cls: BCELClass, info: FullInfo): Promise<Cl
   for (const fd of await cls.getFieldsAsync()) {
     const acc = await fd.getAccessFlags()
     const fieldInfo: FieldInfo = ({
+      type: 'field',
       clsInfo,
       info,
       obfName: await fd.getNameAsync(),
-      type: await fd.getTypeAsync(),
+      fieldType: await fd.getTypeAsync(),
       acc,
       ...decodeAccessFlags(acc)
     }: any)
     hash = h2(hash, acc)
-    fieldInfo.sig = await (fieldInfo.type: any).getSignatureAsync()
+    fieldInfo.sig = await fieldInfo.fieldType.getSignatureAsync()
     hash = h2(hash, hsig(fieldInfo.sig))
     clsInfo.fields[fieldInfo.obfName] = fieldInfo
   }

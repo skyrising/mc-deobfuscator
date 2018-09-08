@@ -10,22 +10,10 @@ export function method (methodInfo: MethodInfo) {
   }
 }
 
-const FIELD_TYPE_NAME_MAP = {
-  [CLASS.BLOCK_POS]: 'blockPos',
-  [CLASS.HIT_RESULT$TYPE]: 'type',
-  [CLASS.FACING]: 'facing',
-  [CLASS.VEC_3D]: 'pos',
-  [CLASS.ENTITY]: 'entity'
-}
-
 export function field (fieldInfo: FieldInfo) {
-  const { sig, clsInfo, info } = fieldInfo
-  for (const deobfType in FIELD_TYPE_NAME_MAP) {
-    const obfType = info.classReverse[deobfType]
-    if (!obfType) {
-      clsInfo.done = false
-      continue
-    }
-    if (sig === 'L' + obfType + ';') return FIELD_TYPE_NAME_MAP[deobfType]
-  }
+  if (s`${CLASS.BLOCK_POS}`.matches(fieldInfo)) return 'blockPos'
+  if (s`${CLASS.HIT_RESULT$TYPE}`.matches(fieldInfo)) return 'type'
+  if (s`${CLASS.FACING}`.matches(fieldInfo)) return 'facing'
+  if (s`${CLASS.VEC_3D}`.matches(fieldInfo)) return 'pos'
+  if (s`${CLASS.ENTITY}`.matches(fieldInfo)) return 'entity'
 }

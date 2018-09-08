@@ -1,19 +1,12 @@
 // @flow
 import * as CLASS from '../../../../ClassNames'
-// TODO: use ClassNames.js
+import { signatureTag as s } from '../../../../util/code'
 
 export function method (methodInfo: MethodInfo) {
   const { code, info } = methodInfo
-  /*
-  switch (method.getReturnType().getSignature()) {
-    case 'Lcom/mojang/authlib/yggdrasil/YggdrasilAuthenticationService;': return 'getAuthService'
-    case 'Lcom/mojang/authlib/minecraft/MinecraftSessionService;': return 'getSessionService'
-    case 'Lcom/mojang/authlib/GameProfileRepository;': return 'getProfileRepo'
-    case 'Ljava/net/Proxy;': return 'getProxy'
-  } */
   if (methodInfo.origName === '<init>' && methodInfo.argSigs.length > 6) {
     info.class[methodInfo.argSigs[2].slice(1, -1)].name = 'com.mojang.datafixers.DataFixer'
-    info.class[methodInfo.argSigs[6].slice(1, -1)].name = 'net.minecraft.server.management.PlayerProfileCache'
+    info.class[methodInfo.argSigs[6].slice(1, -1)].name = CLASS.PLAYER_PROFILE_CACHE
   }
   for (const c of code.consts) {
     if (typeof c === 'string') {
@@ -26,10 +19,10 @@ export function method (methodInfo: MethodInfo) {
         info.class[methodInfo.argSigs[0].slice(1, -1)].name = CLASS.SERVER_WORLD
         return 'getSpawnRadius'
       } else if (c === 'server-icon.png') {
-        info.class[methodInfo.argSigs[0].slice(1, -1)].name = 'net.minecraft.network.ServerStatusResponse'
+        info.class[methodInfo.argSigs[0].slice(1, -1)].name = CLASS.SERVER_STATUS_RESPONSE
         return 'addIconToResponse'
       } else if (c === 'Profiler Position') {
-        info.class[methodInfo.argSigs[0].slice(1, -1)].name = 'net.minecraft.crash.CrashReport'
+        info.class[methodInfo.argSigs[0].slice(1, -1)].name = CLASS.CRASH_REPORT
         return 'addServerInfoToCrashReport'
       }
     } else if (c === 29999984) return 'getMaxWorldSize'
@@ -58,17 +51,7 @@ export function method (methodInfo: MethodInfo) {
 }
 
 export function field (fieldInfo: FieldInfo) {
-  const { sig, clsInfo, info } = fieldInfo
-  const Snooper = info.classReverse['net.minecraft.profiler.Snooper']
-  const PlayerProfileCache = info.classReverse['net.minecraft.server.management.PlayerProfileCache']
-  const ServerStatusResponse = info.classReverse[CLASS.SERVER_STATUS_RESPONSE]
-  const WorldServer = info.classReverse[CLASS.SERVER_WORLD]
-  if (!PlayerProfileCache || !ServerStatusResponse || !WorldServer || !Snooper) clsInfo.done = false
-  if (Snooper && sig === 'L' + Snooper + ';') return 'snooper'
-  if (PlayerProfileCache && sig === 'L' + PlayerProfileCache + ';') return 'playerProfileCache'
-  if (ServerStatusResponse && sig === 'L' + ServerStatusResponse + ';') return 'serverStatusResponse'
-  if (WorldServer && sig === '[L' + WorldServer + ';') return 'worlds'
-  switch (sig) {
+  switch (fieldInfo.sig) {
     case 'Ljava/io/File;':
       return fieldInfo.static ? 'USERCACHE_FILE' : 'anvilFile'
     case 'Lcom/mojang/authlib/yggdrasil/YggdrasilAuthenticationService;': return 'authService'
@@ -81,4 +64,8 @@ export function field (fieldInfo: FieldInfo) {
     case '[J': return 'tickTimeArray'
     case '[[J': return 'timeOfLastDimensionTick'
   }
+  if (s`${CLASS.SNOOPER}`.matches(fieldInfo)) return 'snooper'
+  if (s`${CLASS.PLAYER_PROFILE_CACHE}`.matches(fieldInfo)) return 'playerProfileCache'
+  if (s`${CLASS.SERVER_STATUS_RESPONSE}`.matches(fieldInfo)) return 'serverStatus'
+  if (s`[${CLASS.SERVER_WORLD}`.matches(fieldInfo)) return 'worlds'
 }

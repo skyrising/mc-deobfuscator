@@ -3,8 +3,7 @@
 import * as CLASS from '../../../../ClassNames'
 
 export function field (fieldInfo: FieldInfo) {
-  const { sig } = fieldInfo
-  switch (sig) {
+  switch (fieldInfo.sig) {
     case 'Z': return 'fallsInstantly'
   }
 }

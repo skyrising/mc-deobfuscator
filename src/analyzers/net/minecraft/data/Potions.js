@@ -1,8 +1,7 @@
 // @flow
 
 export function field (fieldInfo: FieldInfo) {
-  const { sig } = fieldInfo
-  switch (sig) {
+  switch (fieldInfo.sig) {
     case 'Ljava/util/Set;': return 'REGISTERED'
   }
 }

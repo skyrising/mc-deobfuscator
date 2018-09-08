@@ -14,14 +14,11 @@ export function method (methodInfo: MethodInfo) {
 }
 
 export function field (fieldInfo: FieldInfo) {
-  const { sig, clsInfo, info } = fieldInfo
-  const WorldServer = info.classReverse[CLASS.SERVER_WORLD]
-  if (!WorldServer) clsInfo.done = false
-  if (WorldServer && sig === 'L' + WorldServer + ';') return 'world'
-  switch (sig) {
+  switch (fieldInfo.sig) {
     case 'I': return 'viewDistance'
     case 'J': return 'previousTotalWorldTime'
     case 'Lit/unimi/dsi/fastutil/longs/Long2ObjectMap;': return 'entries'
     case 'Ljava/util/Set;': return 'dirtyEntries'
   }
+  if (s`${CLASS.SERVER_WORLD}`.matches(fieldInfo)) return 'world'
 }

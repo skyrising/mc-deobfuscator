@@ -3,8 +3,7 @@
 import * as CLASS from '../../../../ClassNames'
 
 export function field (fieldInfo: FieldInfo) {
-  const { sig } = fieldInfo
-  switch (sig) {
+  switch (fieldInfo.sig) {
     case 'Ljava/util/Collection;': return 'inputPaths'
     case 'Ljava/nio/file/Path;': return 'outputPath'
     case 'Ljava/util/List;': return 'providers'

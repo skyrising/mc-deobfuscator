@@ -116,7 +116,7 @@ export async function runAnalyzer (analyzer: Analyzer, clsInfo: ClassInfo, runGe
   if (analyzer.field) {
     for (const obfName in clsInfo.fields) {
       const fieldInfo = clsInfo.fields[obfName]
-      if (fieldInfo.done || fieldInfo.name) return
+      if (fieldInfo.done || fieldInfo.name) continue
       if (analyzer !== GENERIC_ANALYZER) console.debug('%s.%s: Running analyzer.field', (clsInfo.name || className), obfName)
       setStatus(`${clsInfo.name || className}.${obfName}`)
       try {

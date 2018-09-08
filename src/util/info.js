@@ -72,6 +72,7 @@ class Info extends EventEmitter {
                 (this._name ? ' (' + opts.stylize(this._name, 'string') + ')' : '') +
                 opts.stylize(']', 'special')
             },
+            type: 'class',
             info,
             obfName: clsObfName,
             enumNames: [],
@@ -151,6 +152,7 @@ class Info extends EventEmitter {
                         (this._name ? ' (' + opts.stylize(this._name, 'string') + ')' : '') +
                         opts.stylize(']', 'special')
                     },
+                    type: 'method',
                     info,
                     clsInfo,
                     origName,

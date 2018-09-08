@@ -1,10 +1,9 @@
 // @flow
 
 export function field (fieldInfo: FieldInfo) {
-  const { sig, clsInfo } = fieldInfo
-  const Vec3d = clsInfo.obfName
-  switch (sig) {
-    case 'L' + Vec3d + ';': return 'ZERO'
+  const { clsInfo } = fieldInfo
+  switch (fieldInfo.sig) {
+    case 'L' + clsInfo.obfName + ';': return 'ZERO'
   }
 }
 

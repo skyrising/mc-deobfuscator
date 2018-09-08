@@ -98,6 +98,7 @@ export async function analyzeJar (jarFile: string, classPath: Array<string>, opt
   global.info = info
   const genericPasses = []
   const passClsInfo = info.newPass('reading classes', { weight: 2 })
+  // TODO: figure out if unknown fields e.g. in World are caused by not enough passes
   for (let i = 0; i < 3; i++) genericPasses.push(info.newPass('generic[' + i + ']'))
   const passHierarchy = info.newPass('hierarchy', { weight: 0.3 })
   const passGetterSetter = info.newPass('getters & setters', { weight: 0.6 })

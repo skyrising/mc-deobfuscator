@@ -2,8 +2,8 @@
 // import * as CLASS from '../../../../ClassNames'
 
 export function field (fieldInfo: FieldInfo) {
-  const { sig, clsInfo } = fieldInfo
-  if (sig === '[L' + clsInfo.obfName + ';') return 'WORLD_TYPES'
+  const { clsInfo } = fieldInfo
+  if (fieldInfo.sig === '[L' + clsInfo.obfName + ';') return 'WORLD_TYPES'
 }
 
 export function method (methodInfo: MethodInfo) {

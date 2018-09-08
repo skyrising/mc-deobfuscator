@@ -1,10 +1,9 @@
 // @flow
-import { signatureTag as s } from '../../../../util/code'
 import * as CLASS from '../../../../ClassNames'
+import { signatureTag as s } from '../../../../util/code'
 
 export function field (fieldInfo: FieldInfo) {
-  const { sig, clsInfo, info } = fieldInfo
-  switch (sig) {
+  switch (fieldInfo.sig) {
     case 'Ljava/util/Random;': return 'rand'
     case '[I': return 'lightUpdateBlockList'
     case 'J': return 'cloudColor'
@@ -12,27 +11,13 @@ export function field (fieldInfo: FieldInfo) {
       if (fieldInfo.protected && fieldInfo.final) return 'TICK_RANDOM_ADDEND'
       break
   }
-  const WorldInfo = info.classReverse[CLASS.WORLD_INFO]
-  const Profiler = info.classReverse[CLASS.PROFILER]
-  const VillageCollection = info.classReverse[CLASS.VILLAGE_COLLECTION]
-  const ChunkProvider = info.classReverse[CLASS.CHUNK_PROVIDER]
-  const Facing = info.classReverse[CLASS.FACING]
-  const IntHashMap = info.classReverse[CLASS.INT_HASH_MAP]
-  const SaveHandler = info.classReverse[CLASS.SAVE_HANDLER]
-  if (!WorldInfo) clsInfo.done = false
-  else if (sig === 'L' + WorldInfo + ';') return 'worldInfo'
-  if (!Profiler) clsInfo.done = false
-  else if (sig === 'L' + Profiler + ';') return 'profiler'
-  if (!VillageCollection) clsInfo.done = false
-  else if (sig === 'L' + VillageCollection + ';') return 'villages'
-  if (!ChunkProvider) clsInfo.done = false
-  else if (sig === 'L' + ChunkProvider + ';') return 'chunkProvider'
-  if (!Facing) clsInfo.done = false
-  else if (sig === '[L' + Facing + ';') return 'FACINGS'
-  if (!IntHashMap) clsInfo.done = false
-  else if (sig === 'L' + IntHashMap + ';') return 'idToEntity'
-  if (!SaveHandler) clsInfo.done = false
-  else if (sig === 'L' + SaveHandler + ';') return 'saveHandler'
+  if (s`${CLASS.WORLD_INFO}`.matches(fieldInfo)) return 'worldInfo'
+  if (s`${CLASS.PROFILER}`.matches(fieldInfo)) return 'profiler'
+  if (s`${CLASS.VILLAGE_COLLECTION}`.matches(fieldInfo)) return 'villages'
+  if (s`${CLASS.CHUNK_PROVIDER}`.matches(fieldInfo)) return 'chunkProvider'
+  if (s`[${CLASS.FACING}`.matches(fieldInfo)) return 'FACINGS'
+  if (s`${CLASS.INT_HASH_MAP}`.matches(fieldInfo)) return 'idToEntity'
+  if (s`${CLASS.SAVE_HANDLER}`.matches(fieldInfo)) return 'saveHandler'
 }
 
 export function method (methodInfo: MethodInfo) {

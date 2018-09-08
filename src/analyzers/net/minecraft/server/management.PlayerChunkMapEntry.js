@@ -1,5 +1,6 @@
 // @flow
 import * as CLASS from '../../../../ClassNames'
+import { signatureTag as s } from '../../../../util/code'
 
 export function method (methodInfo: MethodInfo) {
   if (methodInfo.origName === '<init>' && methodInfo.args.length === 3) {
@@ -8,18 +9,13 @@ export function method (methodInfo: MethodInfo) {
 }
 
 export function field (fieldInfo: FieldInfo) {
-  const { sig, clsInfo, info } = fieldInfo
-  const Chunk = info.classReverse[CLASS.CHUNK]
-  const ChunkPos = info.classReverse[CLASS.CHUNK_POS]
-  const PlayerChunkMap = info.classReverse[CLASS.PLAYER_CHUNK_MAP]
-  if (!Chunk || !ChunkPos || !PlayerChunkMap) clsInfo.done = false
-  if (Chunk && sig === 'L' + Chunk + ';') return 'chunk'
-  if (ChunkPos && sig === 'L' + ChunkPos + ';') return 'pos'
-  if (PlayerChunkMap && sig === 'L' + PlayerChunkMap + ';') return 'map'
-  switch (sig) {
+  switch (fieldInfo.sig) {
     case '[S': return 'changedBlocks'
     case 'J': return 'lastUpdateInhabitedTime'
     case 'Z': return 'sentToPlayers'
     case 'Ljava/util/List;': return 'players'
   }
+  if (s`${CLASS.CHUNK}`.matches(fieldInfo)) return 'chunk'
+  if (s`${CLASS.CHUNK_POS}`.matches(fieldInfo)) return 'pos'
+  if (s`${CLASS.PLAYER_CHUNK_MAP}`.matches(fieldInfo)) return 'map'
 }

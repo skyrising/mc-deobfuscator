@@ -4,13 +4,10 @@ import { signatureTag as s, getMethodInheritance } from '../../../../util/code'
 import * as CLASS from '../../../../ClassNames'
 
 export function field (fieldInfo: FieldInfo) {
-  const { sig, clsInfo, info } = fieldInfo
-  switch (sig) {
+  switch (fieldInfo.sig) {
     case 'Z': return 'sticky'
   }
-  const PropertyBool = info.classReverse[CLASS.BLOCK_PROPERTY_BOOL]
-  if (!PropertyBool) clsInfo.done = false
-  if (PropertyBool && sig === 'L' + PropertyBool + ';') return 'EXTENDED'
+  if (s`${CLASS.BLOCK_PROPERTY_BOOL}`.matches(fieldInfo)) return 'EXTENDED'
 }
 
 export function method (methodInfo: MethodInfo) {

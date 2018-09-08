@@ -59,8 +59,8 @@ export function method (methodInfo: MethodInfo) {
   }
 }
 export function field (fieldInfo: FieldInfo) {
-  const { sig, clsInfo } = fieldInfo
-  switch (sig) {
+  const { clsInfo } = fieldInfo
+  switch (fieldInfo.sig) {
     case 'L' + clsInfo.obfName + ';': return 'instance'
     case 'Ljava/nio/ByteBuffer;': return 'buf'
     case '[I': return 'data'

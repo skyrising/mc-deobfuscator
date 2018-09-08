@@ -1,13 +1,9 @@
 // @flow
 import * as CLASS from '../../../../ClassNames'
+import { signatureTag as s } from '../../../../util/code'
 
 export function field (fieldInfo: FieldInfo) {
-  const { sig, clsInfo, info } = fieldInfo
-  const WorldType = info.classReverse[CLASS.WORLD_TYPE]
-  const GameRules = info.classReverse[CLASS.GAME_RULES]
-  const Difficulty = info.classReverse[CLASS.DIFFICULTY]
-  if (!WorldType || !GameRules) clsInfo.done = false
-  if (WorldType && sig === 'L' + WorldType + ';') return 'worldType'
-  if (GameRules && sig === 'L' + GameRules + ';') return 'gameRules'
-  if (Difficulty && sig === 'L' + Difficulty + ';') return fieldInfo.static && fieldInfo.final ? 'DEFAULT_DIFFICULTY' : 'difficulty'
+  if (s`${CLASS.WORLD_TYPE}`.matches(fieldInfo)) return 'worldType'
+  if (s`${CLASS.GAME_RULES}`.matches(fieldInfo)) return 'gameRules'
+  if (s`${CLASS.DIFFICULTY}`.matches(fieldInfo)) return fieldInfo.static && fieldInfo.final ? 'DEFAULT_DIFFICULTY' : 'difficulty'
 }

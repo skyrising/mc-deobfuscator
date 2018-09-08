@@ -35,6 +35,10 @@ declare type BytecodeOp =
 
 interface CodeLine$$matching_op {
   (BytecodeOpField, includeSelf?: boolean): ?CodeLineField;
+  (BytecodeOpCall, includeSelf?: boolean): ?CodeLineCall;
+  (BytecodeOpNumberConst, includeSelf?: boolean): ?CodeLineNumberConst;
+  (BytecodeOpLoadConst, includeSelf?: boolean): ?CodeLineLoadConst;
+  (BytecodeOpNew, includeSelf?: boolean): ?CodeLineNew;
   (BytecodeOp, includeSelf?: boolean): ?CodeLine;
   (Array<BytecodeOp>, includeSelf?: boolean): ?CodeLine;
 }
@@ -104,6 +108,7 @@ declare type AccessFlags = {|
 |}
 
 declare type MethodInfo = {
+  type: 'method';
   name: string;
   origName: string;
   sig: string;
@@ -122,10 +127,11 @@ declare type MethodInfo = {
 }
 
 declare type FieldInfo = {
+  type: 'field';
   name: string;
   obfName: string;
   sig: string;
-  type: BCELType;
+  fieldType: BCELType;
   acc: number;
   clsInfo: ClassInfo;
   info: FullInfo;
@@ -134,6 +140,7 @@ declare type FieldInfo = {
 }
 
 declare type ClassInfo = {
+  type: 'class';
   obfName: string;
   name: ?string;
   package: ?string;

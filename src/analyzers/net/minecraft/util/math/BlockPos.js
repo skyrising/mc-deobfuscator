@@ -3,10 +3,9 @@ import { signatureTag as s } from '../../../../../util/code'
 import * as CLASS from '../../../../../ClassNames'
 
 export function field (fieldInfo: FieldInfo) {
-  const { sig, clsInfo } = fieldInfo
-  const BlockPos = clsInfo.obfName
-  switch (sig) {
-    case 'L' + BlockPos + ';': return 'ORIGIN'
+  const { clsInfo } = fieldInfo
+  switch (fieldInfo.sig) {
+    case 'L' + clsInfo.obfName + ';': return 'ORIGIN'
   }
 }
 

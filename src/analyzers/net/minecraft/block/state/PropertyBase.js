@@ -1,8 +1,7 @@
 // @flow
 
 export function field (fieldInfo: FieldInfo) {
-  const { sig } = fieldInfo
-  switch (sig) {
+  switch (fieldInfo.sig) {
     case 'Ljava/lang/String;': return 'name'
     case 'Ljava/lang/Class;': return 'type'
     case 'Ljava/lang/Integer;': return 'hash'

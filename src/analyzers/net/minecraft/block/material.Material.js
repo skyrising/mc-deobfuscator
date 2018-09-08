@@ -1,6 +1,7 @@
 // @flow
 
 import * as CLASS from '../../../../ClassNames'
+import { signatureTag as s } from '../../../../util/code'
 
 export function method (methodInfo: MethodInfo) {
   const { code, clsInfo, info } = methodInfo
@@ -11,10 +12,6 @@ export function method (methodInfo: MethodInfo) {
 }
 
 export function field (fieldInfo: FieldInfo) {
-  const { sig, clsInfo, info } = fieldInfo
-  const MapColor = info.classReverse[CLASS.MAP_COLOR]
-  const PistonBehavior = info.classReverse[CLASS.PISTON_BEHAVIOR]
-  if (!MapColor || !PistonBehavior) clsInfo.done = false
-  if (MapColor && sig === 'L' + MapColor + ';') return 'mapColor'
-  if (PistonBehavior && sig === 'L' + PistonBehavior + ';') return 'pistonBehavior'
+  if (s`${CLASS.MAP_COLOR}`.matches(fieldInfo)) return 'mapColor'
+  if (s`${CLASS.PISTON_BEHAVIOR}`.matches(fieldInfo)) return 'pistonBehavior'
 }

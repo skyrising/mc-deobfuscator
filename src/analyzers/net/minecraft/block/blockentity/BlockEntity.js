@@ -1,5 +1,6 @@
 // @flow
 import { toUpperCamelCase } from '../../../../../util'
+import { signatureTag as s } from '../../../../../util/code'
 import * as CLASS from '../../../../../ClassNames'
 
 export function method (methodInfo: MethodInfo) {
@@ -21,12 +22,7 @@ export function method (methodInfo: MethodInfo) {
 }
 
 export function field (fieldInfo: FieldInfo) {
-  const { sig, clsInfo, info } = fieldInfo
-  const Block = info.classReverse[CLASS.BLOCK]
-  const World = info.classReverse[CLASS.WORLD]
-  const BlockPos = info.classReverse[CLASS.BLOCK_POS]
-  if (!Block || !World || !BlockPos) clsInfo.done = false
-  if (Block && sig === 'L' + Block + ';') return 'block'
-  if (World && sig === 'L' + World + ';') return 'world'
-  if (BlockPos && sig === 'L' + BlockPos + ';') return 'pos'
+  if (s`${CLASS.BLOCK}`.matches(fieldInfo)) return 'block'
+  if (s`${CLASS.WORLD}`.matches(fieldInfo)) return 'world'
+  if (s`${CLASS.BLOCK_POS}`.matches(fieldInfo)) return 'pos'
 }

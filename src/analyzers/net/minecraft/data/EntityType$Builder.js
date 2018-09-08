@@ -8,8 +8,7 @@ export function method (methodInfo: MethodInfo) {
 }
 
 export function field (fieldInfo: FieldInfo) {
-  const { sig } = fieldInfo
-  switch (sig) {
+  switch (fieldInfo.sig) {
     case 'Ljava/lang/Class;': return 'entityClass'
     case 'Ljava/util/function/Function;': return 'constructor'
   }

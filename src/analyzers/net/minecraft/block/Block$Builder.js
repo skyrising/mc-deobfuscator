@@ -1,6 +1,7 @@
 // @flow
 
 import * as CLASS from '../../../../ClassNames'
+import { signatureTag as s } from '../../../../util/code'
 
 export function method (methodInfo: MethodInfo) {
   const { sig, code, clsInfo, info } = methodInfo
@@ -21,13 +22,9 @@ export function method (methodInfo: MethodInfo) {
 }
 
 export function field (fieldInfo: FieldInfo) {
-  const { sig, clsInfo, info } = fieldInfo
-  const MapColor = info.classReverse[CLASS.MAP_COLOR]
-  const Material = info.classReverse[CLASS.MATERIAL]
-  if (!MapColor || !Material) clsInfo.done = false
-  if (MapColor && sig === 'L' + MapColor + ';') return 'mapColor'
-  if (Material && sig === 'L' + Material + ';') return 'material'
-  switch (sig) {
+  if (s`${CLASS.MAP_COLOR}`) return 'mapColor'
+  if (s`${CLASS.MATERIAL}`) return 'material'
+  switch (fieldInfo.sig) {
     case 'I': return 'lightOpacity'
   }
 }

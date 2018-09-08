@@ -13,8 +13,8 @@ export function method (methodInfo: MethodInfo) {
 }
 
 export function field (fieldInfo: FieldInfo) {
-  const { sig, clsInfo } = fieldInfo
-  switch (sig) {
+  const { clsInfo } = fieldInfo
+  switch (fieldInfo.sig) {
     case 'Ljava/util/Map;': return fieldInfo.static ? 'BACKWARD' : 'FORWARD'
     case '[L' + clsInfo.obfName + ';': return 'STATES'
   }
