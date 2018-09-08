@@ -2,12 +2,12 @@
 // import * as CLASS from '../../../../ClassNames'
 
 export function field (fieldInfo: FieldInfo) {
-  const {sig, clsInfo} = fieldInfo
+  const { sig, clsInfo } = fieldInfo
   if (sig === '[L' + clsInfo.obfName + ';') return 'WORLD_TYPES'
 }
 
 export function method (methodInfo: MethodInfo) {
-  const {sig, code, clsInfo} = methodInfo
+  const { sig, code, clsInfo } = methodInfo
   if (methodInfo.origName === '<clinit>') {
     for (const line of code.lines) {
       if (typeof line.const !== 'string') continue

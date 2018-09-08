@@ -1,6 +1,6 @@
 // @flow
 import util from 'util'
-import {parseClassSignature} from './parse'
+import { parseClassSignature } from './parse'
 
 const ACC_PUBLIC = 0x0001
 const ACC_PRIVATE = 0x0002
@@ -132,7 +132,7 @@ export async function getCode (method: BCELMethod): Promise<Code> {
   try {
     source = await method.getCodeAsync().then(c => c.toStringAsync())
   } catch (e) {
-    return {code: '', lines: [], calls: [], internalCalls: [], fields: [], internalFields: [], consts: []}
+    return { code: '', lines: [], calls: [], internalCalls: [], fields: [], internalFields: [], consts: [] }
   }
   const code: Code = {
     code: source,

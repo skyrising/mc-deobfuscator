@@ -8,7 +8,7 @@ export function method (methodInfo: MethodInfo) {
 }
 
 function init (methodInfo: MethodInfo) {
-  const {code, clsInfo} = methodInfo
+  const { code, clsInfo } = methodInfo
   for (const line of code.lines) {
     if (line.op === 'iload_1' && line.next.op === 'putfield') clsInfo.fields[line.next.field.fieldName].name = 'index'
     else if (line.op === 'iload_2' && line.next.op === 'putfield') clsInfo.fields[line.next.field.fieldName].name = 'color'
@@ -73,7 +73,7 @@ const COLOR_NAME = {
 /* eslint-enable no-useless-computed-key */
 
 function clinit (methodInfo: MethodInfo) {
-  const {code, clsInfo} = methodInfo
+  const { code, clsInfo } = methodInfo
   for (const line of code.lines) {
     // if (line.const) console.log(line.const.toString(16))
     if (typeof line.const === 'number' && COLOR_NAME[line.const]) {

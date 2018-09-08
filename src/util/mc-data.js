@@ -1,8 +1,8 @@
 import fs from 'mz/fs'
 import path from 'path'
-import {spawn, fork} from 'child_process'
-import {sync as rmrf} from 'rimraf'
-import {cpus} from 'os'
+import { spawn, fork } from 'child_process'
+import { sync as rmrf } from 'rimraf'
+import { cpus } from 'os'
 
 const BASE_DIR = path.resolve(__dirname, '../../base-data')
 const TARGET_DIR = path.resolve('temp/mc-data')
@@ -22,8 +22,8 @@ export async function updateDataRepo (from, to) {
   await run('cp', [path.resolve(BASE_DIR, 'README.md'), '.'])
   await git('add', ['README.md'])
   const versions = JSON.parse(await fs.readFile(path.resolve(BASE_DIR, 'versions.json'), 'utf8'))
-  .sort((a, b) => new Date(a.releaseTime) - new Date(b.releaseTime))
-  await git('commit', ['-m', 'base'], {date: '2009-05-10T00:00:00Z'})
+    .sort((a, b) => new Date(a.releaseTime) - new Date(b.releaseTime))
+  await git('commit', ['-m', 'base'], { date: '2009-05-10T00:00:00Z' })
   const fromIndex = from === 'none' ? versions.length : (from ? versions.findIndex(v => v.id === from) : 0)
   const toIndex = to ? versions.findIndex(v => v.id === to) : versions.length - 1
   const processedVersions = versions.slice(Math.max(0, fromIndex), toIndex >= 0 ? toIndex + 1 : versions.length)
@@ -55,7 +55,7 @@ export async function updateDataRepo (from, to) {
     })
   }
   for (const version of versions) {
-    const {id} = version
+    const { id } = version
     if (processedVersions.includes(version)) {
       if (fs.existsSync(id)) rmrf(id)
       await run('mv', [path.resolve(DATA_DIR, id), id])
@@ -68,7 +68,7 @@ export async function updateDataRepo (from, to) {
     await run('cp', ['-r', id, 'latest'])
     await git('add', [id])
     await git('add', ['latest'])
-    await git('commit', ['-m', id], {date: version.releaseTime})
+    await git('commit', ['-m', id], { date: version.releaseTime })
     await git('tag', [id])
   }
   await git('remote', ['add', 'origin', 'git@github.com:skyrising/mc-data.git'])
@@ -87,7 +87,7 @@ function git (command, args = [], options = {}) {
 
 function run (command, args, options = {}) {
   return new Promise((resolve, reject) => {
-    const cp = spawn(command, args, {stdio: 'inherit', ...options})
+    const cp = spawn(command, args, { stdio: 'inherit', ...options })
     cp.on('error', reject)
     cp.on('exit', code => {
       if (code) reject(code)

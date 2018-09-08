@@ -2,7 +2,7 @@
 import * as CLASS from '../../../../ClassNames'
 
 export function field (fieldInfo: FieldInfo) {
-  const {sig, clsInfo} = fieldInfo
+  const { sig, clsInfo } = fieldInfo
   switch (sig) {
     case '[L' + clsInfo.obfName + ';': return 'DIFFICULTIES'
     case 'I': return 'id'
@@ -11,7 +11,7 @@ export function field (fieldInfo: FieldInfo) {
 }
 
 export function method (methodInfo: MethodInfo) {
-  const {sig, code, clsInfo, info} = methodInfo
+  const { sig, code, clsInfo, info } = methodInfo
   const self = clsInfo.obfName
   switch (sig) {
     case '(I)L' + self + ';': return 'forId'

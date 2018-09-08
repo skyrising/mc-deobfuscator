@@ -1,7 +1,7 @@
 // @flow
 
 export function method (methodInfo: MethodInfo) {
-  const {code, clsInfo, info} = methodInfo
+  const { code, clsInfo, info } = methodInfo
   if (methodInfo.origName === '<clinit>') {
     info.data.mobeffects = {}
     for (const line of code.lines) {

@@ -1,9 +1,9 @@
 // @flow
 import fs from 'mz/fs'
 import path from 'path'
-import {setStatus} from './status'
-import {getCallStats, getMappedClassName, perf} from './index'
-import {enrichClsInfo} from './code'
+import { setStatus } from './status'
+import { getCallStats, getMappedClassName, perf } from './index'
+import { enrichClsInfo } from './code'
 
 const dbgSearch = require('debug')('mc:deobf:search')
 const debugSearch = (...args) => {
@@ -27,7 +27,7 @@ export async function findAnalyzer (name: string): ?Analyzer {
     if (exists) {
       try {
         end()
-        return Object.assign(require(file), {file: dir ? dir + '/' + fname : fname})
+        return Object.assign(require(file), { file: dir ? dir + '/' + fname : fname })
       } catch (e) {
         console.log(e.message)
       }
@@ -96,7 +96,7 @@ export async function initAnalyzer (analyzer: Analyzer, info: FullInfo) {
 }
 
 export async function runAnalyzer (analyzer: Analyzer, clsInfo: ClassInfo, runGeneric: boolean = false) {
-  const {info} = clsInfo
+  const { info } = clsInfo
   const end = perf(`runAnalyzer(${analyzer.name || analyzer.file || 'unknown'},${clsInfo.name || clsInfo.obfName})`)
   await initAnalyzer(analyzer, info)
   const className = clsInfo.obfName
@@ -133,7 +133,7 @@ export async function runAnalyzer (analyzer: Analyzer, clsInfo: ClassInfo, runGe
   if (analyzer.method) {
     for (const methodFullSig of Object.keys(clsInfo.method)) {
       const methodInfo = clsInfo.method[methodFullSig]
-      const {origName: name, sig} = methodInfo
+      const { origName: name, sig } = methodInfo
       if (methodInfo.done) continue
       const methodProxy = getCallStats((methodInfo: any).bin)
       if (analyzer !== GENERIC_ANALYZER) console.debug('Analyzing method %s.%s:%s', (clsInfo.name || className), name, sig)

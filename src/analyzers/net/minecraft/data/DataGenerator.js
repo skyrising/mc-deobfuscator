@@ -3,7 +3,7 @@
 import * as CLASS from '../../../../ClassNames'
 
 export function field (fieldInfo: FieldInfo) {
-  const {sig} = fieldInfo
+  const { sig } = fieldInfo
   switch (sig) {
     case 'Ljava/util/Collection;': return 'inputPaths'
     case 'Ljava/nio/file/Path;': return 'outputPath'
@@ -12,7 +12,7 @@ export function field (fieldInfo: FieldInfo) {
 }
 
 export function method (methodInfo: MethodInfo) {
-  const {sig, info} = methodInfo
+  const { sig, info } = methodInfo
   if (sig.startsWith('(L') && sig.endsWith(';)V')) {
     info.class[methodInfo.argSigs[0].slice(1, -1)].name = CLASS.DATA_PROVIDER
     return 'addProvider'

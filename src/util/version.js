@@ -5,7 +5,7 @@ import request from 'request-promise-native'
 
 let manifest
 export async function getManifest () {
-  if (!manifest) manifest = await request('https://launchermeta.mojang.com/mc/game/version_manifest.json', {json: true})
+  if (!manifest) manifest = await request('https://launchermeta.mojang.com/mc/game/version_manifest.json', { json: true })
   return manifest
 }
 
@@ -18,27 +18,27 @@ export async function getVersionInfo (id) {
 
 export async function getExtendedVersionInfo (id) {
   if (typeof id === 'object') {
-    const {downloads} = await getVersionManifest(id) || {}
-    return {...id, downloads}
+    const { downloads } = await getVersionManifest(id) || {}
+    return { ...id, downloads }
   }
   const file = path.resolve('data', id, 'version.json')
   if (await fs.exists(file)) return JSON.parse(await fs.readFile(file, 'utf8'))
   const version = await getVersionInfo(id)
-  const {downloads} = await getVersionManifest(id) || {}
-  return {...version, downloads}
+  const { downloads } = await getVersionManifest(id) || {}
+  return { ...version, downloads }
 }
 
 const versionManifest = {}
 export async function getVersionManifest (id) {
   if (!versionManifest[id.id || id]) {
     if (id.url) {
-      versionManifest[id.id] = await request(id.url, {json: true})
+      versionManifest[id.id] = await request(id.url, { json: true })
       return versionManifest[id.id]
     }
     const manifest = await getManifest()
     for (const version of manifest.versions) {
       if (version.id === id) {
-        versionManifest[id] = await request(version.url, {json: true})
+        versionManifest[id] = await request(version.url, { json: true })
         break
       }
     }
@@ -70,9 +70,9 @@ export async function addVersion (info) {
     console.log(`Added ${numNew} versions${numChanged ? ` (${numChanged} updated)` : ''}`)
     await fs.writeFile('base-data/versions.json', JSON.stringify(Object.values(versions)
       .sort((a, b) => new Date(b.releaseTime) - new Date(a.releaseTime))
-      .map(({id, type, releaseTime, url}) => ({id, type, releaseTime, url})), null, 2))
+      .map(({ id, type, releaseTime, url }) => ({ id, type, releaseTime, url })), null, 2))
   } else {
-    await addVersion({...await request(info, {json: true}), info})
+    await addVersion({ ...await request(info, { json: true }), info })
   }
 }
 

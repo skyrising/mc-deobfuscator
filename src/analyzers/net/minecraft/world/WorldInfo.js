@@ -2,7 +2,7 @@
 import * as CLASS from '../../../../ClassNames'
 
 export function field (fieldInfo: FieldInfo) {
-  const {sig, clsInfo, info} = fieldInfo
+  const { sig, clsInfo, info } = fieldInfo
   const WorldType = info.classReverse[CLASS.WORLD_TYPE]
   const GameRules = info.classReverse[CLASS.GAME_RULES]
   const Difficulty = info.classReverse[CLASS.DIFFICULTY]

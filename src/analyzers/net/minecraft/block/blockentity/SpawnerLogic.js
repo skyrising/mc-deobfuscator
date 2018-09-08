@@ -1,9 +1,9 @@
 // @flow
 import * as CLASS from '../../../../../ClassNames'
-import {toLowerCamelCase} from '../../../../../util'
+import { toLowerCamelCase } from '../../../../../util'
 
 export function method (methodInfo: MethodInfo) {
-  const {code, clsInfo, info} = methodInfo
+  const { code, clsInfo, info } = methodInfo
   const NBTCompound = info.classReverse[CLASS.NBT_COMPOUND]
   if (!NBTCompound) clsInfo.done = false
   if (NBTCompound && methodInfo.sig === '(L' + NBTCompound + ';)V') {

@@ -1,7 +1,7 @@
 // @flow
 
 export function method (methodInfo: MethodInfo) {
-  const {code, clsInfo} = methodInfo
+  const { code, clsInfo } = methodInfo
   for (const line of code.lines) {
     if (!line.const) continue
     switch (line.const) {

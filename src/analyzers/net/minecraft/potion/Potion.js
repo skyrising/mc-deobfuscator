@@ -2,7 +2,7 @@
 import * as CLASS from '../../../../ClassNames'
 
 export function method (methodInfo: MethodInfo) {
-  const {code, clsInfo, info} = methodInfo
+  const { code, clsInfo, info } = methodInfo
   if (methodInfo.sig === '()V' && code.consts.includes('awkward')) {
     const MobEffect = info.classReverse[CLASS.MOB_EFFECT]
     const MobEffects = info.classReverse[CLASS.MOB_EFFECTS]

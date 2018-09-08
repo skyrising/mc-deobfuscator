@@ -1,14 +1,14 @@
 // @flow
 
 export function field (fieldInfo: FieldInfo) {
-  const {sig} = fieldInfo
+  const { sig } = fieldInfo
   switch (sig) {
     case 'Ljava/util/Set;': return 'REGISTERED'
   }
 }
 
 export function method (methodInfo: MethodInfo) {
-  const {code, clsInfo, info} = methodInfo
+  const { code, clsInfo, info } = methodInfo
   if (methodInfo.origName === '<clinit>') {
     const setData = !('potions' in info.data)
     if (setData) info.data.potions = {}

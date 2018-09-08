@@ -1,9 +1,9 @@
 // @flow
 
-import {GL_QUADS} from '../../../../GLConsts'
+import { GL_QUADS } from '../../../../GLConsts'
 
 export function method (methodInfo: MethodInfo) {
-  const {code, sig, clsInfo} = methodInfo
+  const { code, sig, clsInfo } = methodInfo
   const firstLine = code.lines[0]
   if (methodInfo.origName === '<init>') {
     for (const line of code.lines) {
@@ -59,7 +59,7 @@ export function method (methodInfo: MethodInfo) {
   }
 }
 export function field (fieldInfo: FieldInfo) {
-  const {sig, clsInfo} = fieldInfo
+  const { sig, clsInfo } = fieldInfo
   switch (sig) {
     case 'L' + clsInfo.obfName + ';': return 'instance'
     case 'Ljava/nio/ByteBuffer;': return 'buf'

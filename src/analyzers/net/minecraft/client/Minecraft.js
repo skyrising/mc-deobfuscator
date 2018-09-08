@@ -1,7 +1,7 @@
 // @flow
 
 export function method (methodInfo: MethodInfo) {
-  const {code, sig, clsInfo, info} = methodInfo
+  const { code, sig, clsInfo, info } = methodInfo
   switch (sig) {
     case '()Ljava/io/File;':
     case '(Ljava/lang/String;)Ljava/io/File;': return 'getWorkingDirectory'
@@ -24,7 +24,7 @@ export function method (methodInfo: MethodInfo) {
 }
 
 export function field (fieldInfo: FieldInfo) {
-  const {sig, clsInfo} = fieldInfo
+  const { sig, clsInfo } = fieldInfo
   switch (sig) {
     case 'Ljava/awt/Canvas;': return 'canvas'
     case 'Lnet/minecraft/client/MinecraftApplet;': return 'applet'

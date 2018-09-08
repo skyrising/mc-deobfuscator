@@ -1,7 +1,7 @@
 // @flow
-import {attrsToStr} from './util'
+import { attrsToStr } from './util'
 import type Graph from './graph'
-import type {NodeAttributes} from './types'
+import type { NodeAttributes } from './types'
 
 export default class Node {
   name: string;

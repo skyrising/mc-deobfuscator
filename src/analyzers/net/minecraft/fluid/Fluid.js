@@ -1,5 +1,5 @@
 // @flow
-import {signatureTag as s} from '../../../../util/code'
+import { signatureTag as s } from '../../../../util/code'
 import * as CLASS from '../../../../ClassNames'
 
 export function method (methodInfo: MethodInfo) {

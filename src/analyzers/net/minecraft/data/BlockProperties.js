@@ -1,7 +1,7 @@
 // @flow
 
 export function method (methodInfo: MethodInfo) {
-  const {code, clsInfo} = methodInfo
+  const { code, clsInfo } = methodInfo
   if (methodInfo.origName === '<clinit>') {
     const count = {}
     for (const c of code.consts) count[c] = (count[c] || 0) + 1
@@ -11,7 +11,7 @@ export function method (methodInfo: MethodInfo) {
       const name = line.const
       const putstatic = line.nextOp('putstatic')
       if (!putstatic) continue
-      const {fieldName} = putstatic.field
+      const { fieldName } = putstatic.field
       switch (name) {
         case 'age': {
           const max = line.next.next.const

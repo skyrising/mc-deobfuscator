@@ -3,18 +3,18 @@
 import * as CLASS from '../../../../ClassNames'
 
 export function field (fieldInfo: FieldInfo) {
-  const {sig} = fieldInfo
+  const { sig } = fieldInfo
   switch (sig) {
     case 'Z': return 'fallsInstantly'
   }
 }
 
 export function method (methodInfo: MethodInfo) {
-  const {code, info} = methodInfo
+  const { code, info } = methodInfo
   if (code.lines.length === 2 && code.lines[0].const === 2 && code.lines[1].return) {
     return 'tickDelay'
   }
-  const {sig} = methodInfo
+  const { sig } = methodInfo
   if (methodInfo.static && sig.endsWith(')Z')) {
     info.class[methodInfo.argSigs[0].slice(1, -1)].name = CLASS.BLOCK_STATE
     return 'canFallThrough'

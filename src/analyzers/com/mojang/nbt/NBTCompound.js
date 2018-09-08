@@ -1,9 +1,9 @@
 // @flow
-import {signatureTag as s} from '../../../../util/code'
+import { signatureTag as s } from '../../../../util/code'
 import * as CLASS from '../../../../ClassNames'
 
 export function cls (clsInfo: ClassInfo) {
-  const {info} = clsInfo
+  const { info } = clsInfo
   const scl = clsInfo.superClassName
   if (scl === 'java.lang.Object') {
     info.class[clsInfo.interfaceNames[0]].name = CLASS.NBT_BASE
@@ -13,7 +13,7 @@ export function cls (clsInfo: ClassInfo) {
 }
 
 export function method (methodInfo: MethodInfo) {
-  const {clsInfo, code} = methodInfo
+  const { clsInfo, code } = methodInfo
   const NBTCompound = clsInfo.obfName
   const NBTBase = clsInfo.superClassName
   switch (methodInfo.sig) {
@@ -57,7 +57,7 @@ export function method (methodInfo: MethodInfo) {
 }
 
 export function field (fieldInfo: FieldInfo) {
-  const {sig} = fieldInfo
+  const { sig } = fieldInfo
   switch (sig) {
     case 'Ljava/util/Map;': return 'map'
   }

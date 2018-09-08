@@ -1,9 +1,9 @@
 // @flow
-import {toUpperCamelCase} from '../../../../../util'
+import { toUpperCamelCase } from '../../../../../util'
 import * as CLASS from '../../../../../ClassNames'
 
 export function method (methodInfo: MethodInfo) {
-  const {code, info} = methodInfo
+  const { code, info } = methodInfo
   if (methodInfo.origName === '<clinit>') {
     for (const line of code.lines) {
       if (typeof line.const !== 'string') continue
@@ -21,7 +21,7 @@ export function method (methodInfo: MethodInfo) {
 }
 
 export function field (fieldInfo: FieldInfo) {
-  const {sig, clsInfo, info} = fieldInfo
+  const { sig, clsInfo, info } = fieldInfo
   const Block = info.classReverse[CLASS.BLOCK]
   const World = info.classReverse[CLASS.WORLD]
   const BlockPos = info.classReverse[CLASS.BLOCK_POS]

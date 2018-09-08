@@ -1,10 +1,10 @@
 // @flow
 import util from 'util'
 import EventEmitter from 'events'
-import {perf} from './index'
-import {getExtendedVersionInfo} from './version'
-import {printStatus} from './status'
-import {getMethodInheritance} from './code'
+import { perf } from './index'
+import { getExtendedVersionInfo } from './version'
+import { printStatus } from './status'
+import { getMethodInheritance } from './code'
 
 const MAX_GENERIC_PASSES = 3
 const MAX_SPECIAL_PASSES = 3
@@ -98,7 +98,7 @@ class Info extends EventEmitter {
                 info.specialAnalyzed[deobfName] = 0
                 debugCl('CL: %s %s', slash(clsObfName), slash(deobfName))
                 printStatus(clsObfName + ' -> ' + deobfName)
-                info.emit('class-name', {obf: clsObfName, deobf: deobfName, clsInfo})
+                info.emit('class-name', { obf: clsObfName, deobf: deobfName, clsInfo })
                 this.done = false
                 for (const sc of this.subClasses) info.class[sc].done = false
               }
@@ -211,7 +211,7 @@ class Info extends EventEmitter {
     this.data = {}
   }
 
-  async init ({version, side, classNames}: {version: Version|string, side: Side, classNames: Array<string>}) {
+  async init ({ version, side, classNames }: {version: Version|string, side: Side, classNames: Array<string>}) {
     this.side = side
     this.classNames = classNames
     const [, versionMajor, versionMinor, versionPatch] = (typeof version === 'string' ? version : version.id)
@@ -228,7 +228,7 @@ class Info extends EventEmitter {
     this._queue.push(...classNames)
   }
 
-  newPass (name: string, passInfo: {weight: number} = {weight: 1}) {
+  newPass (name: string, passInfo: {weight: number} = { weight: 1 }) {
     const info = this
     const pass = {
       name,
@@ -304,7 +304,7 @@ class Info extends EventEmitter {
       ;(this.class[name].analyzing || Promise.resolve()).then(() => {
         if (this._queue.includes(name)) return
         console.debug('Queueing %s (%s, back)', (this.class[name].name || name), Math.max(this.genericAnalyzed[name], this.specialAnalyzed[name]) || 'new')
-        this.emit('queue', {name, position: 'back'})
+        this.emit('queue', { name, position: 'back' })
         this._queue.push(name)
       })
     }
@@ -322,7 +322,7 @@ class Info extends EventEmitter {
       ;(this.class[name].analyzing || Promise.resolve()).then(() => {
         this.class[name].done = false
         console.debug('Queueing %s (%s, front)', (this.class[name].name || name), Math.max(this.genericAnalyzed[name], this.specialAnalyzed[name]) || 'new')
-        this.emit('queue', {name, position: 'front'})
+        this.emit('queue', { name, position: 'front' })
         const pos = this._queue.indexOf(name)
         if (pos >= 0) this._queue.splice(pos, 1)
         this._queue.unshift(name)

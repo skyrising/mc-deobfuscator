@@ -1,5 +1,5 @@
 // @flow
-import {signatureTag as s} from '../../../../util/code'
+import { signatureTag as s } from '../../../../util/code'
 import * as CLASS from '../../../../ClassNames'
 
 export function method (methodInfo: MethodInfo) {
@@ -8,7 +8,7 @@ export function method (methodInfo: MethodInfo) {
 }
 
 export function field (fieldInfo: FieldInfo) {
-  const {sig} = fieldInfo
+  const { sig } = fieldInfo
   switch (sig) {
     case 'Ljava/lang/Class;': return 'entityClass'
     case 'Ljava/util/function/Function;': return 'constructor'

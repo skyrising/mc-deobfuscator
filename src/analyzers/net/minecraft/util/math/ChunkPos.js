@@ -1,7 +1,7 @@
 // @flow
 
 export function method (methodInfo: MethodInfo) {
-  const {sig, code, clsInfo} = methodInfo
+  const { sig, code, clsInfo } = methodInfo
   if (methodInfo.origName === '<init>' && sig === '(II)V') {
     for (const line of code.lines) {
       if (!line.load) continue

@@ -2,14 +2,14 @@
 import fs from 'mz/fs'
 import path from 'path'
 // import {graph} from './graphviz'
-import {getDefaultName} from './util'
-import {enrichClsInfo} from './util/code'
-import {createInfo} from './util/info'
-import {startStatus, endStatus} from './util/status'
-import {specialSource as runSpecialSource, extractJar as runExtractJar} from './util/tools'
-import {generateOutput} from './util/output'
-import {getAllClasses, initJava} from './util/java'
-import {analyzeClassWrapper, runAnalyzer, initAnalyzer} from './util/analyzers'
+import { getDefaultName } from './util'
+import { enrichClsInfo } from './util/code'
+import { createInfo } from './util/info'
+import { startStatus, endStatus } from './util/status'
+import { specialSource as runSpecialSource, extractJar as runExtractJar } from './util/tools'
+import { generateOutput } from './util/output'
+import { getAllClasses, initJava } from './util/java'
+import { analyzeClassWrapper, runAnalyzer, initAnalyzer } from './util/analyzers'
 import * as renameGetterSetter from './analyzers/getterSetter'
 import * as hierarchyAnalyzer from './analyzers/hierarchy'
 
@@ -67,7 +67,7 @@ type Options = {
 }
 
 export async function analyzeJar (jarFile: string, classPath: Array<string>, options: $Shape<Options> = {}) {
-  const {specialSource, extractJar, debugLog, errorLog, version, status}: Options = {
+  const { specialSource, extractJar, debugLog, errorLog, version, status }: Options = {
     specialSource: false,
     extractJar: false,
     debugLog: false,
@@ -94,13 +94,13 @@ export async function analyzeJar (jarFile: string, classPath: Array<string>, opt
   }))
   console.log(classNames.length + ' classes, ' + classNames.filter(name => !name.includes('$')).length + ' outer classes')
   const side = jarFile.includes('server') ? 'server' : 'client'
-  const info: FullInfo = await createInfo({version, side, classNames})
+  const info: FullInfo = await createInfo({ version, side, classNames })
   global.info = info
   const genericPasses = []
-  const passClsInfo = info.newPass('reading classes', {weight: 2})
+  const passClsInfo = info.newPass('reading classes', { weight: 2 })
   for (let i = 0; i < 3; i++) genericPasses.push(info.newPass('generic[' + i + ']'))
-  const passHierarchy = info.newPass('hierarchy', {weight: 0.3})
-  const passGetterSetter = info.newPass('getters & setters', {weight: 0.6})
+  const passHierarchy = info.newPass('hierarchy', { weight: 0.3 })
+  const passGetterSetter = info.newPass('getters & setters', { weight: 0.6 })
   if (status) startStatus(info)
   passClsInfo.start()
   console.log('Reading classes')

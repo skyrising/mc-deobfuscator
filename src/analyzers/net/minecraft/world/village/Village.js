@@ -2,7 +2,7 @@
 import * as CLASS from '../../../../../ClassNames'
 
 export function field (fieldInfo: FieldInfo) {
-  const {sig, clsInfo, info} = fieldInfo
+  const { sig, clsInfo, info } = fieldInfo
   const World = info.classReverse[CLASS.WORLD]
   if (!World) clsInfo.done = false
   if (World && sig === 'L' + World + ';') return 'world'
@@ -12,7 +12,7 @@ export function field (fieldInfo: FieldInfo) {
 }
 
 export function method (methodInfo: MethodInfo) {
-  const {sig, clsInfo, info} = methodInfo
+  const { sig, clsInfo, info } = methodInfo
   const BlockPos = info.classReverse[CLASS.BLOCK_POS]
   if (!BlockPos) clsInfo.done = false
   else if (sig.startsWith('(L' + BlockPos + ';III)')) {

@@ -1,9 +1,9 @@
 // @flow
 
-import {signatureTag as s} from '../../../../util/code'
+import { signatureTag as s } from '../../../../util/code'
 import * as CLASS from '../../../../ClassNames'
 import * as PKG from '../../../../PackageNames'
-import {toUpperCamelCase, toUnderScoreCase} from '../../../../util'
+import { toUpperCamelCase, toUnderScoreCase } from '../../../../util'
 
 const ENTITY_PKG = {
   AreaEffectCloud: PKG.ENTITY_EFFECT,
@@ -119,7 +119,7 @@ const ENTITY_PKG = {
 }
 
 export function method (methodInfo: MethodInfo) {
-  const {code, clsInfo, info} = methodInfo
+  const { code, clsInfo, info } = methodInfo
   if (code.consts.includes('pig')) {
     info.data.entities = {}
     const flat = code.consts.includes('falling_block')
@@ -135,10 +135,10 @@ export function method (methodInfo: MethodInfo) {
       const entClass = flat ? line.next.const : line.previous.const
       const pkg = name in ENTITY_PKG ? ENTITY_PKG[name] : PKG.ENTITY
       info.class[entClass].name = pkg + '.' + name
-      info.data.entities[line.const] = {name, class: pkg + '.' + name}
+      info.data.entities[line.const] = { name, class: pkg + '.' + name }
     }
   }
-  const {sig} = methodInfo
+  const { sig } = methodInfo
   if (sig.startsWith('(Ljava/lang/String;II)L')) return 'registerSpawnEgg'
   if (sig === '(Ljava/lang/Class;Ljava/lang/String;I)V') return 'registerEntity'
   if (s`(Ljava/lang/String;${CLASS.ENTITIES$BUILDER})${CLASS.ENTITIES}`.matches(methodInfo)) return 'registerEntity'
@@ -156,7 +156,7 @@ export function method (methodInfo: MethodInfo) {
 }
 
 export function field (fieldInfo: FieldInfo) {
-  const {sig} = fieldInfo
+  const { sig } = fieldInfo
   switch (sig) {
     case 'Ljava/util/Map;': return fieldInfo.public ? 'SPAWN_EGGS' : undefined
     case 'Ljava/lang/Class;': return 'entityClass'

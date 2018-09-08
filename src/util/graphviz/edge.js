@@ -1,8 +1,8 @@
 // @flow
-import {attrsToStr} from './util'
+import { attrsToStr } from './util'
 import type Node from './node'
 import type Graph from './graph'
-import type {EdgeAttributes} from './types'
+import type { EdgeAttributes } from './types'
 
 export default class Edge {
   from: Node|string;

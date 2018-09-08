@@ -1,5 +1,5 @@
 // @flow
-import {toUnderScoreCase} from '../../../../util'
+import { toUnderScoreCase } from '../../../../util'
 
 export function method (methodInfo: MethodInfo) {
   if (methodInfo.origName === '<clinit>') {

@@ -8,7 +8,7 @@ export function method (methodInfo: MethodInfo) {
 }
 
 export function field (fieldInfo: FieldInfo) {
-  const {sig, clsInfo, info} = fieldInfo
+  const { sig, clsInfo, info } = fieldInfo
   const Chunk = info.classReverse[CLASS.CHUNK]
   const ChunkPos = info.classReverse[CLASS.CHUNK_POS]
   const PlayerChunkMap = info.classReverse[CLASS.PLAYER_CHUNK_MAP]

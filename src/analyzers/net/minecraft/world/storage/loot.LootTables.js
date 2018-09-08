@@ -2,7 +2,7 @@
 import * as CLASS from '../../../../../ClassNames'
 
 export function method (methodInfo: MethodInfo) {
-  const {sig, code, clsInfo, info} = methodInfo
+  const { sig, code, clsInfo, info } = methodInfo
   if (methodInfo.origName === '<clinit>') {
     for (const line of code.lines) {
       if (typeof line.const !== 'string') continue

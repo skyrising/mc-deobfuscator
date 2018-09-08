@@ -1,10 +1,10 @@
 // @flow
 
-import {signatureTag as s, getMethodInheritance} from '../../../../util/code'
+import { signatureTag as s, getMethodInheritance } from '../../../../util/code'
 import * as CLASS from '../../../../ClassNames'
 
 export function field (fieldInfo: FieldInfo) {
-  const {sig, clsInfo, info} = fieldInfo
+  const { sig, clsInfo, info } = fieldInfo
   switch (sig) {
     case 'Z': return 'sticky'
   }
@@ -14,7 +14,7 @@ export function field (fieldInfo: FieldInfo) {
 }
 
 export function method (methodInfo: MethodInfo) {
-  const {code, info, clsInfo} = methodInfo
+  const { code, info, clsInfo } = methodInfo
   if (s`(${CLASS.WORLD}${CLASS.BLOCK_POS}${CLASS.FACING}Z)Z`.matches(methodInfo)) {
     const newHelper = code.lines[0].nextOp('new', true)
     console.log(getMethodInheritance(methodInfo))

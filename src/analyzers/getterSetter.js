@@ -9,7 +9,7 @@ export function method (methodInfo: MethodInfo) {
 
 export function nameGetterSetter (methodInfo: MethodInfo) {
   if (methodInfo.origName.length > 3) return methodInfo.origName
-  const {code, clsInfo} = methodInfo
+  const { code, clsInfo } = methodInfo
   if (code.lines.length === 3 && code.lines[0].op === 'aload_0' && code.lines[1].op === 'getfield') {
     const field = code.lines[1].field
     if (field.fullClassName === clsInfo.obfName && clsInfo.fields[field.fieldName]) {

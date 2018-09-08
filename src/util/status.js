@@ -3,7 +3,7 @@ import fs from 'fs'
 import path from 'path'
 import util from 'util'
 // $FlowFixMe: not in libdefs yet
-import {PerformanceObserver} from 'perf_hooks'
+import { PerformanceObserver } from 'perf_hooks'
 
 let status = ''
 let statusInterval
@@ -17,7 +17,7 @@ const perfObs = new PerformanceObserver(list => {
 export function startStatus (info: FullInfo) {
   statusInfo = info
   statusInterval = setInterval(printStatus, 100)
-  perfObs.observe({entryTypes: ['mark', 'measure', 'gc']})
+  perfObs.observe({ entryTypes: ['mark', 'measure', 'gc'] })
 }
 
 export function endStatus () {

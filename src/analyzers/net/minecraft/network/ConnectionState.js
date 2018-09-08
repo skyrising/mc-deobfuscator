@@ -2,7 +2,7 @@
 import * as CLASS from '../../../../ClassNames'
 
 export function method (methodInfo: MethodInfo) {
-  const {sig, clsInfo, info} = methodInfo
+  const { sig, clsInfo, info } = methodInfo
   if (methodInfo.origName === '<clinit>') return clinit(methodInfo)
   if (sig.endsWith(')Ljava/lang/Integer;')) {
     info.class[methodInfo.argSigs[1].slice(1, -1)].name = CLASS.PACKET
@@ -13,7 +13,7 @@ export function method (methodInfo: MethodInfo) {
 }
 
 export function field (fieldInfo: FieldInfo) {
-  const {sig, clsInfo} = fieldInfo
+  const { sig, clsInfo } = fieldInfo
   switch (sig) {
     case 'Ljava/util/Map;': return fieldInfo.static ? 'BACKWARD' : 'FORWARD'
     case '[L' + clsInfo.obfName + ';': return 'STATES'
@@ -22,7 +22,7 @@ export function field (fieldInfo: FieldInfo) {
 
 function clinit (methodInfo: MethodInfo) {
   console.log('ConnectionState.<clinit>')
-  const {code, clsInfo} = methodInfo
+  const { code, clsInfo } = methodInfo
   let current = {}
   for (const line of code.lines) {
     console.log(line)

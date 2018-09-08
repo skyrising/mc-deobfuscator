@@ -2,7 +2,7 @@
 import * as CLASS from '../../../../ClassNames'
 
 export function method (methodInfo: MethodInfo) {
-  const {code, clsInfo, info} = methodInfo
+  const { code, clsInfo, info } = methodInfo
   if (methodInfo.origName === '<clinit>') {
     info.data.fluids = {
       post () {
@@ -18,7 +18,7 @@ export function method (methodInfo: MethodInfo) {
       const putstatic = line.nextOp('putstatic')
       if (!putstatic) continue
       clsInfo.fields[putstatic.field.fieldName].name = name.replace(/\./g, '_').toUpperCase()
-      info.data.fluids[name] = {class: putstatic.field.type.slice(1, -1)}
+      info.data.fluids[name] = { class: putstatic.field.type.slice(1, -1) }
       if (name === 'flowing_water') info.class[putstatic.field.type.slice(1, -1)].name = CLASS.NON_EMPTY_FLUID
     }
   }

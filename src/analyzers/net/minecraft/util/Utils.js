@@ -1,6 +1,6 @@
 // @flow
 import * as CLASS from '../../../../ClassNames'
-import {signatureTag as s} from '../../../../util/code'
+import { signatureTag as s } from '../../../../util/code'
 
 export function method (methodInfo: MethodInfo) {
   if (s`()${CLASS.UTILS$OS}`.matches(methodInfo)) return 'getOS'

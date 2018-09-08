@@ -8,7 +8,7 @@ SuperinterfaceSignature:
   ClassTypeSignature
 */
 export function parseClassSignature (sig) {
-  const cs = {type: 'ClassSignature'}
+  const cs = { type: 'ClassSignature' }
   let sigLoop = sig
   ;[cs.formalTypeParameters, sigLoop] = parseFormalTypeParameters(sigLoop)
   ;[cs.superClassSignature, sigLoop] = parseClassTypeSignature(sigLoop)
@@ -37,7 +37,7 @@ export function parseFormalTypeParameters (sig) {
     sig = sig1
     ftps.push(ftp)
   }
-  return [{type: 'FormalTypeParameters', value: ftps}, sig.slice(1)]
+  return [{ type: 'FormalTypeParameters', value: ftps }, sig.slice(1)]
 }
 
 /*
@@ -76,7 +76,7 @@ TypeVariableSignature:
 export function parseTypeVariableSignature (sig) {
   const end = sig.indexOf(';')
   if (sig[0] !== 'T' || end < 0) return [undefined, sig]
-  return [{type: 'TypeVariable', identifier: sig.slice(1, end)}, sig.slice(end + 1)]
+  return [{ type: 'TypeVariable', identifier: sig.slice(1, end) }, sig.slice(end + 1)]
 }
 
 /*
@@ -102,7 +102,7 @@ ClassTypeSignatureSuffix:
 */
 export function parseClassTypeSignature (sig) {
   if (sig[0] !== 'L') return [undefined, sig]
-  const cts = {type: 'ClassTypeSignature', simple: []}
+  const cts = { type: 'ClassTypeSignature', simple: [] }
   let sigLoop = sig.slice(1)
   const slash = sigLoop.lastIndexOf('/', sigLoop.indexOf(';'))
   let simple
@@ -127,7 +127,7 @@ SimpleClassTypeSignature:
 export function parseSimpleClassTypeSignature (sig) {
   const i = Math.min(...[sig.indexOf('<'), sig.indexOf('.'), sig.indexOf(';')].filter(x => x >= 0))
   if (!isFinite(i)) return [undefined, sig]
-  const scts = {type: 'SimpleClassTypeSignature', identifier: sig.slice(0, i)}
+  const scts = { type: 'SimpleClassTypeSignature', identifier: sig.slice(0, i) }
   let sigLoop = sig.slice(i)
   if (sigLoop[0] === '<') [scts.typeArguments, sigLoop] = parseTypeArguments(sigLoop)
   return [scts, sigLoop]
@@ -139,7 +139,7 @@ TypeArguments:
 */
 export function parseTypeArguments (sig) {
   if (sig[0] !== '<') return [undefined, sig]
-  const tas = {type: 'TypeArguments', value: []}
+  const tas = { type: 'TypeArguments', value: [] }
   let ta
   let sigLoop = sig.slice(1)
   while (sigLoop) {
@@ -159,8 +159,8 @@ WildcardIndicator:
   -
 */
 export function parseTypeArgument (sig) {
-  if (sig[0] === '*') return [{type: 'TypeArgument', value: '*'}, sig.slice(1)]
-  const ta = {type: 'TypeAgument'}
+  if (sig[0] === '*') return [{ type: 'TypeArgument', value: '*' }, sig.slice(1)]
+  const ta = { type: 'TypeAgument' }
   let sig1 = sig
   if (sig1[0] === '+' || sig1[0] === '-') {
     ta.wildcard = sig1[0]
@@ -178,7 +178,7 @@ ArrayTypeSignature:
 export function parseArrayTypeSignature (sig) {
   if (sig[0] !== '[') return [undefined, sig]
   const [type, sig1] = parseTypeSignature(sig.slice(1))
-  if (type) return [{type: 'ArrayTypeSignature', base: type}, sig1]
+  if (type) return [{ type: 'ArrayTypeSignature', base: type }, sig1]
   return [undefined, sig]
 }
 
@@ -189,9 +189,9 @@ TypeSignature:
 */
 export function parseTypeSignature (sig) {
   const [baseType, sig1] = parseBaseType(sig)
-  if (baseType) return [{type: 'TypeSignature', value: baseType}, sig1]
+  if (baseType) return [{ type: 'TypeSignature', value: baseType }, sig1]
   const [fts, sig2] = parseFieldTypeSignature(sig)
-  if (fts) return [{type: 'TypeSignature', value: fts}, sig2]
+  if (fts) return [{ type: 'TypeSignature', value: fts }, sig2]
   return [undefined, sig]
 }
 
@@ -218,6 +218,6 @@ BaseType:
   Z
 */
 export function parseBaseType (sig) {
-  if (sig[0] in BASE_TYPES) return [{type: 'BaseType', raw: sig[0], value: BASE_TYPES[sig[0]]}, sig.slice(1)]
+  if (sig[0] in BASE_TYPES) return [{ type: 'BaseType', raw: sig[0], value: BASE_TYPES[sig[0]] }, sig.slice(1)]
   return [undefined, sig]
 }

@@ -2,7 +2,7 @@
 import * as CLASS from '../../../../ClassNames'
 
 export function field (fieldInfo: FieldInfo) {
-  const {sig, clsInfo, info} = fieldInfo
+  const { sig, clsInfo, info } = fieldInfo
   const World = info.classReverse[CLASS.WORLD]
   const NBTCompound = info.classReverse[CLASS.NBT_COMPOUND]
   const AxisAlignedBB = info.classReverse[CLASS.AABB]

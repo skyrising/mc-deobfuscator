@@ -2,7 +2,7 @@ import path from 'path'
 import mvn from 'node-java-maven'
 import java from 'java'
 
-import {sortObfClassName} from './index'
+import { sortObfClassName } from './index'
 
 export function getAllClasses (jarFileName) {
   const FileInputStream = java.import('java.io.FileInputStream')
@@ -23,7 +23,7 @@ export async function initMaven () {
   return new Promise((resolve, reject) => {
     const cLog = console.log
     console.log = require('debug')('maven')
-    mvn({packageJsonPath: path.resolve(__dirname, '../../package.json')}, (err, results) => {
+    mvn({ packageJsonPath: path.resolve(__dirname, '../../package.json') }, (err, results) => {
       console.log = cLog
       if (err) return reject(err)
       results.classpath.forEach(c => java.classpath.push(c))

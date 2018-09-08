@@ -1,6 +1,6 @@
 // @flow
 import * as CLASS from '../../../../ClassNames'
-import {signatureTag as s} from '../../../../util/code'
+import { signatureTag as s } from '../../../../util/code'
 
 export function method (methodInfo: MethodInfo) {
   switch (methodInfo.sig) {
@@ -14,7 +14,7 @@ export function method (methodInfo: MethodInfo) {
 }
 
 export function field (fieldInfo: FieldInfo) {
-  const {sig, clsInfo, info} = fieldInfo
+  const { sig, clsInfo, info } = fieldInfo
   const WorldServer = info.classReverse[CLASS.SERVER_WORLD]
   if (!WorldServer) clsInfo.done = false
   if (WorldServer && sig === 'L' + WorldServer + ';') return 'world'

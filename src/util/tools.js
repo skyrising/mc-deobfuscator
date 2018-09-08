@@ -1,9 +1,9 @@
 import fs from 'mz/fs'
 import path from 'path'
 import cp from 'child_process'
-import {sync as rmrf} from 'rimraf'
+import { sync as rmrf } from 'rimraf'
 
-import {generateOutput} from './output'
+import { generateOutput } from './output'
 
 export function specialSource (inFile, outFile, info, format = 'srg') {
   const mapping = generateOutput(info)[format]
@@ -50,7 +50,7 @@ export async function extractJar (jar, dir) {
   rmrf(dir)
   fs.mkdirSync(dir)
   console.log('Extracting ' + jar + ' to ' + dir)
-  cp.spawnSync('jar', ['xf', jar], {cwd: dir})
+  cp.spawnSync('jar', ['xf', jar], { cwd: dir })
 }
 
 export async function fernflower (jar, to) {
@@ -62,9 +62,9 @@ export async function fernflower (jar, to) {
   const mcp = true
   const args = ['-din=1', '-rbr=1', '-dgs=1', '-asc=1', '-rsy=1', '-iec=1', '-log=WARN', binDir, to]
   if (mcp) {
-    cp.spawnSync('java', ['-jar', 'work/fernflower.jar'].concat(args), {stdio: 'inherit'})
+    cp.spawnSync('java', ['-jar', 'work/fernflower.jar'].concat(args), { stdio: 'inherit' })
   } else {
-    cp.spawnSync('fernflower', args, {stdio: 'inherit'})
+    cp.spawnSync('fernflower', args, { stdio: 'inherit' })
   }
 }
 
@@ -72,5 +72,5 @@ export async function procyon (jar, to) {
   rmrf(to)
   fs.mkdirSync(to)
   console.log('Decompiling with procyon')
-  cp.spawnSync('procyon-decompiler', ['-v', 0, '-jar', jar, '-r', '-o', to], {stdio: 'inherit'})
+  cp.spawnSync('procyon-decompiler', ['-v', 0, '-jar', jar, '-r', '-o', to], { stdio: 'inherit' })
 }

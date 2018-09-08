@@ -1,9 +1,9 @@
 // @flow
 
-import {toUpperCamelCase} from '../../../../util'
+import { toUpperCamelCase } from '../../../../util'
 
 export function method (methodInfo: MethodInfo) {
-  const {code, clsInfo, info} = methodInfo
+  const { code, clsInfo, info } = methodInfo
   if (methodInfo.origName === '<clinit>') {
     for (const line of code.lines) {
       if (typeof (line: any).const !== 'string') continue

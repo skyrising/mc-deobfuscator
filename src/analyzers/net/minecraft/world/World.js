@@ -1,9 +1,9 @@
 // @flow
-import {signatureTag as s} from '../../../../util/code'
+import { signatureTag as s } from '../../../../util/code'
 import * as CLASS from '../../../../ClassNames'
 
 export function field (fieldInfo: FieldInfo) {
-  const {sig, clsInfo, info} = fieldInfo
+  const { sig, clsInfo, info } = fieldInfo
   switch (sig) {
     case 'Ljava/util/Random;': return 'rand'
     case '[I': return 'lightUpdateBlockList'
@@ -36,7 +36,7 @@ export function field (fieldInfo: FieldInfo) {
 }
 
 export function method (methodInfo: MethodInfo) {
-  const {sig, code, info} = methodInfo
+  const { sig, code, info } = methodInfo
   if (s`(${CLASS.BLOCK_POS})${CLASS.BLOCK_STATE}`.matches(methodInfo)) return 'getBlockState'
   if (s`(${CLASS.BLOCK_POS}${CLASS.BLOCK_STATE}I)Z`.matches(methodInfo)) return 'setBlockState'
   if (sig.startsWith('(L') && sig.endsWith(')Z') && code.consts.includes(0.014)) {

@@ -1,10 +1,10 @@
 // @flow
-import {signatureTag as s} from '../../../../util/code'
+import { signatureTag as s } from '../../../../util/code'
 import * as CLASS from '../../../../ClassNames'
 import * as PKG from '../../../../PackageNames'
 
 export function method (methodInfo: MethodInfo) {
-  const {sig, code, clsInfo, info} = methodInfo
+  const { sig, code, clsInfo, info } = methodInfo
   const Block = clsInfo.obfName
   if (code.consts.includes('cobblestone')) {
     info.data.blocks = {
@@ -54,7 +54,7 @@ export function method (methodInfo: MethodInfo) {
 }
 
 export function field (fieldInfo: FieldInfo) {
-  const {sig, clsInfo, info} = fieldInfo
+  const { sig, clsInfo, info } = fieldInfo
   switch (sig) {
     case 'Ljava/lang/String;': return 'name'
     case 'I': return 'lightOpacity'

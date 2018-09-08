@@ -1,5 +1,5 @@
 // @flow
-import {range} from './util'
+import { range } from './util'
 
 const byValue: Array<{[Category]: string}> = ({}: any)
 

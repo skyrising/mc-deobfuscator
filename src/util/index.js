@@ -1,5 +1,5 @@
 import path from 'path'
-import {performance} from 'perf_hooks'
+import { performance } from 'perf_hooks'
 import * as PKG from '../PackageNames'
 
 export function hasSuperClass (cls, name) {

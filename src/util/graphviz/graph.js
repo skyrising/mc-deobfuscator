@@ -1,6 +1,6 @@
 // @flow
 import cp from 'child_process'
-import {indent, attrsToStr, attrToString} from './util'
+import { indent, attrsToStr, attrToString } from './util'
 import Node from './node'
 import Edge from './edge'
 import type {
@@ -57,7 +57,7 @@ export default class Graph {
   }
 
   subgraph (attrs?: GraphAttributes): Graph {
-    const graph = new Graph({...attrs, type: this.type}, this)
+    const graph = new Graph({ ...attrs, type: this.type }, this)
     this.subgraphs.push(graph)
     return graph
   }
@@ -92,7 +92,7 @@ export default class Graph {
   }
 
   async render (options?: RenderOptions = {}): Promise<Buffer> {
-    const {layout, type} = {layout: (this.attributes || {}).layout || 'dot', type: 'svg', ...options}
+    const { layout, type } = { layout: (this.attributes || {}).layout || 'dot', type: 'svg', ...options }
     return new Promise((resolve, reject) => {
       const args = ['-T', type]
       const p = cp.spawn(layout, args)

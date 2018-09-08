@@ -3,7 +3,7 @@
 import * as CLASS from '../../../../ClassNames'
 
 export function method (methodInfo: MethodInfo) {
-  const {sig, code, clsInfo, info} = methodInfo
+  const { sig, code, clsInfo, info } = methodInfo
   const Builder = clsInfo.obfName
   if (methodInfo.name === '<init>' && methodInfo.args.length === 2 && sig.startsWith('(L')) {
     info.class[methodInfo.argSigs[0].slice(1, -1)].name = CLASS.MATERIAL
@@ -21,7 +21,7 @@ export function method (methodInfo: MethodInfo) {
 }
 
 export function field (fieldInfo: FieldInfo) {
-  const {sig, clsInfo, info} = fieldInfo
+  const { sig, clsInfo, info } = fieldInfo
   const MapColor = info.classReverse[CLASS.MAP_COLOR]
   const Material = info.classReverse[CLASS.MATERIAL]
   if (!MapColor || !Material) clsInfo.done = false

@@ -1,7 +1,7 @@
 // @flow
 import * as PKG from '../PackageNames'
 import * as CLASS from '../ClassNames'
-import {hasSuperClass, toUpperCamelCase, decodeType} from '../util'
+import { hasSuperClass, toUpperCamelCase, decodeType } from '../util'
 
 export const generic = true
 export const name = 'generic'
@@ -94,7 +94,7 @@ const simpleConstToClass: {[string]: string | SimpleHandler | Array<SimpleHandle
   'options.sounds.title': CLASS.GUI_OPTIONS_SOUNDS,
   'Invalid Biome id': CLASS.BIOME_PROVIDER,
   'Unable to serialize an anonymous value to json!': {
-    predicate: ({clsInfo}) => !clsInfo.isInnerClass,
+    predicate: ({ clsInfo }) => !clsInfo.isInnerClass,
     name: CLASS.DATA_GENERATOR
   },
   'BiomeBuilder{\nsurfaceBuilder=': CLASS.BIOME$BIOME_BUILDER,
@@ -116,7 +116,7 @@ const simpleConstToClass: {[string]: string | SimpleHandler | Array<SimpleHandle
   '---- Minecraft Crash Report ----\n': CLASS.CRASH_REPORT,
   'argument.player.unknown': CLASS.ARGUMENT_PLAYER,
   'argument.entity.selector.not_allowed': {
-    predicate: ({code}) => code.consts.includes('@e'),
+    predicate: ({ code }) => code.consts.includes('@e'),
     name: CLASS.ARGUMENT_ENTITY
   },
   'argument.pos.outofworld': CLASS.ARGUMENT_BLOCKPOS,
@@ -321,21 +321,21 @@ const simpleConstToClass: {[string]: string | SimpleHandler | Array<SimpleHandle
     superClass: CLASS.RENDER_BOAT
   },
   'RENDER_DISTANCE': [{
-    predicate: ({clsInfo}) => clsInfo.isInnerClass,
+    predicate: ({ clsInfo }) => clsInfo.isInnerClass,
     name: 'Option'
   }, {
     name: CLASS.GAME_SETTINGS_OPTION
   }],
   'Facing': {
-    predicate: ({clsInfo}) => clsInfo.isAbstract,
+    predicate: ({ clsInfo }) => clsInfo.isAbstract,
     name: CLASS.ENTITY_HANGING
   },
   'SpellTicks': {
-    predicate: ({clsInfo}) => clsInfo.isAbstract,
+    predicate: ({ clsInfo }) => clsInfo.isAbstract,
     name: CLASS.ENTITY_SPELLCASTING_ILLAGER
   },
   'pickup': {
-    predicate: ({clsInfo}) => clsInfo.isAbstract,
+    predicate: ({ clsInfo }) => clsInfo.isAbstract,
     name: CLASS.ENTITY_ABSTRACT_ARROW
   }, /*
   'life': {
@@ -343,19 +343,19 @@ const simpleConstToClass: {[string]: string | SimpleHandler | Array<SimpleHandle
     name: CLASS.ENTITY_ABSTRACT_PROJECTILE
   }, */
   '=': {
-    predicate: ({clsInfo, methodInfo}) => clsInfo.isInnerClass && methodInfo.origName === 'toString',
+    predicate: ({ clsInfo, methodInfo }) => clsInfo.isInnerClass && methodInfo.origName === 'toString',
     outerClass: CLASS.INT_HASH_MAP,
     name: 'Entry'
   },
   'options.chat.title': {
-    predicate: ({code}) => !code.consts.includes('options.video'),
+    predicate: ({ code }) => !code.consts.includes('options.video'),
     name: CLASS.GUI_CHAT_OPTIONS
   },
   'deadmau5': [{
-    predicate: ({sig}) => sig.endsWith('Ljava/lang/String;DDDI)V'),
+    predicate: ({ sig }) => sig.endsWith('Ljava/lang/String;DDDI)V'),
     name: CLASS.RENDER_ENTITY
   }, {
-    predicate: ({sig}) => sig.endsWith('FFFFFFF)V'),
+    predicate: ({ sig }) => sig.endsWith('FFFFFFF)V'),
     name: 'net.minecraft.client.renderer.entity.layer.LayerDeadmau5Head',
     method: 'renderLayer',
     superClass: 'net.minecraft.entity.layer.RenderLayer'
@@ -374,38 +374,38 @@ const simpleConstToClass: {[string]: string | SimpleHandler | Array<SimpleHandle
     superClass: CLASS.RCON_THREAD
   },
   'source_entity': [{
-    predicate: ({code}) => code.consts.includes('is_fire'),
+    predicate: ({ code }) => code.consts.includes('is_fire'),
     name: CLASS.ADVANCEMENT_TRIGGER_DAMAGE_SOURCE
   }, {
     name: CLASS.ADVANCEMENT_TRIGGER_DAMAGE
   }],
   'enchanted_item': {
-    predicate: ({methodInfo}) => methodInfo.origName === '<clinit>',
+    predicate: ({ methodInfo }) => methodInfo.origName === '<clinit>',
     name: CLASS.ADVANCEMENT_TRIGGER_ENCHANTED_ITEM
   },
   'impossible': {
-    predicate: ({methodInfo}) => methodInfo.origName === '<clinit>',
+    predicate: ({ methodInfo }) => methodInfo.origName === '<clinit>',
     name: CLASS.ADVANCEMENT_TRIGGER_IMPOSSIBLE
   },
   'killing_blow': [{
-    predicate: ({clsInfo}) => clsInfo.isInnerClass,
+    predicate: ({ clsInfo }) => clsInfo.isInnerClass,
     name: 'Instance'
   }, {
     name: CLASS.ADVANCEMENT_TRIGGER_KILL
   }],
   'levitation': {
-    predicate: ({line}) => line.next && line.next.op === 'invokespecial',
+    predicate: ({ line }) => line.next && line.next.op === 'invokespecial',
     name: CLASS.ADVANCEMENT_TRIGGER_LEVITATION
   },
   'tick': [{
-    predicate: ({methodInfo, code}) => methodInfo.origName === '<clinit>' && code.consts.includes('functions/'),
+    predicate: ({ methodInfo, code }) => methodInfo.origName === '<clinit>' && code.consts.includes('functions/'),
     name: CLASS.FUNCTION_MANAGER
   }, {
-    predicate: ({methodInfo}) => methodInfo.origName === '<clinit>',
+    predicate: ({ methodInfo }) => methodInfo.origName === '<clinit>',
     name: CLASS.ADVANCEMENT_TRIGGER_TICK
   }],
   'used_totem': {
-    predicate: ({methodInfo}) => methodInfo.origName === '<clinit>',
+    predicate: ({ methodInfo }) => methodInfo.origName === '<clinit>',
     name: CLASS.ADVANCEMENT_TRIGGER_USED_TOTEM
   },
   'Enchant': {
@@ -421,7 +421,7 @@ const simpleConstToClass: {[string]: string | SimpleHandler | Array<SimpleHandle
     }
   },
   'falling_block': [{
-    predicate: ({methodInfo}) => methodInfo.origName !== '<clinit>',
+    predicate: ({ methodInfo }) => methodInfo.origName !== '<clinit>',
     name: CLASS.ENTITIES,
     method: 'init',
     call: {
@@ -445,22 +445,22 @@ const simpleConstToClass: {[string]: string | SimpleHandler | Array<SimpleHandle
     field: 'title'
   },
   'old! {}': {
-    predicate: ({clsInfo}) => clsInfo.superClassName !== 'java/lang/Enum',
+    predicate: ({ clsInfo }) => clsInfo.superClassName !== 'java/lang/Enum',
     name: CLASS.GEN_LAYER_HILLS,
     method: 'getInts',
     superClass: CLASS.GEN_LAYER
   },
   'PigZombie': {
-    predicate: ({line}) => line.previous && /^[a-z]{1,3}$/.test(line.previous.const),
+    predicate: ({ line }) => line.previous && /^[a-z]{1,3}$/.test(line.previous.const),
     name: CLASS.ENTITIES
   },
   'Bad packet id': {
-    predicate: ({sig}) => sig.startsWith('(Ljava/io/DataInputStream;)L'),
+    predicate: ({ sig }) => sig.startsWith('(Ljava/io/DataInputStream;)L'),
     name: 'net.minecraft.network.Packet',
     method: 'decode'
   },
   'c.': {
-    predicate: ({code}) => code.consts.includes(36) && code.consts.includes('.dat'),
+    predicate: ({ code }) => code.consts.includes(36) && code.consts.includes('.dat'),
     name: CLASS.ALPHA_CHUNK_LOADER,
     method: 'getFileForChunk'
   },
@@ -469,11 +469,11 @@ const simpleConstToClass: {[string]: string | SimpleHandler | Array<SimpleHandle
     interfaces: [CLASS.BLOCK_PROPERTY]
   },
   'waterlogged': {
-    predicate: ({code}) => code.consts.includes('hinge'),
+    predicate: ({ code }) => code.consts.includes('hinge'),
     name: CLASS.BLOCK_PROPERTIES
   },
   'true': {
-    predicate: ({code, sig}) => sig === '(Ljava/lang/String;)Ljava/util/Optional;' && code.consts.includes('false'),
+    predicate: ({ code, sig }) => sig === '(Ljava/lang/String;)Ljava/util/Optional;' && code.consts.includes('false'),
     name: CLASS.BLOCK_PROPERTY_BOOL,
     method: 'parseValue'
   },
@@ -520,14 +520,14 @@ const simpleConstToClass: {[string]: string | SimpleHandler | Array<SimpleHandle
     }
   },
   'progress': {
-    predicate: ({code}) => code.consts.includes('extending') && code.consts.includes('source'),
+    predicate: ({ code }) => code.consts.includes('extending') && code.consts.includes('source'),
     name: CLASS.BLOCK_ENTITY_PISTON_MOVED_BLOCK
   },
   'checkLight': {
     name: CLASS.WORLD,
     method: 'setBlockState',
     args: [CLASS.BLOCK_POS, CLASS.BLOCK_STATE],
-    eval ({line, info}) {
+    eval ({ line, info }) {
       const profilerStart = line.nextOp('invokevirtual')
       if (!profilerStart) return
       const checkLight = profilerStart.nextOp('invokevirtual')
@@ -548,7 +548,7 @@ const simpleConstToClass: {[string]: string | SimpleHandler | Array<SimpleHandle
   'textures/gui/container/brewing_stand.png': CLASS.GUI_BREWING_STAND,
   'textures/gui/bars.png': CLASS.GUI_BOSS_BAR,
   '>': {
-    predicate: ({code}) => !code.consts.includes('+=') && code.consts.includes('<') && code.consts.includes(0xcc000000 | 0),
+    predicate: ({ code }) => !code.consts.includes('+=') && code.consts.includes('<') && code.consts.includes(0xcc000000 | 0),
     name: CLASS.GUI_SUBTITLE
   },
   'chat.link.confirmTrusted': CLASS.GUI_CHAT_LINK_CONFIRM,
@@ -572,14 +572,14 @@ const simpleConstToClass: {[string]: string | SimpleHandler | Array<SimpleHandle
   'FromBucket': CLASS.FISH,
   'No data fixer registered for entity {}': CLASS.ENTITIES$BUILDER,
   'inFire': {
-    predicate: ({code}) => code.consts.includes('fall'),
+    predicate: ({ code }) => code.consts.includes('fall'),
     name: CLASS.DAMAGE_SOURCE
   }
 })
 
 function handleSimple (obj: ?(string | SimpleHandler | Array<SimpleHandler>), params: HandleFuncArg) {
-  const {line, methodInfo} = params
-  const {clsInfo, info} = methodInfo
+  const { line, methodInfo } = params
+  const { clsInfo, info } = methodInfo
   const cls = clsInfo.bin
   if (!obj) return
   if (typeof obj === 'string') return obj
@@ -637,9 +637,9 @@ function handleSimple (obj: ?(string | SimpleHandler | Array<SimpleHandler>), pa
 }
 
 function getClassNameForConstant (c: string, line: CodeLineLoadConst | CodeLineNumberConst, methodInfo: MethodInfo) {
-  const {code, sig, clsInfo, info} = methodInfo
+  const { code, sig, clsInfo, info } = methodInfo
   const cls = clsInfo.bin
-  const param: HandleFuncArg = {line, const: c, sig, code, clsInfo, info, methodInfo}
+  const param: HandleFuncArg = { line, const: c, sig, code, clsInfo, info, methodInfo }
   const simple = handleSimple(simpleConstToClass[c], param)
   if (simple) return simple
   const Entity = info.classReverse[CLASS.ENTITY]
@@ -725,7 +725,7 @@ function getClassNameForConstant (c: string, line: CodeLineLoadConst | CodeLineN
 }
 
 export function method (methodInfo: MethodInfo) {
-  const {sig, code, clsInfo, info} = methodInfo
+  const { sig, code, clsInfo, info } = methodInfo
   methodInfo.done = false
   const sc = clsInfo.superClassName
   if (sc === 'java.lang.Enum') {
@@ -756,7 +756,7 @@ export function method (methodInfo: MethodInfo) {
 }
 
 function enumClinit (methodInfo: MethodInfo) {
-  const {code, clsInfo} = methodInfo
+  const { code, clsInfo } = methodInfo
   const names = []
   for (let i = 0; i < code.lines.length; i++) {
     const line = code.lines[i]
@@ -781,7 +781,7 @@ function enumClinit (methodInfo: MethodInfo) {
 }
 
 function getEnumName (names: Array<string>, methodInfo: MethodInfo) {
-  const {clsInfo, info} = methodInfo
+  const { clsInfo, info } = methodInfo
   switch (names.slice(0, 5).join(',')) {
     case 'PEACEFUL,EASY,NORMAL,HARD': return CLASS.DIFFICULTY
     case 'NOT_SET,SURVIVAL,CREATIVE,ADVENTURE,SPECTATOR': return CLASS.GAME_MODE
@@ -853,7 +853,7 @@ function getEnumName (names: Array<string>, methodInfo: MethodInfo) {
 }
 
 export function field (fieldInfo: FieldInfo) {
-  const {sig, clsInfo, info} = fieldInfo
+  const { sig, clsInfo, info } = fieldInfo
   const Profiler = info.classReverse[CLASS.PROFILER]
   if (Profiler && sig === 'L' + Profiler + ';') return 'profiler'
   if (!Profiler) clsInfo.done = false

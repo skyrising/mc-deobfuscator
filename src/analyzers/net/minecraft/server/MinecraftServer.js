@@ -3,7 +3,7 @@ import * as CLASS from '../../../../ClassNames'
 // TODO: use ClassNames.js
 
 export function method (methodInfo: MethodInfo) {
-  const {code, info} = methodInfo
+  const { code, info } = methodInfo
   /*
   switch (method.getReturnType().getSignature()) {
     case 'Lcom/mojang/authlib/yggdrasil/YggdrasilAuthenticationService;': return 'getAuthService'
@@ -58,7 +58,7 @@ export function method (methodInfo: MethodInfo) {
 }
 
 export function field (fieldInfo: FieldInfo) {
-  const {sig, clsInfo, info} = fieldInfo
+  const { sig, clsInfo, info } = fieldInfo
   const Snooper = info.classReverse['net.minecraft.profiler.Snooper']
   const PlayerProfileCache = info.classReverse['net.minecraft.server.management.PlayerProfileCache']
   const ServerStatusResponse = info.classReverse[CLASS.SERVER_STATUS_RESPONSE]
