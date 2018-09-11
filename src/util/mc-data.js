@@ -1,6 +1,6 @@
 import fs from 'mz/fs'
 import path from 'path'
-import { spawn, fork } from 'child_process'
+import { spawn, fork, spawnSync } from 'child_process'
 import { sync as rmrf } from 'rimraf'
 import { cpus } from 'os'
 
@@ -8,6 +8,18 @@ const BASE_DIR = path.resolve(__dirname, '../../base-data')
 const TARGET_DIR = path.resolve('temp/mc-data')
 const NUM_CPUS = cpus().length
 const NUM_WORKERS = process.env.WORKERS ? parseInt(process.env.WORKERS) : NUM_CPUS
+
+async function writeREADME (dest, commit, version) {
+  const COMMIT = commit
+  const COMMIT_SHORT = COMMIT.slice(0, 7)
+  let readme = `# mc-data
+  ![GitHub repo size in bytes](https://img.shields.io/github/repo-size/skyrising/mc-data.svg)
+
+  Data generated/extracted by [mc-deobfuscator](https://github.com/skyrising/mc-deobfuscator)`
+  if (version) readme += ` [${COMMIT_SHORT}](https://github.com/skyrising/mc-deobfuscator/commit/${COMMIT})`
+  readme += '\n'
+  await fs.writeFile(dest, readme)
+}
 
 export async function updateDataRepo (from, to) {
   if (!from) rmrf(TARGET_DIR)
@@ -17,9 +29,10 @@ export async function updateDataRepo (from, to) {
   if (!process.env.MINECRAFT_JARS_CACHE) process.env.MINECRAFT_JARS_CACHE = path.resolve('work')
   if (!fs.existsSync(process.env.MINECRAFT_JARS_CACHE)) await fs.mkdir(process.env.MINECRAFT_JARS_CACHE)
   if (!fs.existsSync(DATA_DIR)) await fs.mkdir(DATA_DIR)
+  const commit = spawnSync('git', ['rev-parse', 'HEAD']).stdout.toString('utf8').trim()
   process.chdir(TARGET_DIR)
   await git('init')
-  await run('cp', [path.resolve(BASE_DIR, 'README.md'), '.'])
+  await writeREADME('README.md', commit)
   await git('add', ['README.md'])
   const versions = JSON.parse(await fs.readFile(path.resolve(BASE_DIR, 'versions.json'), 'utf8'))
     .sort((a, b) => new Date(a.releaseTime) - new Date(b.releaseTime))
@@ -55,19 +68,25 @@ export async function updateDataRepo (from, to) {
     })
   }
   for (const version of versions) {
-    const { id } = version
+    const { id, type } = version
+    const versionDir = type + '/' + id
     if (processedVersions.includes(version)) {
-      if (fs.existsSync(id)) rmrf(id)
-      await run('mv', [path.resolve(DATA_DIR, id), id])
+      if (!fs.existsSync(type)) fs.mkdirSync(type)
+      if (fs.existsSync(versionDir)) rmrf(versionDir)
+      await run('mv', [path.resolve(DATA_DIR, id), versionDir])
+      await writeREADME(path.resolve(versionDir, 'README.md'), commit, version)
     }
-    if (!fs.existsSync(id)) {
-      console.log(`${id}/ doesn't exist: skipping`)
+    if (!fs.existsSync(versionDir)) {
+      console.log(`${versionDir}/ doesn't exist: skipping`)
       continue
     }
     rmrf('latest')
-    await run('cp', ['-r', id, 'latest'])
-    await git('add', [id])
-    await git('add', ['latest'])
+    await run('cp', ['-r', versionDir, 'latest'])
+    await git('add', [versionDir, 'latest'])
+    if (fs.existsSync('latest/README.md')) {
+      await run('cp', ['latest/README.md', '.'])
+      await git('add', ['README.md'])
+    }
     await git('commit', ['-m', id], { date: version.releaseTime })
     await git('tag', [id])
   }

@@ -8,7 +8,7 @@ process.on('message', async ([version]) => {
     const client = await downloadJar(version, 'client').catch(e => undefined)
     const server = await downloadJar(version, 'server').catch(e => undefined)
     for (const jar of [client, server].filter(Boolean)) await analyzeJar(jar, [], { version })
-    process.send({ done: true })
+    process.send({ done: true, version })
   } catch (e) {
     console.error(e)
     process.send({ error: e.stack })
