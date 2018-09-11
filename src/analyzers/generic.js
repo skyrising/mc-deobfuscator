@@ -2,6 +2,7 @@
 import * as PKG from '../PackageNames'
 import * as CLASS from '../ClassNames'
 import { hasSuperClass, toUpperCamelCase, decodeType } from '../util'
+import { signatureTag as s } from '../util/code'
 
 export const generic = true
 export const name = 'generic'
@@ -34,6 +35,52 @@ type SimpleHandler = {|
   field?: string;
   interfaces?: Array<string>;
 |}
+
+const COMMANDS = {
+  banip: 'BanIP',
+  bossbar: 'BossBarCommand',
+  datapack: 'DataPackCommand',
+  difficulty: 'DifficultyCommand',
+  debug: 'DebugCommand',
+  defaultgamemode: 'DefaultGameMode',
+  effect: 'EffectCommand',
+  forceload: 'ForceLoad',
+  function: 'FunctionCommand',
+  gamemode: 'GameModeCommand',
+  gamerule: 'GameRuleCommand',
+  help: 'HelpCommand',
+  op: 'OpCommand',
+  pardonip: 'PardonIP',
+  playsound: 'PlaySound',
+  recipe: 'RecipeCommand',
+  replaceitem: 'ReplaceItem',
+  scoreboard: 'ScoreboardCommand',
+  seed: 'SeedCommand',
+  setblock: 'SetBlock',
+  setidletimeout: 'SetIdleTimeout',
+  setworldspawn: 'SetWorldSpawn',
+  spawnpoint: 'SpawnPointCommand',
+  spreadplayers: 'SpreadPlayers',
+  stopsound: 'StopSound',
+  tag: 'TagCommand',
+  team: 'TeamCommand',
+  time: 'TimeCommand',
+  title: 'TitleCommand',
+  trigger: 'TriggerCommand',
+  weather: 'WeatherCommand',
+  whitelist: 'WhitelistCommand',
+  worldborder: 'WorldBorderCommand'
+}
+
+const IS_REGISTERING_COMMAND = ({ methodInfo, line }: HandleFuncArg) => {
+  const next = line.next
+  // is register method
+  if (!methodInfo.static || methodInfo.sig !== '(Lcom/mojang/brigadier/CommandDispatcher;)V' || !next) return false
+  // gets dispatcher argument before building main command
+  if (!line.previous || line.previous.op !== 'aload_0') return false
+  // calls build with this constant
+  return next.op === 'invokestatic' && ((next: any): CodeLineCall).call.signature === '(Ljava/lang/String;)Lcom/mojang/brigadier/builder/LiteralArgumentBuilder;'
+}
 
 const simpleConstToClass: {[string]: string | SimpleHandler | Array<SimpleHandler>} = Object.freeze({
   'box[': CLASS.AABB,
@@ -126,8 +173,8 @@ const simpleConstToClass: {[string]: string | SimpleHandler | Array<SimpleHandle
   '#stone[foo=bar]{baz=nbt}': CLASS.ARGUMENT_BLOCK_PREDICATE,
   'stick{foo=bar}': CLASS.ARGUMENT_ITEM_STACK,
   '#stick{foo=bar}': CLASS.ARGUMENT_ITEM_PREDICATE,
-  'argument.color.invalid': CLASS.ARGUMENT_TEXT_COLOR,
-  'argument.component.invalid': CLASS.ARGUMENT_TEXT_COMPONENT,
+  'argument.color.invalid': CLASS.ARGUMENT_COLOR,
+  'argument.component.invalid': CLASS.ARGUMENT_COMPONENT,
   'Hello @p :)': CLASS.ARGUMENT_MESSAGE,
   'argument.nbt.invalid': CLASS.ARGUMENT_NBT,
   'arguments.nbtpath.child.invalid': CLASS.ARGUMENT_NBT_PATH,
@@ -574,7 +621,62 @@ const simpleConstToClass: {[string]: string | SimpleHandler | Array<SimpleHandle
   'inFire': {
     predicate: ({ code }) => code.consts.includes('fall'),
     name: CLASS.DAMAGE_SOURCE
-  }
+  },
+  'Couldn\'t write out command tree!': {
+    name: CLASS.COMMAND_MANAGER,
+    method: 'write'
+  },
+  'save-all': {
+    predicate: IS_REGISTERING_COMMAND,
+    name: CLASS.COMMAND_SAVE_ALL
+  },
+  'save-on': {
+    predicate: IS_REGISTERING_COMMAND,
+    name: CLASS.COMMAND_SAVE_ON
+  },
+  'save-off': {
+    predicate: IS_REGISTERING_COMMAND,
+    name: CLASS.COMMAND_SAVE_OFF
+  },
+  'advancement': {
+    predicate: IS_REGISTERING_COMMAND,
+    name: CLASS.COMMAND_ADVANCEMENT
+  },
+  'me': {
+    predicate: IS_REGISTERING_COMMAND,
+    name: CLASS.COMMAND_ME
+  },
+  'list': {
+    predicate: IS_REGISTERING_COMMAND,
+    name: CLASS.COMMAND_LIST
+  },
+  'msg': {
+    predicate: IS_REGISTERING_COMMAND,
+    name: CLASS.COMMAND_MSG
+  },
+  'say': {
+    predicate: IS_REGISTERING_COMMAND,
+    name: CLASS.COMMAND_SAY
+  },
+  'stop': {
+    predicate: IS_REGISTERING_COMMAND,
+    name: CLASS.COMMAND_STOP
+  },
+  'tellraw': {
+    predicate: IS_REGISTERING_COMMAND,
+    name: CLASS.COMMAND_TELLRAW
+  },
+  'commands.data.merge.failed': CLASS.COMMAND_DATA,
+  'permissions.requires.player': CLASS.COMMAND_SOURCE,
+  'BaseComponent{style=': CLASS.TEXT_BASE_COMPONENT,
+  'TextComponent{text=\'': CLASS.TEXT_TEXT_COMPONENT,
+  'ScoreComponent{name=\'': CLASS.TEXT_SCORE_COMPONENT,
+  'SelectorComponent{pattern=\'': CLASS.TEXT_SELECTOR_COMPONENT,
+  'TranslatableComponent{key=\'': CLASS.TEXT_TRANSLATABLE_COMPONENT,
+  'KeybindComponent{keybind=\'': CLASS.TEXT_KEYBIND_COMPONENT,
+  'Style{hasParent=': CLASS.TEXT_STYLE,
+  'ClickEvent{action=': CLASS.TEXT_CLICK_EVENT,
+  'HoverEvent{action=': CLASS.TEXT_HOVER_EVENT
 })
 
 function handleSimple (obj: ?(string | SimpleHandler | Array<SimpleHandler>), params: HandleFuncArg) {
@@ -703,10 +805,13 @@ function getClassNameForConstant (c: string, line: CodeLineLoadConst | CodeLineN
       return
     }
   }
-  if (/^commands\.(.*?)\.$/.test(c)) {
-    const commandName = c.match(/^commands\.(.*?)\.$/)[1]
-    if (commandName.indexOf('.') >= 0) return
-    return PKG.COMMAND + '.Command' + toUpperCamelCase(commandName)
+  if (!clsInfo.isInnerClass && /^commands\.(.*?)\./.test(c)) {
+    const [, commandName, suffix] = (c.match(/^commands\.(.*?)\.(.*?)(\.|$)/): any)
+    if (commandName === 'save' || commandName === 'context') return
+    const similar = [...clsInfo.consts].filter(c1 => typeof c1 === 'string' && c1.startsWith('commands.' + commandName))
+    const name = PKG.COMMAND_IMPL + '.' + (COMMANDS[commandName] || toUpperCamelCase(commandName))
+    if (similar.length >= 5 || suffix === '') return name
+    if (['success', 'failed', 'usage', 'set', 'query', 'list', 'started'].includes(suffix)) return name
   }
   if (c.startsWith('Skipping BlockEntity') || c.startsWith('Skipping TileEntity')) {
     methodInfo.name = 'fromNBT'
@@ -853,12 +958,10 @@ function getEnumName (names: Array<string>, methodInfo: MethodInfo) {
 }
 
 export function field (fieldInfo: FieldInfo) {
-  const { sig, clsInfo, info } = fieldInfo
-  const Profiler = info.classReverse[CLASS.PROFILER]
-  if (Profiler && sig === 'L' + Profiler + ';') return 'profiler'
-  if (!Profiler) clsInfo.done = false
-  switch (sig) {
+  switch (fieldInfo.sig) {
     case 'Lorg/apache/logging/log4j/Logger;': return 'LOGGER'
     case 'Ljava/text/SimpleDateFormat;': return 'DATE_FORMAT'
   }
+  if (s`${CLASS.PROFILER}`.matches(fieldInfo)) return 'profiler'
+  fieldInfo.done = false
 }

@@ -20,7 +20,7 @@ export function method (methodInfo: MethodInfo) {
   }
   if (code.consts.includes('options.difficulty.')) {
     const newTranslation = code.lines[0].nextOp('new', true)
-    if (newTranslation) info.class[newTranslation.className].name = CLASS.TRANSLATION
+    if (newTranslation) info.class[newTranslation.className].name = CLASS.TEXT_TRANSLATABLE_COMPONENT
     const retType = sig.slice(sig.indexOf(')L') + 2, sig.lastIndexOf(';'))
     info.class[retType].name = CLASS.TEXT_COMPONENT
     return 'getTranslation'

@@ -239,8 +239,8 @@ export function signatureTag (strings: Array<string>, ...args: Array<string>) {
     }
     if (args.length) {
       const next = args.shift()
-      if (!next) throw Error(`Invalid parameter for ${endArgs ? 'return type' : 'argument ' + parsedArgs.length}`)
-      if (!endArgs) parsedArgs.push(next)
+      if (!next) throw Error(`Invalid parameter for ${!startArgs || endArgs ? 'return type' : 'argument ' + parsedArgs.length}`)
+      if (startArgs && !endArgs) parsedArgs.push(next)
       else parsedReturn = next
     }
   }

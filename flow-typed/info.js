@@ -16,6 +16,7 @@ declare type OpField = {
   fullSig: string;
   pkg: string;
   className: string;
+  fullClassName: string;
   fieldName: string;
   type: string;
 }
@@ -124,6 +125,8 @@ declare type MethodInfo = {
   done: boolean;
   infoComplete: boolean;
   ...AccessFlags;
+  getter?: boolean | FieldInfo;
+  setter?: boolean | FieldInfo;
 }
 
 declare type FieldInfo = {
