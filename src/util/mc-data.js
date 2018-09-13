@@ -70,10 +70,11 @@ export async function updateDataRepo (from, to) {
   for (const version of versions) {
     const { id, type } = version
     const versionDir = type + '/' + id
-    if (processedVersions.includes(version)) {
+    const tempDir = path.resolve(DATA_DIR, id)
+    if (fs.existsSync(tempDir)) {
       if (!fs.existsSync(type)) fs.mkdirSync(type)
       if (fs.existsSync(versionDir)) rmrf(versionDir)
-      await run('mv', [path.resolve(DATA_DIR, id), versionDir])
+      await run('mv', [tempDir, versionDir])
       await writeREADME(path.resolve(versionDir, 'README.md'), commit, version)
     }
     if (!fs.existsSync(versionDir)) {
