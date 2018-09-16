@@ -38,11 +38,11 @@ export async function updateDataRepo (from, to) {
   await git('init')
   await run('cp', [path.resolve(BASE_DIR, 'LICENSE.md'), '.'])
   await writeREADME('README.md', commit)
-  await git('add', ['README.md'])
+  await git('add', ['README.md', 'LICENSE.md'])
   const versions = JSON.parse(await fs.readFile(path.resolve(BASE_DIR, 'versions.json'), 'utf8'))
     .sort((a, b) => new Date(a.releaseTime) - new Date(b.releaseTime))
   await git('commit', ['-m', 'base'], { date: '2009-05-10T00:00:00Z' })
-  const fromIndex = from === 'none' ? versions.length : (from ? versions.findIndex(v => v.id === from) : 0)
+  const fromIndex = from === 'none' || from === 'refresh' ? versions.length : (from ? versions.findIndex(v => v.id === from) : 0)
   const toIndex = to ? versions.findIndex(v => v.id === to) : versions.length - 1
   const processedVersions = versions.slice(Math.max(0, fromIndex), toIndex >= 0 ? toIndex + 1 : versions.length)
   console.log(`${versions.length} versions: refreshing ${fromIndex}-${toIndex} (${processedVersions.length})`)
@@ -85,6 +85,9 @@ export async function updateDataRepo (from, to) {
     if (!fs.existsSync(versionDir)) {
       console.log(`${versionDir}/ doesn't exist: skipping`)
       continue
+    }
+    if (from === 'refresh') {
+      await writeREADME(path.resolve(versionDir, 'README.md'), commit, version)
     }
     rmrf('latest')
     await run('cp', ['-r', versionDir, 'latest'])
