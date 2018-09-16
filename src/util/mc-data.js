@@ -13,11 +13,15 @@ async function writeREADME (dest, commit, version) {
   const COMMIT = commit
   const COMMIT_SHORT = COMMIT.slice(0, 7)
   let readme = `# mc-data
-  ![GitHub repo size in bytes](https://img.shields.io/github/repo-size/skyrising/mc-data.svg)
+![License CC0](https://img.shields.io/badge/license-CC0-green.svg)
+![GitHub repo size in bytes](https://img.shields.io/github/repo-size/skyrising/mc-data.svg)
 
-  Data generated/extracted by [mc-deobfuscator](https://github.com/skyrising/mc-deobfuscator)`
+Data generated/extracted by [mc-deobfuscator](https://github.com/skyrising/mc-deobfuscator)`
   if (version) readme += ` [${COMMIT_SHORT}](https://github.com/skyrising/mc-deobfuscator/commit/${COMMIT})`
-  readme += '\n'
+  readme += `
+## License
+While this data is CC0 you are encouraged to give credit (link to this repository) if you distribute it.
+`
   await fs.writeFile(dest, readme)
 }
 
@@ -32,6 +36,7 @@ export async function updateDataRepo (from, to) {
   const commit = spawnSync('git', ['rev-parse', 'HEAD']).stdout.toString('utf8').trim()
   process.chdir(TARGET_DIR)
   await git('init')
+  await run('cp', [path.resolve(BASE_DIR, 'LICENSE.md'), '.'])
   await writeREADME('README.md', commit)
   await git('add', ['README.md'])
   const versions = JSON.parse(await fs.readFile(path.resolve(BASE_DIR, 'versions.json'), 'utf8'))
