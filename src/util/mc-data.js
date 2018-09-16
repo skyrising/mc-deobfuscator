@@ -19,6 +19,7 @@ async function writeREADME (dest, commit, version) {
 Data generated/extracted by [mc-deobfuscator](https://github.com/skyrising/mc-deobfuscator)`
   if (version) readme += ` [${COMMIT_SHORT}](https://github.com/skyrising/mc-deobfuscator/commit/${COMMIT})`
   readme += `
+
 ## License
 While this data is CC0 you are encouraged to give credit (link to this repository) if you distribute it.
 `
