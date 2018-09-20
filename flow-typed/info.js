@@ -24,7 +24,7 @@ declare type OpField = {
 declare type BytecodeOpField = 'putstatic' | 'putfield' | 'getstatic' | 'getfield'
 declare type BytecodeOpCall = 'invokestatic' | 'invokevirtual' | 'invokeinterface' | 'invokespecial'
 declare type BytecodeOpNumberConst = 'bipush' | 'sipush' | 'ipush'
-declare type BytecodeOpLoadConst = 'ldc' | 'ldc_w'
+declare type BytecodeOpLoadConst = 'ldc' | 'ldc_w' | 'ldc2_w'
 declare type BytecodeOpConst = BytecodeOpNumberConst | BytecodeOpLoadConst
 declare type BytecodeOpNew = 'new'
 
@@ -94,6 +94,8 @@ declare type Code = {
   internalFields: Array<OpField>;
   calls: Array<OpCall>;
   internalCalls: Array<OpCall>;
+  matches (predicates: Array<string | RegExp | (CodeLine => any)>): boolean;
+  error?: Error;
 }
 
 declare type AccessFlags = {|
@@ -139,6 +141,7 @@ declare type FieldInfo = {
   clsInfo: ClassInfo;
   info: FullInfo;
   done: boolean;
+  accessorSuffix?: string;
   ...AccessFlags;
 }
 
@@ -201,6 +204,7 @@ declare type FullInfo = {
   class: {[string]: ClassInfo};
   method: {[string]: MethodInfo};
   data: {[string]: any};
+  enriched: boolean;
   newPass (name: string, info?: {weight: number}): Pass;
 } & events$EventEmitter;
 

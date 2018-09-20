@@ -59,7 +59,7 @@ export function field (fieldInfo: FieldInfo) {
     case 'I': return 'lightOpacity'
   }
   if (s`${CLASS.MAP_COLOR}`.matches(fieldInfo)) return 'mapColor'
-  if (s`${CLASS.DEFAULT_MAPPED_REGISTRY}`.matches(fieldInfo)) return 'REGISTRY'
+  if (s`${CLASS.REGISTRY}`.matches(fieldInfo)) return 'REGISTRY'
   if (s`${CLASS.BLOCK_STATE}`.matches(fieldInfo)) return 'defaultBlockState'
 }
 

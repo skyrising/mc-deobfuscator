@@ -106,6 +106,7 @@ export async function analyzeJar (jarFile: string, classPath: Array<string>, opt
   passClsInfo.start()
   console.log('Reading classes')
   await forEachClass(cls => enrichClsInfo(cls, info))
+  info.enriched = true
   passClsInfo.end()
   await initAnalyzer(hierarchyAnalyzer, info)
   for (const pass of genericPasses) {

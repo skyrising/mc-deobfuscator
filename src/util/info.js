@@ -35,6 +35,7 @@ class Info extends EventEmitter {
   version: Version;
   passes: Array<Pass>;
   currentPass: ?Pass;
+  enriched: boolean;
 
   constructor () {
     super()
@@ -51,6 +52,7 @@ class Info extends EventEmitter {
     this.specialAnalyzed = {}
     this.totalAnalyzed = {}
     this.classReverse = {}
+    this.enriched = false
     this.class = new Proxy(({
       [util.inspect.custom] (depth, opts) {
         return opts.stylize('[Classes: ', 'special') +
@@ -65,6 +67,7 @@ class Info extends EventEmitter {
         if (typeof clsObfName !== 'string') return classes[clsObfName]
         clsObfName = clsObfName.replace(/\//g, '.')
         if (!classes[clsObfName]) {
+          if (info.enriched) console.warn('Too late to create new skeleton class')
           const clsInfo: ClassInfo = classes[clsObfName] = ({
             [util.inspect.custom] (depth, opts) {
               return opts.stylize('[Class ', 'special') +
@@ -93,6 +96,7 @@ class Info extends EventEmitter {
               if (info.classReverse[deobfName] && info.classReverse[deobfName] !== slash(clsObfName)) {
                 throw Error(`Duplicate name ${deobfName}: ${info.classReverse[deobfName]}, ${slash(clsObfName)}`)
               }
+              info.classReverse[deobfName] = slash(clsObfName)
               if (this.isInnerClass) deobfName = deobfName.slice(deobfName.lastIndexOf(deobfName.includes('$') ? '$' : '.') + 1)
               if (this._name !== deobfName) {
                 info.genericAnalyzed[deobfName] = -1
@@ -104,7 +108,6 @@ class Info extends EventEmitter {
                 for (const sc of this.subClasses) info.class[sc].done = false
               }
               this._name = deobfName
-              info.classReverse[deobfName] = slash(clsObfName)
             },
             get name (): ?string {
               return this._name
@@ -234,6 +237,10 @@ class Info extends EventEmitter {
       }
     }
     this._queue.push(...classNames)
+  }
+
+  [util.inspect.custom] (depth, opts) {
+    return opts.stylize('[FullInfo]', 'special')
   }
 
   newPass (name: string, passInfo: {weight: number} = { weight: 1 }) {

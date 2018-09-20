@@ -29,7 +29,7 @@ export async function findAnalyzer (name: string): ?Analyzer {
         end()
         return Object.assign(require(file), { file: dir ? dir + '/' + fname : fname })
       } catch (e) {
-        console.log(e.message)
+        console.error(e.message)
       }
     }
   }

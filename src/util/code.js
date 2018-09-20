@@ -1,6 +1,6 @@
 // @flow
 import util from 'util'
-import { parseClassSignature } from './parse'
+import { parseClassSignature, parseFieldTypeSignature } from './parse'
 
 const ACC_PUBLIC = 0x0001
 const ACC_PRIVATE = 0x0002
@@ -102,17 +102,18 @@ function decodeLine (l: string, parent: Code): ?CodeLine {
       parent.fields.push(field)
       if ((!pkg || pkg.startsWith('net.minecraft')) && className[0] !== '[') parent.internalFields.push(field)
     }
-  } else if (op === 'ldc_w' || op === 'ldc' || op === 'bipush' || op === 'sipush' || op === 'ipush') {
+  } else if (op === 'ldc_w' || op === 'ldc2_w' || op === 'ldc' || op === 'bipush' || op === 'sipush' || op === 'ipush') {
     try {
-      line.const = JSON.parse(arg)
+      line.const = parseConst(arg)
     } catch (e) {
+      console.debug('cannot parse constant: %s (%s)', arg, e)
       line.const = arg
     }
     parent.consts.push(line.const)
   } else if (op.startsWith('iconst_')) {
     line.const = +op[7]
     parent.consts.push(line.const)
-  } else if (op === 'new') {
+  } else if (op === 'new' || op === 'instanceof') {
     line.className = arg.slice(1, -1)
   } else if (/^[ilfda]load_\d$/.test(op)) {
     line.load = +op[6]
@@ -127,12 +128,21 @@ function decodeLine (l: string, parent: Code): ?CodeLine {
   return line
 }
 
+function parseConst (c: string) {
+  if (/^\d+$/.test(c)) {
+    const i = BigInt.asIntN(64, c)
+    if (i >> BigInt(32)) return i
+    return Number(i)
+  }
+  return JSON.parse(c)
+}
+
 export async function getCode (method: BCELMethod): Promise<Code> {
   let source
   try {
     source = await method.getCodeAsync().then(c => c.toStringAsync())
-  } catch (e) {
-    return { code: '', lines: [], calls: [], internalCalls: [], fields: [], internalFields: [], consts: [] }
+  } catch (error) {
+    return { code: '', lines: [], calls: [], internalCalls: [], fields: [], internalFields: [], consts: [], matches: () => false, error }
   }
   const code: Code = {
     code: source,
@@ -141,7 +151,18 @@ export async function getCode (method: BCELMethod): Promise<Code> {
     fields: [],
     consts: [],
     internalCalls: [],
-    internalFields: []
+    internalFields: [],
+    matches (predicates: Array<string | RegExp | (CodeLine => any)>) {
+      if (predicates.length !== this.lines.length) return false
+      for (let i = 0; i < predicates.length; i++) {
+        const predicate = predicates[i]
+        const line = this.lines[i]
+        if (typeof predicate === 'string' && line.op !== predicate) return false
+        if (typeof predicate === 'function' && !predicate(line)) return false
+        if (predicate instanceof RegExp && !predicate.test(line.op)) return false
+      }
+      return true
+    }
   }
   code.lines = source.split('\n')
     .filter(l => /^\d+:/.test(l))
@@ -336,15 +357,7 @@ export async function enrichClsInfo (cls: BCELClass, info: FullInfo): Promise<Cl
   hash = h2(hash, clsInfo.isAbstract)
   clsInfo.isInterface = await cls.isInterfaceAsync()
   hash = h2(hash, clsInfo.isInterface)
-  for (const attr of await cls.getAttributes()) {
-    const name = await attr.getNameAsync()
-    clsInfo.attributes[name] = attr
-    if (name === 'Signature') {
-      clsInfo.rawGenericSignature = await attr.getSignatureAsync()
-      clsInfo.genericSignature = parseClassSignature(clsInfo.rawGenericSignature)[0]
-      console.debug(clsInfo.obfName, clsInfo.rawGenericSignature, JSON.stringify(clsInfo.genericSignature))
-    }
-  }
+  await getAttributes([clsInfo, cls])
   for (const md of await cls.getMethodsAsync()) {
     const name = await md.getNameAsync()
     const sig = await md.getSignatureAsync()
@@ -364,6 +377,7 @@ export async function enrichClsInfo (cls: BCELClass, info: FullInfo): Promise<Cl
       isAbstract: await md.isAbstract(),
       code: await getCode(md)
     })
+    // TODO: await getAttributes([methodInfo, md])
     methodInfo.argSigs = methodInfo.args.map(t => t.getSignature())
     hash = h2(hash, methodInfo.argSigs.map(hsig))
     methodInfo.retSig = await methodInfo.ret.getSignatureAsync()
@@ -386,6 +400,7 @@ export async function enrichClsInfo (cls: BCELClass, info: FullInfo): Promise<Cl
       acc,
       ...decodeAccessFlags(acc)
     }: any)
+    await getAttributes([fieldInfo, fd])
     hash = h2(hash, acc)
     fieldInfo.sig = await fieldInfo.fieldType.getSignatureAsync()
     hash = h2(hash, hsig(fieldInfo.sig))
@@ -395,6 +410,29 @@ export async function enrichClsInfo (cls: BCELClass, info: FullInfo): Promise<Cl
   clsInfo.hashBase26 = base26(hash)
   clsInfo.infoComplete = true
   return clsInfo
+}
+
+async function getAttributes (arg: [ClsInfo, BCELClass] | [FieldInfo, BCELField]) {
+  const base = arg[0]
+  const attributes = await arg[1].getAttributesAsync()
+  const parse = ({
+    field: parseFieldTypeSignature,
+    class: parseClassSignature
+  })[base.type]
+  base.attributes = {}
+  for (const attr of attributes) {
+    const name = await attr.getNameAsync()
+    base.attributes[name] = attr
+    if (name === 'Signature') {
+      base.rawGenericSignature = await attr.getSignatureAsync()
+      Object.defineProperty(base, 'genericSignature', {
+        get () {
+          if (!this._genericSignature) this._genericSignature = parse(this.rawGenericSignature)[0]
+          return this._genericSignature
+        }
+      })
+    }
+  }
 }
 
 function decodeAccessFlags (acc: number): AccessFlags {

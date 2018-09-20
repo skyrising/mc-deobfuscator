@@ -1,7 +1,7 @@
 // @flow
 import * as PKG from '../PackageNames'
 import * as CLASS from '../ClassNames'
-import { hasSuperClass, doesImplement, getDefaultName } from '../util'
+import { hasSuperClass, doesAnyImplement, getDefaultName, getBaseInterfaces } from '../util'
 
 export const name = 'hierarchy'
 export const generic = true
@@ -20,10 +20,16 @@ const PACKAGE_MAP = {
   [CLASS.ABSTRACT_CLIENT_PLAYER]: PKG.CLIENT_ENTITY,
   [CLASS.GEN_LAYER]: PKG.WORLD_GEN_LAYER,
   [CLASS.DATA_PROVIDER]: PKG.DATA,
-  [CLASS.ADVANCEMENT_TRIGGER]: PKG.ADVANCEMENT_TRIGGERS
+  [CLASS.ADVANCEMENT_TRIGGER]: PKG.ADVANCEMENT_TRIGGERS,
+  [CLASS.AI_GOAL]: PKG.ENTITY_AI,
+  [CLASS.PARTICLE]: PKG.PARTICLE,
+  [CLASS.REGISTRY]: PKG.REGISTRY
 }
 
-const OBF_PACKAGE_MAP = {}
+const OBF_PACKAGE_MAP = {
+  'com.mojang.datafixers.DataFix': PKG.DATAFIX,
+  'com.mojang.datafixers.schemas.Schema': PKG.DATAFIX_SCHEMAS
+}
 
 type SCInfo = {
   superClass?: string;
@@ -46,11 +52,26 @@ const SUPERCLASS_MAP: {[string]: string | SCInfo} = {
   [CLASS.NORMAL_HEAD]: CLASS.HEAD,
   [CLASS.STANDING_SIGN]: CLASS.SIGN,
   [CLASS.GHAST]: CLASS.FLYING,
-  [CLASS.THROWN_ENDER_PEARL]: CLASS.ENTITY_ABSTRACT_PROJECTILE
+  [CLASS.THROWN_ENDER_PEARL]: CLASS.ENTITY_ABSTRACT_PROJECTILE,
+  [CLASS.DEFAULTED_MAPPED_REGISTRY]: CLASS.SIMPLE_REGISTRY
 }
 
 export function init (info: FullInfo) {
   info.on('class-name', ({ obf, deobf, clsInfo }: {obf: string, deobf: string, clsInfo: ClassInfo}) => {
+    switch (deobf) {
+      case CLASS.GEN_LAYER_HILLS: {
+        const baseInterfaces = getBaseInterfaces(clsInfo)
+        if (baseInterfaces.length !== 1) {
+          console.warn('Expected only one base interface for GenLayerHills, got: %s', baseInterfaces)
+        }
+        for (const bi of baseInterfaces) {
+          if (!(bi in info.class)) continue
+          info.class[bi].package = PKG.WORLD_GEN_LAYER
+          OBF_PACKAGE_MAP[bi] = PKG.WORLD_GEN_LAYER
+        }
+        break
+      }
+    }
     if (deobf in PACKAGE_MAP && !(obf in PACKAGE_MAP)) {
       OBF_PACKAGE_MAP[obf] = PACKAGE_MAP[deobf]
       console.log('Got package base class ' + deobf)
@@ -83,11 +104,15 @@ export function init (info: FullInfo) {
 
 export function cls (clsInfo: ClassInfo) {
   if (clsInfo.name) return
-  const { info, bin: cls } = clsInfo
+  const { info } = clsInfo
   clsInfo.done = false
   for (const scObfName in OBF_PACKAGE_MAP) {
     const scInfo = info.class[scObfName]
-    if (scInfo.isInterface ? doesImplement(cls, scObfName) : hasSuperClass(cls, scObfName)) {
+    const doesExtend = scInfo.isInterface
+      ? doesAnyImplement(clsInfo, scObfName)
+      : hasSuperClass(clsInfo, scObfName)
+    console.debug('does %s extend %s: %o', clsInfo.obfName, scObfName, doesExtend)
+    if (doesExtend) {
       clsInfo.package = OBF_PACKAGE_MAP[scObfName]
       console.debug('Packaged: ' + clsInfo.obfName + ' -> ' + clsInfo.package)
       postPackageSubclass(clsInfo, scInfo)
@@ -95,17 +120,15 @@ export function cls (clsInfo: ClassInfo) {
     }
   }
   const NBTBase = info.classReverse[CLASS.NBT_BASE]
-  if (NBTBase && (hasSuperClass(cls, NBTBase) || doesImplement(cls, NBTBase))) {
-    if (cls.isAbstract()) return CLASS.NBT_PRIMITIVE
+  if (NBTBase && (hasSuperClass(clsInfo, NBTBase) || doesAnyImplement(clsInfo, NBTBase))) {
+    if (clsInfo.isAbstract) return CLASS.NBT_PRIMITIVE
     clsInfo.package = PKG.NBT
     return
   }
-  if (hasSuperClass(cls, 'com.mojang.datafixers.DataFix')) return PKG.DATAFIX + '.' + getDefaultName(clsInfo)
-  if (hasSuperClass(cls, 'com.mojang.datafixers.schemas.Schema')) return PKG.DATAFIX_SCHEMAS + '.' + getDefaultName(clsInfo)
   if (clsInfo.isInnerClass) {
     if (clsInfo.outerClassName === info.classReverse[CLASS.PROFILER]) return 'Result'
-    if (clsInfo.outerClassName === info.classReverse[CLASS.BLOCK_POS] && hasSuperClass(cls, info.classReverse[CLASS.BLOCK_POS])) {
-      return cls.getSuperclassName() === info.classReverse[CLASS.BLOCK_POS]
+    if (clsInfo.outerClassName === info.classReverse[CLASS.BLOCK_POS] && hasSuperClass(clsInfo, info.classReverse[CLASS.BLOCK_POS])) {
+      return clsInfo.superClassName === info.classReverse[CLASS.BLOCK_POS]
         ? CLASS.BLOCK_POS$MUTABLE_BLOCK_POS
         : CLASS.BLOCK_POS$POOLED_MUTABLE_BLOCK_POS
     }

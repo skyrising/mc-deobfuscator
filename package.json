@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "env BABEL_ENV=test nyc ava",
-    "build": "babel src -d build",
+    "build": "babel src -d build --copy-files",
     "start": "node build/index.js",
     "dev": "node -r @babel/register src/index.js",
     "dl-server": "node -r @babel/register src/util/version.js",

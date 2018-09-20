@@ -130,8 +130,19 @@ export function generateDataFiles (info, dir) {
 export function renderGraph (info, file) {
   const g = digraph({
     fontname: 'sans-serif',
-    overlap: false
+    overlap: false,
+    splines: true,
+    rankdir: 'LR',
+    size: '25,25',
+    pack: 16
   })
+  g.nodeAttributes = {
+    fontname: 'sans-serif',
+    shape: 'Mrecord'
+  }
+  g.edgeAttributes = {
+    fontname: 'sans-serif'
+  }
   const sgs = {}
   const getSubgraph = name => {
     if (!name || name.startsWith(PKG.DEFAULT)) return g
@@ -141,14 +152,41 @@ export function renderGraph (info, file) {
     sgs[name] = sg
     return sg
   }
-  for (const clsInfo of Object.values(info.class)) {
+  for (const obfName of info.classNames) {
+    const clsInfo = info.class[obfName]
     const inheritsFrom = [clsInfo.superClassName, ...clsInfo.interfaceNames]
       .filter(c => c && c !== 'java.lang.Object' && c !== 'java.lang.Enum')
+    if (inheritsFrom.length === 0 && clsInfo.subClasses.size === 0) continue
     const name = getMappedClassName(clsInfo).replace(/\//g, '.')
     const s = name.indexOf('.') > 0 ? getSubgraph(name.slice(0, name.lastIndexOf('.'))) : g
-    s.node({ name: JSON.stringify(clsInfo.obfName), label: name })
-    for (const sc of inheritsFrom) g.edge(JSON.stringify(clsInfo.obfName), JSON.stringify(sc), {})
+    const type = clsInfo.isInterface
+      ? 'interface'
+      : (clsInfo.superClassName === 'java.lang.Enum'
+        ? 'enum'
+        : (clsInfo.isAbstract ? 'abstract class' : 'class')
+      )
+    const label = `${type} | {${obfName} | ${name.replace(PKG.BASE + '.', '')}}`
+    const color = ({
+      interface: '#83b6c3',
+      enum: '#5ac380',
+      class: '#d6c6a8',
+      'abstract class': '#d6d6b5'
+    })[type]
+    const attr = {
+      name: JSON.stringify(obfName),
+      label,
+      fillcolor: color
+    }
+    if (clsInfo.isInterface) attr.fontsize = 16
+    if (clsInfo.isInnerClass) attr.fontsize = 12
+    if (inheritsFrom.length === 0) {
+      attr.root = true
+      attr.fontsize = 20
+    }
+    attr.fontsize += Math.floor(clsInfo.subClasses.size / 10)
+    s.node(attr)
+    for (const sc of inheritsFrom) g.edge(JSON.stringify(obfName), JSON.stringify(sc), {})
   }
-  g.killOrphans()
+  // g.killOrphans()
   fs.writeFileSync(file, g.toString())
 }

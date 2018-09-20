@@ -160,7 +160,7 @@ WildcardIndicator:
 */
 export function parseTypeArgument (sig) {
   if (sig[0] === '*') return [{ type: 'TypeArgument', value: '*' }, sig.slice(1)]
-  const ta = { type: 'TypeAgument' }
+  const ta = { type: 'TypeArgument' }
   let sig1 = sig
   if (sig1[0] === '+' || sig1[0] === '-') {
     ta.wildcard = sig1[0]

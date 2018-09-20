@@ -16,6 +16,7 @@ export const CRASH = BASE + '.crash'
 
 export const DATA = BASE + '.data'
 export const DATA_PROVIDER = DATA + '.provider'
+export const REGISTRY = DATA + '.registry'
 
 export const ENCHANTMENT = BASE + '.enchantment'
 
@@ -55,9 +56,15 @@ export const CLIENT_WORLD = CLIENT + '.world'
 
 export const RESOURCES = CLIENT + '.resources'
 export const RESOURCES_DATA = RESOURCES + '.data'
-export const RENDERER = CLIENT + '.renderer'
-export const RENDERER_BLOCK = RENDERER + '.block'
-export const RENDERER_BLOCK_MODEL = RENDERER_BLOCK + '.model'
+
+export const RENDER = CLIENT + '.render'
+export const RENDER_ENTITY = RENDER + '.entity'
+export const RENDER_BLOCK = RENDER + '.block'
+export const BLOCK_MODEL = RENDER_BLOCK + '.model'
+export const VERTEX = RENDER + '.vertex'
+
+export const PARTICLE = CLIENT + '.particle'
+export const COMMON_PARTICLE = BASE + '.particle'
 
 export const GUI = CLIENT + '.gui'
 export const GUI_ADVANCEMENTS = GUI + '.advancements'
@@ -71,11 +78,6 @@ export const GUI_WIDGETS = GUI + '.widgets'
 export const FONT = GUI + '.font'
 
 export const INVENTORY = BASE + '.inventory'
-
-export const RENDER = CLIENT + '.render'
-export const RENDER_ENTITY = RENDER + '.entity'
-export const RENDER_BLOCK = RENDER + '.block'
-export const BLOCK_MODEL = RENDER_BLOCK + '.model'
 
 export const SERVER = BASE + '.server'
 export const SERVER_WORLD = SERVER + '.world'
@@ -112,11 +114,9 @@ export const NBT = MOJANG + '.nbt'
 
 export const POTION = BASE + '.potion'
 
-export const PROFILER = BASE + '.profiler'
-
 export const UTIL = BASE + '.util'
-export const REGISTRY = UTIL + '.registry'
 export const MATH = UTIL + '.math'
+export const PROFILER = UTIL + '.profiler'
 export const TEXT = UTIL + '.text'
 export const DATAFIX = UTIL + '.datafix'
 export const DATAFIX_SCHEMAS = DATAFIX + '.schemas'

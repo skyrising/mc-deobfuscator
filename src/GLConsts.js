@@ -1,7 +1,6 @@
 // @flow
-import { range } from './util'
-
-const byValue: Array<{[Category]: string}> = ({}: any)
+import fs from 'fs'
+import path from 'path'
 
 type Category =
 | 'array'
@@ -21,11 +20,15 @@ type Category =
 | 'rot'
 | 'side'
 | 'type'
+| 'fog'
+
+const byValue: Array<{[Category]: string}> = ({}: any)
+const consts: {[string]: number} = {}
 
 function register (category: Category|Array<Category>, value: number, name: string) {
-  module.exports[name] = value
+  consts[name] = value
   const glName = 'GL_' + name
-  module.exports[glName] = value
+  consts[glName] = value
   if (!(value in byValue)) byValue[value] = {}
   if (!Array.isArray(category)) category = [category]
   for (const cat of category) byValue[value][cat] = glName
@@ -155,7 +158,7 @@ register(['depth', 'prop'], 0x0D56, 'DEPTH_BITS')
 register(['depth', 'prop'], 0x1902, 'DEPTH_COMPONENT')
 
 register(['light', 'prop'], 0x0B50, 'LIGHTING')
-range(0, 7).forEach(i => register(['light', 'prop'], 0x4000, 'LIGHT' + i))
+for (let i = 0; i < 7; i++) register(['light', 'prop'], 0x4000, 'LIGHT' + i)
 
 register(['error'], 0, 'NO_ERROR')
 register(['error'], 0x500, 'INVALID_ENUM')
@@ -186,3 +189,13 @@ register(['attrib', 'mask'], 0x00020000, 'LIST_BIT')
 register(['attrib', 'mask'], 0x00040000, 'TEXTURE_BIT')
 register(['attrib', 'mask'], 0x00080000, 'SCISSOR_BIT')
 register(['attrib', 'mask'], 0xFFFFFFFF, 'ALL_ATTRIB_BITS')
+
+register(['fog'], 0xB60, 'FOG')
+register(['fog'], 0xB61, 'FOG_INDEX')
+register(['fog'], 0xB62, 'FOG_DENSITY')
+register(['fog'], 0xB63, 'FOG_START')
+register(['fog'], 0xB64, 'FOG_END')
+register(['fog'], 0xB65, 'FOG_MODE')
+register(['fog'], 0xB66, 'FOG_COLOR')
+
+fs.writeFileSync(path.resolve(__dirname, 'GLConsts.json'), JSON.stringify({ ...consts, byValue }, null, 2))

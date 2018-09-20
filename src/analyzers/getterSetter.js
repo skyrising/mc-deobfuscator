@@ -9,23 +9,60 @@ export function method (methodInfo: MethodInfo) {
 
 function nameAccessor (methodInfo: MethodInfo, fieldInfo: FieldInfo, type: 'get' | 'set') {
   const prefix = type === 'get' && fieldInfo.sig === 'Z' ? 'is' : type
-  const name = fieldInfo.name || fieldInfo.obfName
+  const name = fieldInfo.accessorSuffix || fieldInfo.name || fieldInfo.obfName
   if (/^[A-Z]/.test(name)) return prefix + '_' + name
   return prefix + name[0].toUpperCase() + name.slice(1)
 }
 
+const GETTER_PREDICATE = methodInfo => methodInfo.argSigs.length === 0 && methodInfo.code.matches([
+  'aload_0',
+  'getfield',
+  /^.return$/
+])
+
+const GETTER_SUPPLIER_PREDICATE = methodInfo => (methodInfo.argSigs.length === 0 && methodInfo.code.matches([
+  'aload_0',
+  'getfield',
+  line => line.op === 'invokeinterface' && line.arg.startsWith('java.util.function.Supplier.get:()Ljava/lang/Object;'),
+  'checkcast',
+  /^.return$/
+]))
+
+const IS_GETTER = methodInfo => methodInfo.getter === true || (methodInfo.getter !== false && (
+  GETTER_PREDICATE(methodInfo) || GETTER_SUPPLIER_PREDICATE(methodInfo)
+))
+
+const SETTER_PREDICATE = methodInfo => methodInfo.argSigs.length === 1 && methodInfo.code.matches([
+  'aload_0',
+  /^.load_1$/,
+  'putfield',
+  'return'
+])
+
+const SETTER_THIS_PREDICATE = methodInfo => methodInfo.argSigs.length === 1 && methodInfo.code.matches([
+  'aload_0',
+  /^.load_1$/,
+  'putfield',
+  'aload_0',
+  'areturn'
+])
+
+const IS_SETTER = methodInfo => methodInfo.setter === true || (methodInfo.setter !== false && (
+  SETTER_PREDICATE(methodInfo) || SETTER_THIS_PREDICATE(methodInfo)
+))
+
 export function nameGetterSetter (methodInfo: MethodInfo) {
-  if (methodInfo.origName.length > 3) return methodInfo.origName
-  const { sig, code, clsInfo } = methodInfo
+  if (methodInfo.origName.length > 3 || methodInfo.code.error) return methodInfo.origName
+  const { code, clsInfo } = methodInfo
   const { lines } = code
-  if (methodInfo.getter === true || (methodInfo.getter !== false && sig.startsWith('()') && lines.length === 3 && lines[0].op === 'aload_0' && lines[1].op === 'getfield')) {
+  if (IS_GETTER(methodInfo)) {
     const getfield = lines[0].nextOp('getfield', true)
     if (!getfield) return
     const fieldInfo = clsInfo.fields[getfield.field.fieldName]
     return fieldInfo && nameAccessor(methodInfo, fieldInfo, 'get')
   }
   if (methodInfo.getter) return nameAccessor(methodInfo, methodInfo.getter, 'get')
-  if (methodInfo.setter === true || (methodInfo.setter !== false && (lines.length === 4 || (lines.length === 5 && lines[3].op === 'aload_0')) && lines[0].op === 'aload_0' && lines[2].op === 'putfield')) {
+  if (IS_SETTER(methodInfo)) {
     const getfield = lines[0].nextOp('putfield', true)
     if (!getfield) return
     const fieldInfo = clsInfo.fields[getfield.field.fieldName]

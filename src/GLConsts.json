@@ -1,0 +1,870 @@
+{
+  "FALSE": 0,
+  "GL_FALSE": 0,
+  "TRUE": 1,
+  "GL_TRUE": 1,
+  "BYTE": 5120,
+  "GL_BYTE": 5120,
+  "UNSIGNED_BYTE": 5121,
+  "GL_UNSIGNED_BYTE": 5121,
+  "SHORT": 5122,
+  "GL_SHORT": 5122,
+  "UNSIGNED_SHORT": 5123,
+  "GL_UNSIGNED_SHORT": 5123,
+  "INT": 5124,
+  "GL_INT": 5124,
+  "UNSIGNED_INT": 5125,
+  "GL_UNSIGNED_INT": 5125,
+  "FLOAT": 5126,
+  "GL_FLOAT": 5126,
+  "2_BYTES": 5127,
+  "GL_2_BYTES": 5127,
+  "3_BYTES": 5128,
+  "GL_3_BYTES": 5128,
+  "4_BYTES": 5129,
+  "GL_4_BYTES": 5129,
+  "DOUBLE": 5130,
+  "GL_DOUBLE": 5130,
+  "POINTS": 0,
+  "GL_POINTS": 0,
+  "LINES": 1,
+  "GL_LINES": 1,
+  "LINE_LOOP": 2,
+  "GL_LINE_LOOP": 2,
+  "LINE_STRIP": 3,
+  "GL_LINE_STRIP": 3,
+  "TRIANGLES": 4,
+  "GL_TRIANGLES": 4,
+  "TRIANGLE_STRIP": 5,
+  "GL_TRIANGLE_STRIP": 5,
+  "TRIANGLE_FAN": 6,
+  "GL_TRIANGLE_FAN": 6,
+  "QUADS": 7,
+  "GL_QUADS": 7,
+  "QUAD_STRIP": 8,
+  "GL_QUAD_STRIP": 8,
+  "POLYGON": 9,
+  "GL_POLYGON": 9,
+  "VERTEX_ARRAY": 32884,
+  "GL_VERTEX_ARRAY": 32884,
+  "NORMAL_ARRAY": 32885,
+  "GL_NORMAL_ARRAY": 32885,
+  "COLOR_ARRAY": 32886,
+  "GL_COLOR_ARRAY": 32886,
+  "INDEX_ARRAY": 32887,
+  "GL_INDEX_ARRAY": 32887,
+  "TEXTURE_COORD_ARRAY": 32888,
+  "GL_TEXTURE_COORD_ARRAY": 32888,
+  "EDGE_FLAG_ARRAY": 32889,
+  "GL_EDGE_FLAG_ARRAY": 32889,
+  "VERTEX_ARRAY_SIZE": 32890,
+  "GL_VERTEX_ARRAY_SIZE": 32890,
+  "VERTEX_ARRAY_TYPE": 32891,
+  "GL_VERTEX_ARRAY_TYPE": 32891,
+  "VERTEX_ARRAY_STRIDE": 32892,
+  "GL_VERTEX_ARRAY_STRIDE": 32892,
+  "NORMAL_ARRAY_TYPE": 32894,
+  "GL_NORMAL_ARRAY_TYPE": 32894,
+  "NORMAL_ARRAY_STRIDE": 32895,
+  "GL_NORMAL_ARRAY_STRIDE": 32895,
+  "COLOR_ARRAY_SIZE": 32897,
+  "GL_COLOR_ARRAY_SIZE": 32897,
+  "COLOR_ARRAY_TYPE": 32898,
+  "GL_COLOR_ARRAY_TYPE": 32898,
+  "COLOR_ARRAY_STRIDE": 32899,
+  "GL_COLOR_ARRAY_STRIDE": 32899,
+  "INDEX_ARRAY_TYPE": 32901,
+  "GL_INDEX_ARRAY_TYPE": 32901,
+  "INDEX_ARRAY_STRIDE": 32902,
+  "GL_INDEX_ARRAY_STRIDE": 32902,
+  "TEXTURE_COORD_ARRAY_SIZE": 32904,
+  "GL_TEXTURE_COORD_ARRAY_SIZE": 32904,
+  "TEXTURE_COORD_ARRAY_TYPE": 32905,
+  "GL_TEXTURE_COORD_ARRAY_TYPE": 32905,
+  "TEXTURE_COORD_ARRAY_STRIDE": 32906,
+  "GL_TEXTURE_COORD_ARRAY_STRIDE": 32906,
+  "EDGE_FLAG_ARRAY_STRIDE": 32908,
+  "GL_EDGE_FLAG_ARRAY_STRIDE": 32908,
+  "VERTEX_ARRAY_POINTER": 32910,
+  "GL_VERTEX_ARRAY_POINTER": 32910,
+  "NORMAL_ARRAY_POINTER": 32911,
+  "GL_NORMAL_ARRAY_POINTER": 32911,
+  "COLOR_ARRAY_POINTER": 32912,
+  "GL_COLOR_ARRAY_POINTER": 32912,
+  "INDEX_ARRAY_POINTER": 32913,
+  "GL_INDEX_ARRAY_POINTER": 32913,
+  "TEXTURE_COORD_ARRAY_POINTER": 32914,
+  "GL_TEXTURE_COORD_ARRAY_POINTER": 32914,
+  "EDGE_FLAG_ARRAY_POINTER": 32915,
+  "GL_EDGE_FLAG_ARRAY_POINTER": 32915,
+  "V2F": 10784,
+  "GL_V2F": 10784,
+  "V3F": 10785,
+  "GL_V3F": 10785,
+  "C4UB_V2F": 10786,
+  "GL_C4UB_V2F": 10786,
+  "C4UB_V3F": 10787,
+  "GL_C4UB_V3F": 10787,
+  "C3F_V3F": 10788,
+  "GL_C3F_V3F": 10788,
+  "N3F_V3F": 10789,
+  "GL_N3F_V3F": 10789,
+  "C4F_N3F_V3F": 10790,
+  "GL_C4F_N3F_V3F": 10790,
+  "T2F_V3F": 10791,
+  "GL_T2F_V3F": 10791,
+  "T4F_V4F": 10792,
+  "GL_T4F_V4F": 10792,
+  "T2F_C4UB_V3F": 10793,
+  "GL_T2F_C4UB_V3F": 10793,
+  "T2F_C4F_V3F": 10794,
+  "GL_T2F_C4F_V3F": 10794,
+  "T2F_N3F_V3F": 10795,
+  "GL_T2F_N3F_V3F": 10795,
+  "T2F_C4F_N3F_V3F": 10796,
+  "GL_T2F_C4F_N3F_V3F": 10796,
+  "T4F_C4F_N3F_V4F": 10797,
+  "GL_T4F_C4F_N3F_V4F": 10797,
+  "MATRIX_MODE": 2976,
+  "GL_MATRIX_MODE": 2976,
+  "MODELVIEW": 5888,
+  "GL_MODELVIEW": 5888,
+  "PROJECTION": 5889,
+  "GL_PROJECTION": 5889,
+  "TEXTURE": 5890,
+  "GL_TEXTURE": 5890,
+  "POINT_SMOOTH": 2832,
+  "GL_POINT_SMOOTH": 2832,
+  "POINT_SIZE": 2833,
+  "GL_POINT_SIZE": 2833,
+  "POINT_SIZE_RANGE": 2834,
+  "GL_POINT_SIZE_RANGE": 2834,
+  "POINT_SIZE_GRANULARITY": 2835,
+  "GL_POINT_SIZE_GRANULARITY": 2835,
+  "LINE_SMOOTH": 2848,
+  "GL_LINE_SMOOTH": 2848,
+  "LINE_WIDTH": 2849,
+  "GL_LINE_WIDTH": 2849,
+  "LINE_WIDTH_RANGE": 2850,
+  "GL_LINE_WIDTH_RANGE": 2850,
+  "LINE_WIDTH_GRANULARITY": 2851,
+  "GL_LINE_WIDTH_GRANULARITY": 2851,
+  "LINE_STIPPLE": 2852,
+  "GL_LINE_STIPPLE": 2852,
+  "LINE_STIPPLE_PATTERN": 2853,
+  "GL_LINE_STIPPLE_PATTERN": 2853,
+  "LINE_STIPPLE_REPEAT": 2854,
+  "GL_LINE_STIPPLE_REPEAT": 2854,
+  "POINT": 6912,
+  "GL_POINT": 6912,
+  "LINE": 6913,
+  "GL_LINE": 6913,
+  "FILL": 6914,
+  "GL_FILL": 6914,
+  "CW": 2304,
+  "GL_CW": 2304,
+  "CCW": 2305,
+  "GL_CCW": 2305,
+  "FRONT": 1028,
+  "GL_FRONT": 1028,
+  "BACK": 1029,
+  "GL_BACK": 1029,
+  "LEFT": 1030,
+  "GL_LEFT": 1030,
+  "RIGHT": 1031,
+  "GL_RIGHT": 1031,
+  "POLYGON_MODE": 2880,
+  "GL_POLYGON_MODE": 2880,
+  "POLYGON_SMOOTH": 2881,
+  "GL_POLYGON_SMOOTH": 2881,
+  "POLYGON_STIPPLE": 2882,
+  "GL_POLYGON_STIPPLE": 2882,
+  "EDGE_FLAG": 2883,
+  "GL_EDGE_FLAG": 2883,
+  "CULL_FACE": 2884,
+  "GL_CULL_FACE": 2884,
+  "CULL_FACE_MODE": 2885,
+  "GL_CULL_FACE_MODE": 2885,
+  "FRONT_FACE": 2886,
+  "GL_FRONT_FACE": 2886,
+  "POLYGON_OFFSET_FACTOR": 32824,
+  "GL_POLYGON_OFFSET_FACTOR": 32824,
+  "POLYGON_OFFSET_UNITS": 10752,
+  "GL_POLYGON_OFFSET_UNITS": 10752,
+  "POLYGON_OFFSET_POINT": 10753,
+  "GL_POLYGON_OFFSET_POINT": 10753,
+  "POLYGON_OFFSET_LINE": 10754,
+  "GL_POLYGON_OFFSET_LINE": 10754,
+  "POLYGON_OFFSET_FILL": 32823,
+  "GL_POLYGON_OFFSET_FILL": 32823,
+  "NEVER": 512,
+  "GL_NEVER": 512,
+  "LESS": 513,
+  "GL_LESS": 513,
+  "EQUAL": 514,
+  "GL_EQUAL": 514,
+  "LEQUAL": 515,
+  "GL_LEQUAL": 515,
+  "GREATER": 516,
+  "GL_GREATER": 516,
+  "NOTEQUAL": 517,
+  "GL_NOTEQUAL": 517,
+  "GEQUAL": 518,
+  "GL_GEQUAL": 518,
+  "ALWAYS": 519,
+  "GL_ALWAYS": 519,
+  "DEPTH_RANGE": 2928,
+  "GL_DEPTH_RANGE": 2928,
+  "DEPTH_TEST": 2929,
+  "GL_DEPTH_TEST": 2929,
+  "DEPTH_WRITEMASK": 2930,
+  "GL_DEPTH_WRITEMASK": 2930,
+  "DEPTH_CLEAR_VALUE": 2931,
+  "GL_DEPTH_CLEAR_VALUE": 2931,
+  "DEPTH_FUNC": 2932,
+  "GL_DEPTH_FUNC": 2932,
+  "DEPTH_BITS": 3414,
+  "GL_DEPTH_BITS": 3414,
+  "DEPTH_COMPONENT": 6402,
+  "GL_DEPTH_COMPONENT": 6402,
+  "LIGHTING": 2896,
+  "GL_LIGHTING": 2896,
+  "LIGHT0": 16384,
+  "GL_LIGHT0": 16384,
+  "LIGHT1": 16384,
+  "GL_LIGHT1": 16384,
+  "LIGHT2": 16384,
+  "GL_LIGHT2": 16384,
+  "LIGHT3": 16384,
+  "GL_LIGHT3": 16384,
+  "LIGHT4": 16384,
+  "GL_LIGHT4": 16384,
+  "LIGHT5": 16384,
+  "GL_LIGHT5": 16384,
+  "LIGHT6": 16384,
+  "GL_LIGHT6": 16384,
+  "NO_ERROR": 0,
+  "GL_NO_ERROR": 0,
+  "INVALID_ENUM": 1280,
+  "GL_INVALID_ENUM": 1280,
+  "INVALID_VALUE": 1281,
+  "GL_INVALID_VALUE": 1281,
+  "INVALID_OPERATION": 1282,
+  "GL_INVALID_OPERATION": 1282,
+  "STACK_OVERFLOW": 1283,
+  "GL_STACK_OVERFLOW": 1283,
+  "STACK_UNDERFLOW": 1284,
+  "GL_STACK_UNDERFLOW": 1284,
+  "OUT_OF_MEMORY": 1285,
+  "GL_OUT_OF_MEMORY": 1285,
+  "CURRENT_BIT": 1,
+  "GL_CURRENT_BIT": 1,
+  "POINT_BIT": 2,
+  "GL_POINT_BIT": 2,
+  "LINE_BIT": 4,
+  "GL_LINE_BIT": 4,
+  "POLYGON_BIT": 5,
+  "GL_POLYGON_BIT": 5,
+  "POLYGON_STIPPLE_BIT": 16,
+  "GL_POLYGON_STIPPLE_BIT": 16,
+  "PIXEL_MODE_BIT": 32,
+  "GL_PIXEL_MODE_BIT": 32,
+  "LIGHTING_BIT": 64,
+  "GL_LIGHTING_BIT": 64,
+  "FOG_BIT": 128,
+  "GL_FOG_BIT": 128,
+  "DEPTH_BUFFER_BIT": 256,
+  "GL_DEPTH_BUFFER_BIT": 256,
+  "ACCUM_BUFFER_BIT": 512,
+  "GL_ACCUM_BUFFER_BIT": 512,
+  "STENCIL_BUFFER_BIT": 1024,
+  "GL_STENCIL_BUFFER_BIT": 1024,
+  "VIEWPORT_BIT": 2048,
+  "GL_VIEWPORT_BIT": 2048,
+  "TRANSFORM_BIT": 4096,
+  "GL_TRANSFORM_BIT": 4096,
+  "ENABLE_BIT": 8192,
+  "GL_ENABLE_BIT": 8192,
+  "COLOR_BUFFER_BIT": 16384,
+  "GL_COLOR_BUFFER_BIT": 16384,
+  "HINT_BIT": 32768,
+  "GL_HINT_BIT": 32768,
+  "EVAL_BIT": 65536,
+  "GL_EVAL_BIT": 65536,
+  "LIST_BIT": 131072,
+  "GL_LIST_BIT": 131072,
+  "TEXTURE_BIT": 262144,
+  "GL_TEXTURE_BIT": 262144,
+  "SCISSOR_BIT": 524288,
+  "GL_SCISSOR_BIT": 524288,
+  "ALL_ATTRIB_BITS": 4294967295,
+  "GL_ALL_ATTRIB_BITS": 4294967295,
+  "FOG": 2912,
+  "GL_FOG": 2912,
+  "FOG_INDEX": 2913,
+  "GL_FOG_INDEX": 2913,
+  "FOG_DENSITY": 2914,
+  "GL_FOG_DENSITY": 2914,
+  "FOG_START": 2915,
+  "GL_FOG_START": 2915,
+  "FOG_END": 2916,
+  "GL_FOG_END": 2916,
+  "FOG_MODE": 2917,
+  "GL_FOG_MODE": 2917,
+  "FOG_COLOR": 2918,
+  "GL_FOG_COLOR": 2918,
+  "byValue": {
+    "0": {
+      "boolean": "GL_FALSE",
+      "render_primitive": "GL_POINTS",
+      "error": "GL_NO_ERROR"
+    },
+    "1": {
+      "boolean": "GL_TRUE",
+      "render_primitive": "GL_LINES",
+      "attrib": "GL_CURRENT_BIT",
+      "mask": "GL_CURRENT_BIT"
+    },
+    "2": {
+      "render_primitive": "GL_LINE_LOOP",
+      "attrib": "GL_POINT_BIT",
+      "mask": "GL_POINT_BIT"
+    },
+    "3": {
+      "render_primitive": "GL_LINE_STRIP"
+    },
+    "4": {
+      "render_primitive": "GL_TRIANGLES",
+      "attrib": "GL_LINE_BIT",
+      "mask": "GL_LINE_BIT"
+    },
+    "5": {
+      "render_primitive": "GL_TRIANGLE_STRIP",
+      "attrib": "GL_POLYGON_BIT",
+      "mask": "GL_POLYGON_BIT"
+    },
+    "6": {
+      "render_primitive": "GL_TRIANGLE_FAN"
+    },
+    "7": {
+      "render_primitive": "GL_QUADS"
+    },
+    "8": {
+      "render_primitive": "GL_QUAD_STRIP"
+    },
+    "9": {
+      "render_primitive": "GL_POLYGON"
+    },
+    "16": {
+      "attrib": "GL_POLYGON_STIPPLE_BIT",
+      "mask": "GL_POLYGON_STIPPLE_BIT"
+    },
+    "32": {
+      "attrib": "GL_PIXEL_MODE_BIT",
+      "mask": "GL_PIXEL_MODE_BIT"
+    },
+    "64": {
+      "attrib": "GL_LIGHTING_BIT",
+      "mask": "GL_LIGHTING_BIT"
+    },
+    "128": {
+      "attrib": "GL_FOG_BIT",
+      "mask": "GL_FOG_BIT"
+    },
+    "256": {
+      "attrib": "GL_DEPTH_BUFFER_BIT",
+      "mask": "GL_DEPTH_BUFFER_BIT"
+    },
+    "512": {
+      "depth": "GL_NEVER",
+      "condition": "GL_NEVER",
+      "attrib": "GL_ACCUM_BUFFER_BIT",
+      "mask": "GL_ACCUM_BUFFER_BIT"
+    },
+    "513": {
+      "depth": "GL_LESS",
+      "condition": "GL_LESS"
+    },
+    "514": {
+      "depth": "GL_EQUAL",
+      "condition": "GL_EQUAL"
+    },
+    "515": {
+      "depth": "GL_LEQUAL",
+      "condition": "GL_LEQUAL"
+    },
+    "516": {
+      "depth": "GL_GREATER",
+      "condition": "GL_GREATER"
+    },
+    "517": {
+      "depth": "GL_NOTEQUAL",
+      "condition": "GL_NOTEQUAL"
+    },
+    "518": {
+      "depth": "GL_GEQUAL",
+      "condition": "GL_GEQUAL"
+    },
+    "519": {
+      "depth": "GL_ALWAYS",
+      "condition": "GL_ALWAYS"
+    },
+    "1024": {
+      "attrib": "GL_STENCIL_BUFFER_BIT",
+      "mask": "GL_STENCIL_BUFFER_BIT"
+    },
+    "1028": {
+      "poly": "GL_FRONT",
+      "prop": "GL_FRONT",
+      "side": "GL_FRONT"
+    },
+    "1029": {
+      "poly": "GL_BACK",
+      "prop": "GL_BACK",
+      "side": "GL_BACK"
+    },
+    "1030": {
+      "poly": "GL_LEFT",
+      "prop": "GL_LEFT",
+      "side": "GL_LEFT"
+    },
+    "1031": {
+      "poly": "GL_RIGHT",
+      "prop": "GL_RIGHT",
+      "side": "GL_RIGHT"
+    },
+    "1280": {
+      "error": "GL_INVALID_ENUM"
+    },
+    "1281": {
+      "error": "GL_INVALID_VALUE"
+    },
+    "1282": {
+      "error": "GL_INVALID_OPERATION"
+    },
+    "1283": {
+      "error": "GL_STACK_OVERFLOW"
+    },
+    "1284": {
+      "error": "GL_STACK_UNDERFLOW"
+    },
+    "1285": {
+      "error": "GL_OUT_OF_MEMORY"
+    },
+    "2048": {
+      "attrib": "GL_VIEWPORT_BIT",
+      "mask": "GL_VIEWPORT_BIT"
+    },
+    "2304": {
+      "poly": "GL_CW",
+      "prop": "GL_CW",
+      "rot": "GL_CW"
+    },
+    "2305": {
+      "poly": "GL_CCW",
+      "prop": "GL_CCW",
+      "rot": "GL_CCW"
+    },
+    "2832": {
+      "point": "GL_POINT_SMOOTH",
+      "prop": "GL_POINT_SMOOTH"
+    },
+    "2833": {
+      "point": "GL_POINT_SIZE",
+      "prop": "GL_POINT_SIZE"
+    },
+    "2834": {
+      "point": "GL_POINT_SIZE_RANGE",
+      "prop": "GL_POINT_SIZE_RANGE"
+    },
+    "2835": {
+      "point": "GL_POINT_SIZE_GRANULARITY",
+      "prop": "GL_POINT_SIZE_GRANULARITY"
+    },
+    "2848": {
+      "line": "GL_LINE_SMOOTH",
+      "prop": "GL_LINE_SMOOTH"
+    },
+    "2849": {
+      "line": "GL_LINE_WIDTH",
+      "prop": "GL_LINE_WIDTH"
+    },
+    "2850": {
+      "line": "GL_LINE_WIDTH_RANGE",
+      "prop": "GL_LINE_WIDTH_RANGE"
+    },
+    "2851": {
+      "line": "GL_LINE_WIDTH_GRANULARITY",
+      "prop": "GL_LINE_WIDTH_GRANULARITY"
+    },
+    "2852": {
+      "line": "GL_LINE_STIPPLE",
+      "prop": "GL_LINE_STIPPLE"
+    },
+    "2853": {
+      "line": "GL_LINE_STIPPLE_PATTERN",
+      "prop": "GL_LINE_STIPPLE_PATTERN"
+    },
+    "2854": {
+      "line": "GL_LINE_STIPPLE_REPEAT",
+      "prop": "GL_LINE_STIPPLE_REPEAT"
+    },
+    "2880": {
+      "poly": "GL_POLYGON_MODE",
+      "prop": "GL_POLYGON_MODE"
+    },
+    "2881": {
+      "poly": "GL_POLYGON_SMOOTH",
+      "prop": "GL_POLYGON_SMOOTH"
+    },
+    "2882": {
+      "poly": "GL_POLYGON_STIPPLE",
+      "prop": "GL_POLYGON_STIPPLE"
+    },
+    "2883": {
+      "poly": "GL_EDGE_FLAG",
+      "prop": "GL_EDGE_FLAG"
+    },
+    "2884": {
+      "poly": "GL_CULL_FACE",
+      "prop": "GL_CULL_FACE"
+    },
+    "2885": {
+      "poly": "GL_CULL_FACE_MODE",
+      "prop": "GL_CULL_FACE_MODE"
+    },
+    "2886": {
+      "poly": "GL_FRONT_FACE",
+      "prop": "GL_FRONT_FACE"
+    },
+    "2896": {
+      "light": "GL_LIGHTING",
+      "prop": "GL_LIGHTING"
+    },
+    "2912": {
+      "fog": "GL_FOG"
+    },
+    "2913": {
+      "fog": "GL_FOG_INDEX"
+    },
+    "2914": {
+      "fog": "GL_FOG_DENSITY"
+    },
+    "2915": {
+      "fog": "GL_FOG_START"
+    },
+    "2916": {
+      "fog": "GL_FOG_END"
+    },
+    "2917": {
+      "fog": "GL_FOG_MODE"
+    },
+    "2918": {
+      "fog": "GL_FOG_COLOR"
+    },
+    "2928": {
+      "depth": "GL_DEPTH_RANGE",
+      "prop": "GL_DEPTH_RANGE"
+    },
+    "2929": {
+      "depth": "GL_DEPTH_TEST",
+      "prop": "GL_DEPTH_TEST"
+    },
+    "2930": {
+      "depth": "GL_DEPTH_WRITEMASK",
+      "prop": "GL_DEPTH_WRITEMASK"
+    },
+    "2931": {
+      "depth": "GL_DEPTH_CLEAR_VALUE",
+      "prop": "GL_DEPTH_CLEAR_VALUE"
+    },
+    "2932": {
+      "depth": "GL_DEPTH_FUNC",
+      "prop": "GL_DEPTH_FUNC"
+    },
+    "2976": {
+      "matrix": "GL_MATRIX_MODE",
+      "prop": "GL_MATRIX_MODE"
+    },
+    "3414": {
+      "depth": "GL_DEPTH_BITS",
+      "prop": "GL_DEPTH_BITS"
+    },
+    "4096": {
+      "attrib": "GL_TRANSFORM_BIT",
+      "mask": "GL_TRANSFORM_BIT"
+    },
+    "5120": {
+      "type": "GL_BYTE"
+    },
+    "5121": {
+      "type": "GL_UNSIGNED_BYTE"
+    },
+    "5122": {
+      "type": "GL_SHORT"
+    },
+    "5123": {
+      "type": "GL_UNSIGNED_SHORT"
+    },
+    "5124": {
+      "type": "GL_INT"
+    },
+    "5125": {
+      "type": "GL_UNSIGNED_INT"
+    },
+    "5126": {
+      "type": "GL_FLOAT"
+    },
+    "5127": {
+      "type": "GL_2_BYTES"
+    },
+    "5128": {
+      "type": "GL_3_BYTES"
+    },
+    "5129": {
+      "type": "GL_4_BYTES"
+    },
+    "5130": {
+      "type": "GL_DOUBLE"
+    },
+    "5888": {
+      "matrix": "GL_MODELVIEW"
+    },
+    "5889": {
+      "matrix": "GL_PROJECTION"
+    },
+    "5890": {
+      "matrix": "GL_TEXTURE"
+    },
+    "6402": {
+      "depth": "GL_DEPTH_COMPONENT",
+      "prop": "GL_DEPTH_COMPONENT"
+    },
+    "6912": {
+      "point": "GL_POINT",
+      "poly": "GL_POINT"
+    },
+    "6913": {
+      "line": "GL_LINE",
+      "poly": "GL_LINE"
+    },
+    "6914": {
+      "poly": "GL_FILL",
+      "prop": "GL_FILL"
+    },
+    "8192": {
+      "attrib": "GL_ENABLE_BIT",
+      "mask": "GL_ENABLE_BIT"
+    },
+    "10752": {
+      "poly": "GL_POLYGON_OFFSET_UNITS",
+      "prop": "GL_POLYGON_OFFSET_UNITS"
+    },
+    "10753": {
+      "poly": "GL_POLYGON_OFFSET_POINT",
+      "prop": "GL_POLYGON_OFFSET_POINT"
+    },
+    "10754": {
+      "poly": "GL_POLYGON_OFFSET_LINE",
+      "prop": "GL_POLYGON_OFFSET_LINE"
+    },
+    "10784": {
+      "array": "GL_V2F",
+      "type": "GL_V2F"
+    },
+    "10785": {
+      "array": "GL_V3F",
+      "type": "GL_V3F"
+    },
+    "10786": {
+      "array": "GL_C4UB_V2F",
+      "type": "GL_C4UB_V2F"
+    },
+    "10787": {
+      "array": "GL_C4UB_V3F",
+      "type": "GL_C4UB_V3F"
+    },
+    "10788": {
+      "array": "GL_C3F_V3F",
+      "type": "GL_C3F_V3F"
+    },
+    "10789": {
+      "array": "GL_N3F_V3F",
+      "type": "GL_N3F_V3F"
+    },
+    "10790": {
+      "array": "GL_C4F_N3F_V3F",
+      "type": "GL_C4F_N3F_V3F"
+    },
+    "10791": {
+      "array": "GL_T2F_V3F",
+      "type": "GL_T2F_V3F"
+    },
+    "10792": {
+      "array": "GL_T4F_V4F",
+      "type": "GL_T4F_V4F"
+    },
+    "10793": {
+      "array": "GL_T2F_C4UB_V3F",
+      "type": "GL_T2F_C4UB_V3F"
+    },
+    "10794": {
+      "array": "GL_T2F_C4F_V3F",
+      "type": "GL_T2F_C4F_V3F"
+    },
+    "10795": {
+      "array": "GL_T2F_N3F_V3F",
+      "type": "GL_T2F_N3F_V3F"
+    },
+    "10796": {
+      "array": "GL_T2F_C4F_N3F_V3F",
+      "type": "GL_T2F_C4F_N3F_V3F"
+    },
+    "10797": {
+      "array": "GL_T4F_C4F_N3F_V4F",
+      "type": "GL_T4F_C4F_N3F_V4F"
+    },
+    "16384": {
+      "light": "GL_LIGHT6",
+      "prop": "GL_LIGHT6",
+      "attrib": "GL_COLOR_BUFFER_BIT",
+      "mask": "GL_COLOR_BUFFER_BIT"
+    },
+    "32768": {
+      "attrib": "GL_HINT_BIT",
+      "mask": "GL_HINT_BIT"
+    },
+    "32823": {
+      "poly": "GL_POLYGON_OFFSET_FILL",
+      "prop": "GL_POLYGON_OFFSET_FILL"
+    },
+    "32824": {
+      "poly": "GL_POLYGON_OFFSET_FACTOR",
+      "prop": "GL_POLYGON_OFFSET_FACTOR"
+    },
+    "32884": {
+      "array": "GL_VERTEX_ARRAY",
+      "type": "GL_VERTEX_ARRAY"
+    },
+    "32885": {
+      "array": "GL_NORMAL_ARRAY",
+      "type": "GL_NORMAL_ARRAY"
+    },
+    "32886": {
+      "array": "GL_COLOR_ARRAY",
+      "type": "GL_COLOR_ARRAY"
+    },
+    "32887": {
+      "array": "GL_INDEX_ARRAY",
+      "type": "GL_INDEX_ARRAY"
+    },
+    "32888": {
+      "array": "GL_TEXTURE_COORD_ARRAY",
+      "type": "GL_TEXTURE_COORD_ARRAY"
+    },
+    "32889": {
+      "array": "GL_EDGE_FLAG_ARRAY",
+      "type": "GL_EDGE_FLAG_ARRAY"
+    },
+    "32890": {
+      "array": "GL_VERTEX_ARRAY_SIZE",
+      "prop": "GL_VERTEX_ARRAY_SIZE"
+    },
+    "32891": {
+      "array": "GL_VERTEX_ARRAY_TYPE",
+      "prop": "GL_VERTEX_ARRAY_TYPE"
+    },
+    "32892": {
+      "array": "GL_VERTEX_ARRAY_STRIDE",
+      "prop": "GL_VERTEX_ARRAY_STRIDE"
+    },
+    "32894": {
+      "array": "GL_NORMAL_ARRAY_TYPE",
+      "prop": "GL_NORMAL_ARRAY_TYPE"
+    },
+    "32895": {
+      "array": "GL_NORMAL_ARRAY_STRIDE",
+      "prop": "GL_NORMAL_ARRAY_STRIDE"
+    },
+    "32897": {
+      "array": "GL_COLOR_ARRAY_SIZE",
+      "prop": "GL_COLOR_ARRAY_SIZE"
+    },
+    "32898": {
+      "array": "GL_COLOR_ARRAY_TYPE",
+      "prop": "GL_COLOR_ARRAY_TYPE"
+    },
+    "32899": {
+      "array": "GL_COLOR_ARRAY_STRIDE",
+      "prop": "GL_COLOR_ARRAY_STRIDE"
+    },
+    "32901": {
+      "array": "GL_INDEX_ARRAY_TYPE",
+      "prop": "GL_INDEX_ARRAY_TYPE"
+    },
+    "32902": {
+      "array": "GL_INDEX_ARRAY_STRIDE",
+      "prop": "GL_INDEX_ARRAY_STRIDE"
+    },
+    "32904": {
+      "array": "GL_TEXTURE_COORD_ARRAY_SIZE",
+      "prop": "GL_TEXTURE_COORD_ARRAY_SIZE"
+    },
+    "32905": {
+      "array": "GL_TEXTURE_COORD_ARRAY_TYPE",
+      "prop": "GL_TEXTURE_COORD_ARRAY_TYPE"
+    },
+    "32906": {
+      "array": "GL_TEXTURE_COORD_ARRAY_STRIDE",
+      "prop": "GL_TEXTURE_COORD_ARRAY_STRIDE"
+    },
+    "32908": {
+      "array": "GL_EDGE_FLAG_ARRAY_STRIDE",
+      "prop": "GL_EDGE_FLAG_ARRAY_STRIDE"
+    },
+    "32910": {
+      "array": "GL_VERTEX_ARRAY_POINTER",
+      "type": "GL_VERTEX_ARRAY_POINTER"
+    },
+    "32911": {
+      "array": "GL_NORMAL_ARRAY_POINTER",
+      "type": "GL_NORMAL_ARRAY_POINTER"
+    },
+    "32912": {
+      "array": "GL_COLOR_ARRAY_POINTER",
+      "type": "GL_COLOR_ARRAY_POINTER"
+    },
+    "32913": {
+      "array": "GL_INDEX_ARRAY_POINTER",
+      "type": "GL_INDEX_ARRAY_POINTER"
+    },
+    "32914": {
+      "array": "GL_TEXTURE_COORD_ARRAY_POINTER",
+      "type": "GL_TEXTURE_COORD_ARRAY_POINTER"
+    },
+    "32915": {
+      "array": "GL_EDGE_FLAG_ARRAY_POINTER",
+      "type": "GL_EDGE_FLAG_ARRAY_POINTER"
+    },
+    "65536": {
+      "attrib": "GL_EVAL_BIT",
+      "mask": "GL_EVAL_BIT"
+    },
+    "131072": {
+      "attrib": "GL_LIST_BIT",
+      "mask": "GL_LIST_BIT"
+    },
+    "262144": {
+      "attrib": "GL_TEXTURE_BIT",
+      "mask": "GL_TEXTURE_BIT"
+    },
+    "524288": {
+      "attrib": "GL_SCISSOR_BIT",
+      "mask": "GL_SCISSOR_BIT"
+    },
+    "4294967295": {
+      "attrib": "GL_ALL_ATTRIB_BITS",
+      "mask": "GL_ALL_ATTRIB_BITS"
+    }
+  }
+}

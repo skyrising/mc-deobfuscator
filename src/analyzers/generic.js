@@ -1,7 +1,7 @@
 // @flow
 import * as PKG from '../PackageNames'
 import * as CLASS from '../ClassNames'
-import { hasSuperClass, toUpperCamelCase, decodeType } from '../util'
+import { hasSuperClass, toUpperCamelCase, decodeType, getBaseInterfaces } from '../util'
 import { signatureTag as s } from '../util/code'
 
 export const generic = true
@@ -272,10 +272,18 @@ const simpleConstToClass: {[string]: string | SimpleHandler | Array<SimpleHandle
     method: 'downloadSkin',
     return: CLASS.THREAD_IMAGE_DOWNLOAD
   },
-  'Missing default of DefaultedMappedRegistry: ': {
-    name: CLASS.DEFAULT_MAPPED_REGISTRY,
+  'Missing default of DefaultedMappedRegistry: ': [{
+    predicate: ({ methodInfo }) => methodInfo.synthetic,
+    name: CLASS.REGISTRY,
+    eval ({ line, info }) {
+      const instOf = line.prevOp('instanceof')
+      if (instOf) info.class[instOf.className].name = CLASS.DEFAULTED_MAPPED_REGISTRY
+    }
+  }, {
+    predicate: ({ clsInfo }) => clsInfo.superClassName !== 'java.lang.Object',
+    name: CLASS.DEFAULTED_MAPPED_REGISTRY,
     method: 'validateKey'
-  },
+  }],
   'Invalid Block requested: ': {
     name: CLASS.BLOCKS,
     method: 'getRegisteredBlock',
@@ -315,6 +323,10 @@ const simpleConstToClass: {[string]: string | SimpleHandler | Array<SimpleHandle
     name: CLASS.FLUIDS,
     method: 'getRegisteredFluid',
     return: CLASS.FLUID
+  },
+  'Invalid or unknown particle type: ': {
+    name: CLASS.PARTICLES,
+    method: 'getRegisteredParticle'
   },
   'Getting Biome': {
     name: CLASS.WORLD,
@@ -495,7 +507,10 @@ const simpleConstToClass: {[string]: string | SimpleHandler | Array<SimpleHandle
     predicate: ({ clsInfo }) => clsInfo.superClassName !== 'java/lang/Enum',
     name: CLASS.GEN_LAYER_HILLS,
     method: 'getInts',
-    superClass: CLASS.GEN_LAYER
+    superClass: CLASS.GEN_LAYER,
+    eval ({ clsInfo }) {
+      console.debug('GenLayerHills: %s', getBaseInterfaces(clsInfo))
+    }
   },
   'PigZombie': {
     predicate: ({ line }) => line.previous && /^[a-z]{1,3}$/.test(line.previous.const),
@@ -676,7 +691,43 @@ const simpleConstToClass: {[string]: string | SimpleHandler | Array<SimpleHandle
   'KeybindComponent{keybind=\'': CLASS.TEXT_KEYBIND_COMPONENT,
   'Style{hasParent=': CLASS.TEXT_STYLE,
   'ClickEvent{action=': CLASS.TEXT_CLICK_EVENT,
-  'HoverEvent{action=': CLASS.TEXT_HOVER_EVENT
+  'HoverEvent{action=': CLASS.TEXT_HOVER_EVENT,
+  'goalTick': CLASS.AI_GOALS,
+  'Unsupported mob for MoveThroughVillageGoal': CLASS.AI_MOVE_THROUGH_VILLAGE,
+  'Unsupported mob type for DoorInteractGoal': CLASS.AI_DOOR_INTERACT,
+  'Unsupported mob type for FollowMobGoal': CLASS.AI_FOLLOW_MOB,
+  'Unsupported mob type for FollowOwnerGoal': CLASS.AI_FOLLOW_OWNER,
+  'ArrowAttackGoal requires Mob implements RangedAttackMob': CLASS.AI_ARROW_ATTACK,
+  'Unsupported mob type for RestrictOpenDoorGoal': CLASS.AI_RESTRICT_OPEN_DOOR,
+  'Unsupported mob type for TemptGoal': CLASS.AI_TEMPT,
+  'AttributeModifier{amount=': CLASS.ATTRIBUTE_MODIFIER,
+  ', tallocated: ': CLASS.INT_ARRAY_ALLOCATOR,
+  'Invalid call to Particle.setTex, use coordinate methods': {
+    name: CLASS.PARTICLE,
+    method: 'setTex'
+  },
+  'Invalid call to Particle.setMiscTex': {
+    predicate: ({ clsInfo }) => clsInfo.superClassName === 'java.lang.Object',
+    name: CLASS.PARTICLE,
+    method: 'setMiscTex'
+  },
+  'ambient_entity_effect': {
+    predicate ({ code, clsInfo }) {
+      if (clsInfo.consts.has('Accessed particles before Bootstrap!')) return false
+      return code.consts.length > 40
+    },
+    name: CLASS.PARTICLE_TYPE
+  },
+  '_minecraft._tcp.': CLASS.SERVER_ADDRESS,
+  'Particle being ticked': {
+    name: CLASS.PARTICLE_MANAGER,
+    method: 'tick',
+    args: [CLASS.PARTICLE]
+  },
+  '(unknown)': {
+    predicate: ({ methodInfo }) => methodInfo.sig.startsWith('(Lcom/mojang/authlib/GameProfile;)'),
+    name: CLASS.TEXT_COMPONENT_UTILS
+  }
 })
 
 function handleSimple (obj: ?(string | SimpleHandler | Array<SimpleHandler>), params: HandleFuncArg) {
@@ -740,7 +791,6 @@ function handleSimple (obj: ?(string | SimpleHandler | Array<SimpleHandler>), pa
 
 function getClassNameForConstant (c: string, line: CodeLineLoadConst | CodeLineNumberConst, methodInfo: MethodInfo) {
   const { code, sig, clsInfo, info } = methodInfo
-  const cls = clsInfo.bin
   const param: HandleFuncArg = { line, const: c, sig, code, clsInfo, info, methodInfo }
   const simple = handleSimple(simpleConstToClass[c], param)
   if (simple) return simple
@@ -751,7 +801,7 @@ function getClassNameForConstant (c: string, line: CodeLineLoadConst | CodeLineN
       info.class[line.prevOp('new').className].name = CLASS.KEY_BINDING
       return CLASS.GAME_SETTINGS
     case 'TransferCooldown': {
-      if (Entity && hasSuperClass(cls, Entity)) return CLASS.ENTITY_MINECART_HOPPER
+      if (Entity && hasSuperClass(clsInfo, Entity)) return CLASS.ENTITY_MINECART_HOPPER
       const ifn = clsInfo.interfaceNames
       if (ifn.length === 2) {
         info.class[ifn[0]].name = CLASS.HOPPER_BASE
@@ -804,6 +854,11 @@ function getClassNameForConstant (c: string, line: CodeLineLoadConst | CodeLineN
       } else console.log('Expected call to Bootstrap.isRegistered:', code.lines[0])
       return
     }
+    case 'Use NearestAttackableTargetGoal.class for PathfinerMob mobs!': {
+      const instanceOf = line.prevOp('instanceof')
+      if (instanceOf) info.class[instanceOf.className].name = CLASS.PATHFINDER_MOB
+      return
+    }
   }
   if (!clsInfo.isInnerClass && /^commands\.(.*?)\./.test(c)) {
     const [, commandName, suffix] = (c.match(/^commands\.(.*?)\.(.*?)(\.|$)/): any)
@@ -826,7 +881,7 @@ function getClassNameForConstant (c: string, line: CodeLineLoadConst | CodeLineN
     return CLASS.WORLD_GEN_FOSSILS
   }
   if (c.startsWith('Starting integrated minecraft server version')) return CLASS.INTEGRATED_SERVER
-  if (c.endsWith('Fix') && hasSuperClass(cls, 'com.mojang.datafixers.DataFix')) return PKG.DATAFIX + '.' + c
+  if (c.endsWith('Fix') && hasSuperClass(clsInfo, 'com.mojang.datafixers.DataFix')) return PKG.DATAFIX + '.' + c
 }
 
 export function method (methodInfo: MethodInfo) {
@@ -846,7 +901,7 @@ export function method (methodInfo: MethodInfo) {
   }
   const NBTBase = info.classReverse[CLASS.NBT_BASE]
   const Locale = info.classReverse[CLASS.I18N_LOCALE]
-  if (sig === '()B' && NBTBase && hasSuperClass(clsInfo.bin, NBTBase)) {
+  if (sig === '()B' && NBTBase && hasSuperClass(clsInfo, NBTBase)) {
     const id = code.consts[0]
     const type = ([
       'End', 'Byte', 'Short', 'Int', 'Long', 'Float', 'Double', 'ByteArray', 'String', 'List', 'Compound', 'IntArray', 'LongArray'
@@ -887,6 +942,11 @@ function enumClinit (methodInfo: MethodInfo) {
 
 function getEnumName (names: Array<string>, methodInfo: MethodInfo) {
   const { clsInfo, info } = methodInfo
+  const innerClass = (inner, outer = inner.slice(0, inner.lastIndexOf('$'))) => {
+    if (!clsInfo.isInnerClass) return
+    info.class[clsInfo.outerClassName].name = outer
+    return inner
+  }
   switch (names.slice(0, 5).join(',')) {
     case 'PEACEFUL,EASY,NORMAL,HARD': return CLASS.DIFFICULTY
     case 'NOT_SET,SURVIVAL,CREATIVE,ADVENTURE,SPECTATOR': return CLASS.GAME_MODE
@@ -903,12 +963,16 @@ function getEnumName (names: Array<string>, methodInfo: MethodInfo) {
     case 'ABOVE,BELOW,LEFT,RIGHT': return CLASS.ADVANCEMENT_TAB_TYPE
     case 'COMMON,UNCOMMON,RARE,EPIC': return CLASS.RARITY
     case 'NONE,IRON,GOLD,DIAMOND': return CLASS.HORSE_ARMOR_TYPE
+    case 'LEATHER,CHAIN,IRON,GOLD,DIAMOND': return CLASS.HORSE_ARMOR_TYPE
     case 'WOOD,STONE,IRON,DIAMOND,GOLD': return clsInfo.isInnerClass ? CLASS.ITEM$TOOL_MATERIAL : CLASS.TOOL_MATERIAL
     case 'MONSTER,CREATURE,AMBIENT,WATER_CREATURE': return CLASS.CREATURE_TYPE
     case 'WHITE,ORANGE,MAGENTA,LIGHT_BLUE,YELLOW': return CLASS.DYE_COLOR
     case 'HARP,BASEDRUM,SNARE,HAT,BASS': return CLASS.NOTE_BLOCK_INSTRUMENT
     case 'EMPTY,BASE,CARVED,LIQUID_CARVED,LIGHTED': // TODO: why?
     case 'EMPTY,BASE,CARVED,LIQUID_CARVED,DECORATED': return CLASS.CHUNK_STAGE
+    case 'ALL,ARMOR,ARMOR_FEET,ARMOR_LEGS,ARMOR_CHEST': return CLASS.ENCHANTMENT_TYPE
+    case 'PICKUP,QUICK_MOVE,SWAP,CLONE,THROW': return CLASS.CLICK_TYPE
+    case 'EXTREMELY_HIGH,VERY_HIGH,HIGH,NORMAL,LOW': return CLASS.TICK_PRIORITY
     case 'NORMAL,DESTROY,BLOCK,IGNORE,PUSH_ONLY': return CLASS.PISTON_BEHAVIOR
     case 'GROWING,SHRINKING,STATIONARY': return CLASS.BORDER_STATUS
     case 'SAVE,LOAD,CORNER,DATA': return CLASS.STRUCTURE_BLOCK_MODE
@@ -954,6 +1018,20 @@ function getEnumName (names: Array<string>, methodInfo: MethodInfo) {
       if (!clsInfo.isInnerClass) return
       info.class[clsInfo.outerClassName].name = CLASS.SPAWN_CONDITIONS
       return CLASS.SPAWN_CONDITIONS$PLACE
+    case 'AND,AND_INVERTED,AND_REVERSE,CLEAR,COPY': return innerClass(CLASS.GL_STATE_MANAGER$LOGIC_OP)
+    case 'CONSTANT_ALPHA,CONSTANT_COLOR,DST_ALPHA,DST_COLOR,ONE':
+      return innerClass(names.includes('SRC_ALPHA_SATURATE')
+        ? CLASS.GL_STATE_MANAGER$SOURCE_FACTOR
+        : CLASS.GL_STATE_MANAGER$DEST_FACTOR)
+    case 'DEFAULT,PLAYER_SKIN,TRANSPARENT_MODEL': return innerClass(CLASS.GL_STATE_MANAGER$PROFILE)
+    case 'S,T,R,Q': return innerClass(CLASS.GL_STATE_MANAGER$TEX_GEN_COORD)
+    case 'LINEAR,EXP,EXP2': return innerClass(CLASS.GL_STATE_MANAGER$FOG_MODE)
+    case 'FRONT,BACK,FRONT_AND_BACK': return innerClass(CLASS.GL_STATE_MANAGER$CULL_FACE)
+    case 'INSTANCE': {
+      if (clsInfo.isInnerClass && info.classReverse[clsInfo.outerClassName] === CLASS.GL_STATE_MANAGER) {
+        return CLASS.GL_STATE_MANAGER$VIEWPORT
+      }
+    }
   }
 }
 
