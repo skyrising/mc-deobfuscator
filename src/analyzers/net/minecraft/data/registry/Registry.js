@@ -1,7 +1,7 @@
 // @flow
 import * as CLASS from '../../../../../ClassNames'
 import { signatureTag as s } from '../../../../../util/code'
-import { registryMethod } from '../../../../registryBootstrapper'
+import { registryMethod } from '../../../../sharedLogic'
 
 export function method (methodInfo: MethodInfo) {
   const { clsInfo, info } = methodInfo

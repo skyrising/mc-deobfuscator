@@ -294,7 +294,8 @@ class Info extends EventEmitter {
         clsInfo.reverseMethod[deobfName][argSig] = obfName
       },
       get name () {
-        if (this.base !== this) return this.base.name
+        const base = this.base
+        if (base && base !== this) return base.name
         if (this._name) return this._name
         return this.origName
       }

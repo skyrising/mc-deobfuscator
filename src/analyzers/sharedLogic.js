@@ -25,8 +25,8 @@ export function registryMethod (methodInfo: MethodInfo, dataKey: string = '', op
       if (!putstatic) continue
       const field = clsInfo.fields[putstatic.field.fieldName]
       field.name = id.toUpperCase()
-      const info = (opts.eval && opts.eval(id, (line: any), field)) || {}
-      if (setData) info.data[dataKey][id] = info
+      const data = (opts.eval && opts.eval(id, (line: any), field)) || {}
+      if (setData) info.data[dataKey][id] = data
       i = lines.indexOf(putstatic)
     }
     return methodInfo.origName

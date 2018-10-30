@@ -1,5 +1,5 @@
 // @flow
-import { registryMethod } from '../../../../../registryBootstrapper'
+import { registryMethod } from '../../../../../sharedLogic'
 
 export function method (methodInfo: MethodInfo) {
   return registryMethod(methodInfo, 'features')
