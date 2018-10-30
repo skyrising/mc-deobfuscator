@@ -51,6 +51,7 @@ const ENTITY_PKG = {
   Guardian: PKG.ENTITY_MONSTER,
   Horse: PKG.ENTITY_PASSIVE,
   Husk: PKG.ENTITY_MONSTER,
+  IllagerBeast: PKG.ENTITY_MONSTER,
   Illusioner: PKG.ENTITY_MONSTER,
   IllusionIllager: PKG.ENTITY_MONSTER,
   Item: PKG.ENTITY_ITEM,
@@ -66,12 +67,15 @@ const ENTITY_PKG = {
   Mooshroom: PKG.ENTITY_PASSIVE,
   Mule: PKG.ENTITY_PASSIVE,
   MushroomCow: PKG.ENTITY_PASSIVE,
+  Ocelot: PKG.ENTITY_PASSIVE,
   Ozelot: PKG.ENTITY_PASSIVE,
-  Parrot: PKG.ENTITY_PASSIVE,
   Painting: PKG.ENTITY_ITEM,
+  Panda: PKG.ENTITY_PASSIVE,
+  Parrot: PKG.ENTITY_PASSIVE,
   Phantom: PKG.ENTITY_MONSTER,
   Pig: PKG.ENTITY_PASSIVE,
   PigZombie: PKG.ENTITY_MONSTER,
+  Pillager: PKG.ENTITY_MONSTER,
   PolarBear: PKG.ENTITY_MONSTER,
   PrimedTnt: PKG.ENTITY_ITEM,
   Pufferfish: PKG.ENTITY_WATER,
@@ -143,7 +147,7 @@ export function method (methodInfo: MethodInfo) {
   if (sig === '(Ljava/lang/Class;Ljava/lang/String;I)V') return 'registerEntity'
   if (s`(Ljava/lang/String;${CLASS.ENTITIES$BUILDER})${CLASS.ENTITIES}`.matches(methodInfo)) return 'registerEntity'
   // TODO: matches register
-  // if (sig.startsWith('(Ljava/lang/String;L') && methodInfo.static) return 'createEntity'
+  // if (sig.startsWith('(Ljava/lang/String;L') && methodInfo.flags.static) return 'createEntity'
   for (const c of code.consts) {
     if (typeof c === 'string' && c.startsWith('Skipping Entity with id ')) {
       if (!sig.startsWith('(IL')) {
@@ -157,7 +161,7 @@ export function method (methodInfo: MethodInfo) {
 
 export function field (fieldInfo: FieldInfo) {
   switch (fieldInfo.sig) {
-    case 'Ljava/util/Map;': return fieldInfo.public ? 'SPAWN_EGGS' : undefined
+    case 'Ljava/util/Map;': return fieldInfo.flags.public ? 'SPAWN_EGGS' : undefined
     case 'Ljava/lang/Class;': return 'entityClass'
     case 'Ljava/util/function/Function;': return 'constructor'
   }

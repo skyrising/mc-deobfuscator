@@ -45,7 +45,7 @@ const PARTICLE_CLASS_NAMES = {
 
 export function method (methodInfo: MethodInfo) {
   const { info } = methodInfo
-  if (methodInfo.sig === '()V' && methodInfo.private) {
+  if (methodInfo.sig === '()V' && methodInfo.flags.private) {
     const { lines } = methodInfo.code
     const outputs = {}
     for (let i = 0; i < lines.length; i++) {

@@ -98,7 +98,19 @@ declare type Code = {
   error?: Error;
 }
 
-declare type AccessFlags = {|
+declare type ClassAccessFlags = {|
+  public: boolean;
+  final: boolean;
+  super: boolean;
+  interface: boolean;
+  abstract: boolean;
+  synthetic: boolean;
+  annotation: boolean;
+  enum: boolean;
+  module: boolean;
+|}
+
+declare type FieldAccessFlags = {|
   public: boolean;
   private: boolean;
   protected: boolean;
@@ -110,6 +122,21 @@ declare type AccessFlags = {|
   enum: boolean;
 |}
 
+declare type MethodAccessFlags = {|
+  public: boolean;
+  private: boolean;
+  protected: boolean;
+  static: boolean;
+  final: boolean;
+  synchronized: boolean;
+  bridge: boolean;
+  varargs: boolean;
+  native: boolean;
+  abstract: boolean;
+  strict: boolean;
+  synthetic: boolean;
+|}
+
 declare type MethodInfo = {
   type: 'method';
   name: string;
@@ -119,16 +146,17 @@ declare type MethodInfo = {
   argSigs: Array<string>;
   ret: BCELType;
   retSig: string;
-  isAbstract: boolean;
   code: Code;
   acc: number;
   clsInfo: ClassInfo;
   info: FullInfo;
   done: boolean;
   infoComplete: boolean;
-  ...AccessFlags;
+  flags: AccessFlags;
   getter?: boolean | FieldInfo;
   setter?: boolean | FieldInfo;
+  bestName: string;
+  depends?: (() => ?string) | MethodInfo;
 }
 
 declare type FieldInfo = {
@@ -142,7 +170,9 @@ declare type FieldInfo = {
   info: FullInfo;
   done: boolean;
   accessorSuffix?: string;
-  ...AccessFlags;
+  flags: AccessFlags;
+  bestName: string;
+  depends?: (() => ?string) | FieldInfo;
 }
 
 declare type ClassInfo = {
@@ -157,8 +187,7 @@ declare type ClassInfo = {
   superClassName: string;
   subClasses: Set<string>;
   interfaceNames: Array<string>;
-  isInterface: boolean;
-  isAbstract: boolean;
+  flags: AccessFlags;
   ...({|
     isInnerClass: false;
   |} | {|
@@ -215,26 +244,11 @@ declare type InfoData = {
 
 type Awaitable<T> = T | Promise<T>
 
-interface Analyzer$$cls {
-  (ClassInfo): Awaitable<?string>;
-  (BCELClass, ClassInfo, FullInfo): Awaitable<?string>;
-}
-
-interface Analyzer$$method {
-  (MethodInfo): Awaitable<?string>;
-  (BCELClass, BCELMethod, Code, MethodInfo, ClassInfo, FullInfo): Awaitable<?string>;
-}
-
-interface Analyzer$$field {
-  (FieldInfo): Awaitable<?string>;
-  (BCELField, ClassInfo, FullInfo, BCELClass): Awaitable<?string>;
-}
-
 declare type Analyzer = {
   name?: string;
   file?: string;
   init?: FullInfo => Awaitable<any>;
-  cls?: Analyzer$$cls;
-  method?: Analyzer$$method;
-  field?: Analyzer$$field;
+  cls?: (ClassInfo) => Awaitable<?string>;
+  method?: (MethodInfo) => Awaitable<?string>;
+  field?: (FieldInfo) => Awaitable<?string>;
 }

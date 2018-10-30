@@ -46,31 +46,41 @@ export function retroguard (inFile, outFile, info, classPath) {
 }
 */
 
+function spawn (program, args, opts) {
+  return new Promise((resolve, reject) => {
+    const c = cp.spawn(program, args, opts)
+    c.on('exit', code => {
+      if (code) reject(code)
+      else resolve(code)
+    })
+  })
+}
+
 export async function extractJar (jar, dir) {
   rmrf(dir)
   fs.mkdirSync(dir)
   console.log('Extracting ' + jar + ' to ' + dir)
-  cp.spawnSync('jar', ['xf', jar], { cwd: dir })
+  return spawn('jar', ['xf', jar], { cwd: dir })
 }
 
-export async function fernflower (jar, to) {
-  const binDir = path.resolve('./work/bin/')
-  await extractJar(jar, binDir)
+export async function fernflower (jar, to, flavor = 'fernflower') {
+  const binDir = path.resolve('work/bin/')
   rmrf(to)
   fs.mkdirSync(to)
-  console.log('Decompiling with fernflower')
-  const mcp = true
-  const args = ['-din=1', '-rbr=1', '-dgs=1', '-asc=1', '-rsy=1', '-iec=1', '-log=WARN', binDir, to]
-  if (mcp) {
-    cp.spawnSync('java', ['-jar', 'work/fernflower.jar'].concat(args), { stdio: 'inherit' })
-  } else {
-    cp.spawnSync('fernflower', args, { stdio: 'inherit' })
-  }
+  console.log('Decompiling with ' + flavor)
+  const args = ['-din=1', '-rbr=1', '-dgs=1', '-asc=1', '-rsy=1', '-iec=1', '-jvn=1', '-sef=1', '-log=WARN', binDir, to]
+  const decompJar = path.resolve('work', flavor + '.jar')
+  if (fs.existsSync(decompJar)) return spawn('java', ['-jar', decompJar].concat(args), { stdio: 'inherit' })
+  return spawn(flavor, args, { stdio: 'inherit' })
+}
+
+export function forgeflower (jar, to) {
+  return fernflower(jar, to, 'forgeflower')
 }
 
 export async function procyon (jar, to) {
   rmrf(to)
   fs.mkdirSync(to)
   console.log('Decompiling with procyon')
-  cp.spawnSync('procyon-decompiler', ['-v', 0, '-jar', jar, '-r', '-o', to], { stdio: 'inherit' })
+  return spawn('procyon-decompiler', ['-v', 0, '-jar', jar, '-r', '-o', to], { stdio: 'inherit' })
 }

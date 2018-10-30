@@ -53,7 +53,7 @@ export function method (methodInfo: MethodInfo) {
 export function field (fieldInfo: FieldInfo) {
   switch (fieldInfo.sig) {
     case 'Ljava/io/File;':
-      return fieldInfo.static ? 'USERCACHE_FILE' : 'anvilFile'
+      return fieldInfo.flags.static ? 'USERCACHE_FILE' : 'anvilFile'
     case 'Lcom/mojang/authlib/yggdrasil/YggdrasilAuthenticationService;': return 'authService'
     case 'Lcom/mojang/authlib/minecraft/MinecraftSessionService;': return 'sessionService'
     case 'Lcom/mojang/authlib/GameProfileRepository;': return 'profileRepo'

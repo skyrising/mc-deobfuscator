@@ -6,7 +6,7 @@ export function field (fieldInfo: FieldInfo) {
   switch (fieldInfo.sig) {
     case 'Ljava/lang/String;': return 'insertion'
   }
-  if (s`${CLASS.TEXT_STYLE}`.matches(fieldInfo)) return fieldInfo.static ? 'ROOT' : 'parent'
+  if (s`${CLASS.TEXT_STYLE}`.matches(fieldInfo)) return fieldInfo.flags.static ? 'ROOT' : 'parent'
   if (s`${CLASS.TEXT_FORMATTING}`.matches(fieldInfo)) return 'color'
   if (s`${CLASS.TEXT_CLICK_EVENT}`.matches(fieldInfo)) return 'click'
   if (s`${CLASS.TEXT_HOVER_EVENT}`.matches(fieldInfo)) return 'hover'
@@ -15,7 +15,7 @@ export function field (fieldInfo: FieldInfo) {
 export function method (methodInfo: MethodInfo) {
   const { clsInfo } = methodInfo
   if (s`()${CLASS.TEXT_STYLE}`.matches(methodInfo)) {
-    if (methodInfo.private) return 'getParent'
+    if (methodInfo.flags.private) return 'getParent'
     return methodInfo.code.lines[6].op === 'getfield' ? 'copy' : 'computeCopy'
   }
   if (methodInfo.sig === '()Z') methodInfo.getter = true

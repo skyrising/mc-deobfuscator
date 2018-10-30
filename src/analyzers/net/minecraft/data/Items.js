@@ -6,7 +6,14 @@ export function method (methodInfo: MethodInfo) {
   if (methodInfo.origName === '<clinit>') {
     info.data.items = {}
     for (const line of code.lines) {
-      if (typeof line.const !== 'string') continue
+      if (typeof line.const !== 'string') {
+        if (line.op === 'getstatic') {
+          const putstatic = line.nextOp('putstatic')
+          if (!putstatic || clsInfo.fields[putstatic.field.fieldName].depends) continue
+          clsInfo.fields[putstatic.field.fieldName].depends = info.class[line.field.className].fields[line.field.fieldName]
+        }
+        continue
+      }
       if (!/^[a-z_\d]+$/.test(line.const)) continue
       const name = line.const
       const putstatic = line.nextOp('putstatic')

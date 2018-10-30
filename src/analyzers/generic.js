@@ -75,7 +75,7 @@ const COMMANDS = {
 const IS_REGISTERING_COMMAND = ({ methodInfo, line }: HandleFuncArg) => {
   const next = line.next
   // is register method
-  if (!methodInfo.static || methodInfo.sig !== '(Lcom/mojang/brigadier/CommandDispatcher;)V' || !next) return false
+  if (!methodInfo.flags.static || methodInfo.sig !== '(Lcom/mojang/brigadier/CommandDispatcher;)V' || !next) return false
   // gets dispatcher argument before building main command
   if (!line.previous || line.previous.op !== 'aload_0') return false
   // calls build with this constant
@@ -273,7 +273,7 @@ const simpleConstToClass: {[string]: string | SimpleHandler | Array<SimpleHandle
     return: CLASS.THREAD_IMAGE_DOWNLOAD
   },
   'Missing default of DefaultedMappedRegistry: ': [{
-    predicate: ({ methodInfo }) => methodInfo.synthetic,
+    predicate: ({ methodInfo }) => methodInfo.flags.synthetic,
     name: CLASS.REGISTRY,
     eval ({ line, info }) {
       const instOf = line.prevOp('instanceof')
@@ -386,21 +386,17 @@ const simpleConstToClass: {[string]: string | SimpleHandler | Array<SimpleHandle
     name: CLASS.GAME_SETTINGS_OPTION
   }],
   'Facing': {
-    predicate: ({ clsInfo }) => clsInfo.isAbstract,
+    predicate: ({ clsInfo }) => clsInfo.flags.abstract,
     name: CLASS.ENTITY_HANGING
   },
   'SpellTicks': {
-    predicate: ({ clsInfo }) => clsInfo.isAbstract,
+    predicate: ({ clsInfo }) => clsInfo.flags.abstract,
     name: CLASS.ENTITY_SPELLCASTING_ILLAGER
   },
   'pickup': {
-    predicate: ({ clsInfo }) => clsInfo.isAbstract,
+    predicate: ({ clsInfo }) => clsInfo.flags.abstract,
     name: CLASS.ENTITY_ABSTRACT_ARROW
-  }, /*
-  'life': {
-    predicate: ({cls}) => cls.isAbstract(),
-    name: CLASS.ENTITY_ABSTRACT_PROJECTILE
-  }, */
+  },
   '=': {
     predicate: ({ clsInfo, methodInfo }) => clsInfo.isInnerClass && methodInfo.origName === 'toString',
     outerClass: CLASS.INT_HASH_MAP,
@@ -727,6 +723,47 @@ const simpleConstToClass: {[string]: string | SimpleHandler | Array<SimpleHandle
   '(unknown)': {
     predicate: ({ methodInfo }) => methodInfo.sig.startsWith('(Lcom/mojang/authlib/GameProfile;)'),
     name: CLASS.TEXT_COMPONENT_UTILS
+  },
+  'Could not read old user banlist to convert it!': {
+    name: CLASS.PRE_YGGSDRASIL_CONVERTER,
+    method: 'convertBanlist',
+    eval ({ code, clsInfo }) {
+      const newBanlist = code.lines[0].nextOp('new')
+      if (newBanlist) {
+        clsInfo.info.class[newBanlist.className].name = CLASS.BAN_LIST
+      }
+    }
+  },
+  'Chunk Packet trying to allocate too much memory on read.': {
+    name: CLASS.PACKET_CHUNK,
+    method: 'read',
+    args: [CLASS.PACKET_BUFFER]
+  },
+  'Block{': CLASS.BLOCK,
+  'Unable to have damage AND stack.': {
+    name: CLASS.ITEM$BUILDER,
+    method: 'setMaxStackSize',
+    eval ({ line, clsInfo }) {
+      clsInfo.fields[line.prevOp('getstatic').field.fieldName].name = 'maxDamage'
+      clsInfo.fields[line.nextOp('putstatic').field.fieldName].name = 'maxStackSize'
+    }
+  },
+  'Unable to load registries': CLASS.BOOTSTRAP,
+  'enderman_holdable': {
+    name: CLASS.BLOCK_TAGS,
+    method: 'register',
+    return: CLASS.TAG
+  },
+  'music_discs': {
+    name: CLASS.ITEM_TAGS,
+    method: 'register',
+    return: CLASS.TAG
+  },
+  'Couldn\'t read {} tag list {} from {}': CLASS.TAG_LIST,
+  'Exception initializing level': {
+    name: CLASS.SERVER_WORLD,
+    method: 'initialize',
+    args: [CLASS.WORLD_SETTINGS]
   }
 })
 
@@ -834,7 +871,7 @@ function getClassNameForConstant (c: string, line: CodeLineLoadConst | CodeLineN
       info.class[line.next.call.className].name = CLASS.PROFILER
       info.class[clsInfo.superClassName].name = CLASS.WORLD
       try {
-        const worldInfoLine = (line.prevOp('ldc_w "mobSpawner"') || line.prevOp('ldc_w "spawner"')).nextOp('getfield')
+        const worldInfoLine = line.prevMatching(line => line.op === 'ldc_w' && (line.const === 'mobSpawner' || line.const === 'spawner')).nextOp('getfield')
         clsInfo.fields[worldInfoLine.field.fieldName].name = 'worldInfo'
         info.class[decodeType(worldInfoLine.field.type)].name = CLASS.WORLD_INFO
         const entitySpawnerLine = worldInfoLine.nextOp('getfield')
@@ -968,6 +1005,8 @@ function getEnumName (names: Array<string>, methodInfo: MethodInfo) {
     case 'MONSTER,CREATURE,AMBIENT,WATER_CREATURE': return CLASS.CREATURE_TYPE
     case 'WHITE,ORANGE,MAGENTA,LIGHT_BLUE,YELLOW': return CLASS.DYE_COLOR
     case 'HARP,BASEDRUM,SNARE,HAT,BASS': return CLASS.NOTE_BLOCK_INSTRUMENT
+    case 'MAINHAND,OFFHAND,FEET,LEGS,CHEST': return CLASS.EQUIPMENT_SLOT
+    case 'CAPE,JACKET,LEFT_SLEEVE,RIGHT_SLEEVE,LEFT_PANTS_LEG': return CLASS.PLAYER_MODEL_PART
     case 'EMPTY,BASE,CARVED,LIQUID_CARVED,LIGHTED': // TODO: why?
     case 'EMPTY,BASE,CARVED,LIQUID_CARVED,DECORATED': return CLASS.CHUNK_STAGE
     case 'ALL,ARMOR,ARMOR_FEET,ARMOR_LEGS,ARMOR_CHEST': return CLASS.ENCHANTMENT_TYPE
@@ -982,6 +1021,7 @@ function getEnumName (names: Array<string>, methodInfo: MethodInfo) {
     case 'PROTOCHUNK,LEVELCHUNK': return CLASS.CHUNK_STAGE$TYPE
     case 'DEFAULT,STICKY': return CLASS.PISTON_TYPE
     case 'SKY,BLOCK': return CLASS.LIGHT_TYPE
+    case 'MAIN_HAND,OFF_HAND': return CLASS.HAND
     case 'DOWN,UP,NORTH,SOUTH,WEST':
       if (clsInfo.isInnerClass) return
       if (clsInfo.interfaceNames.length) return CLASS.FACING
@@ -1006,6 +1046,10 @@ function getEnumName (names: Array<string>, methodInfo: MethodInfo) {
       if (!clsInfo.isInnerClass) return
       info.class[clsInfo.outerClassName].name = CLASS.HEIGHTMAP
       return CLASS.HEIGHTMAP$TYPE
+    case 'WORLDGEN,LIVE_WORLD':
+      if (!clsInfo.isInnerClass) return
+      info.class[clsInfo.outerClassName].name = CLASS.HEIGHTMAP
+      return CLASS.HEIGHTMAP$WORLD_STATE
     case 'LINUX,SOLARIS,WINDOWS,OSX,UNKNOWN':
       if (!clsInfo.isInnerClass) return
       info.class[clsInfo.outerClassName].name = CLASS.UTILS

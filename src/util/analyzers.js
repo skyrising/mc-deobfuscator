@@ -3,7 +3,6 @@ import fs from 'mz/fs'
 import path from 'path'
 import { setStatus } from './status'
 import { getCallStats, getMappedClassName, perf } from './index'
-import { enrichClsInfo } from './code'
 
 const dbgSearch = require('debug')('mc:deobf:search')
 const debugSearch = (...args) => {
@@ -36,30 +35,11 @@ export async function findAnalyzer (name: string): ?Analyzer {
   end()
 }
 
-export async function analyzeClassWrapper (next: string|BCELClass, info: FullInfo, Repository: BCELRepository) {
-  const start = Date.now()
-  if (typeof next === 'string') {
-    const name = next
-    try {
-      next = info.class[name].bin
-      if (!next) throw Error()
-    } catch (e) {
-      console.warn('Could not load class ' + name)
-      return
-    }
-  }
-  info.maxParallel = Math.max(info.maxParallel, ++info.running)
-  await analyzeClass(next, info)
-  info.running--
-  const sum = info.classAnalyzeAvg * info.numAnalyzed + (Date.now() - start)
-  info.classAnalyzeAvg = sum / ++info.numAnalyzed
-}
-
-export async function analyzeClass (cls: BCELClass, info: FullInfo) {
-  const clsInfo: ClassInfo = await enrichClsInfo(cls, info)
+export async function analyzeClass (clsInfo: ClassInfo) {
+  const { info } = clsInfo
   if (clsInfo.done) return
   clsInfo.done = true
-  const pkg = await cls.getPackageNameAsync() // TODO: parse name
+  const pkg = clsInfo.obfName.includes('.') ? clsInfo.obfName.slice(0, clsInfo.obfName.lastIndexOf('.')) : ''
   if (pkg.startsWith('net.minecraft')) clsInfo.name = clsInfo.obfName
   let analyzer: Analyzer = GENERIC_ANALYZER
   const special = clsInfo.name && (clsInfo.analyzer || await findAnalyzer(getMappedClassName(info, clsInfo.obfName)))

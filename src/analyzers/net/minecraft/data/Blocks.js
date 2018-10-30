@@ -1,10 +1,11 @@
 // @flow
-
 import { toUpperCamelCase } from '../../../../util'
+import { registerBlocks } from '../../../sharedLogic'
 
 export function method (methodInfo: MethodInfo) {
   const { code, clsInfo, info } = methodInfo
   if (methodInfo.origName === '<clinit>') {
+    if (code.consts.includes('polished_granite_stairs')) registerBlocks(methodInfo)
     for (const line of code.lines) {
       if (typeof (line: any).const !== 'string') continue
       const name: string = ((line: any).const: any)

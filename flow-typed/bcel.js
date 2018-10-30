@@ -1,7 +1,7 @@
 declare type BCELMethod = {
   getNameAsync: () => Promise<string>;
   getCodeAsync: () => Promise<BCELCode>;
-  getAccessFlags: () => number;
+  getAccessFlagsAsync: () => Promise<number>;
   getArgumentTypesAsync: () => Promise<Array<BCELType>>;
   getReturnTypeAsync: () => Promise<BCELType>;
   isAbstract: () => Promise<boolean>;
@@ -10,7 +10,7 @@ declare type BCELMethod = {
 declare type BCELField = {
   getNameAsync: () => Promise<string>;
   getTypeAsync: () => Promise<BCELType>;
-  getAccessFlags: () => number;
+  getAccessFlagsAsync: () => Promise<number>;
 }
 
 declare type BCELType = {
@@ -27,6 +27,7 @@ declare type BCELClass = {
   getPackageNameAsync: () => Promise<string>;
   getFieldsAsync: () => Promise<Array<BCELField>>;
   getMethodsAsync: () => Promise<Array<BCELMethod>>;
+  getAccessFlagsAsync: () => Promise<number>;
 }
 
 declare type BCELRepository = {

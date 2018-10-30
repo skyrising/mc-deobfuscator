@@ -23,7 +23,11 @@ const PACKAGE_MAP = {
   [CLASS.ADVANCEMENT_TRIGGER]: PKG.ADVANCEMENT_TRIGGERS,
   [CLASS.AI_GOAL]: PKG.ENTITY_AI,
   [CLASS.PARTICLE]: PKG.PARTICLE,
-  [CLASS.REGISTRY]: PKG.REGISTRY
+  [CLASS.REGISTRY]: PKG.REGISTRY,
+  [CLASS.CARVER]: PKG.WORLD_GEN_CARVING,
+  [CLASS.DECORATOR]: PKG.WORLD_GEN_DECORATION,
+  [CLASS.FEATURE]: PKG.WORLD_GEN_FEATURE,
+  [CLASS.SURFACE_BUILDER]: PKG.WORLD_GEN_SURFACE
 }
 
 const OBF_PACKAGE_MAP = {
@@ -102,13 +106,22 @@ export function init (info: FullInfo) {
   })
 }
 
+function isInterface (scInfo: ClassInfo) {
+  if (scInfo && scInfo.flags) return scInfo.flags.interface
+  switch (scInfo.obfName) {
+    case 'com.mojang.datafixers.DataFix': return false
+    case 'com.mojang.datafixers.schemas.Schema': return false
+  }
+  return false
+}
+
 export function cls (clsInfo: ClassInfo) {
   if (clsInfo.name) return
   const { info } = clsInfo
   clsInfo.done = false
   for (const scObfName in OBF_PACKAGE_MAP) {
     const scInfo = info.class[scObfName]
-    const doesExtend = scInfo.isInterface
+    const doesExtend = isInterface(scInfo)
       ? doesAnyImplement(clsInfo, scObfName)
       : hasSuperClass(clsInfo, scObfName)
     console.debug('does %s extend %s: %o', clsInfo.obfName, scObfName, doesExtend)
@@ -121,9 +134,19 @@ export function cls (clsInfo: ClassInfo) {
   }
   const NBTBase = info.classReverse[CLASS.NBT_BASE]
   if (NBTBase && (hasSuperClass(clsInfo, NBTBase) || doesAnyImplement(clsInfo, NBTBase))) {
-    if (clsInfo.isAbstract) return CLASS.NBT_PRIMITIVE
+    if (clsInfo.flags.abstract) return CLASS.NBT_PRIMITIVE
     clsInfo.package = PKG.NBT
     return
+  }
+  // XXX: Other types too?
+  if (doesAnyImplement(clsInfo, 'java.lang.Comparable')) {
+    for (const md of ((Object.values(clsInfo.method): any): Array<MethodInfo>)) {
+      if (md.origName !== 'compareTo') continue
+      if (!md.flags.synthetic) continue
+      const call = md.code.calls[0]
+      if (!call) continue
+      clsInfo.method[call.methodName + ':' + call.signature].name = 'compareTo'
+    }
   }
   if (clsInfo.isInnerClass) {
     if (clsInfo.outerClassName === info.classReverse[CLASS.PROFILER]) return 'Result'

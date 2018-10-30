@@ -72,6 +72,10 @@ export function ucFirst (s: string) {
   return s[0].toUpperCase() + s.slice(1)
 }
 
+export function lcFirst (s: string) {
+  return s[0].toLowerCase() + s.slice(1)
+}
+
 export function toLowerCamelCase (underScoreCase: string) {
   const lcc = toUpperCamelCase(underScoreCase)
   return lcc[0].toLowerCase() + lcc.slice(1)
@@ -119,7 +123,7 @@ const useHashNaming = true
 export function getDefaultName (clsInfo: ClassInfo) {
   const main = ucFirst(clsInfo.obfName) + (useHashNaming ? ucFirst(clsInfo.hashBase26) : '')
   if (clsInfo.enumNames.length) return 'Enum' + main
-  if (clsInfo.isInterface) return 'If' + main
+  if (clsInfo.flags.interface) return 'If' + main
   return 'Cls' + main
 }
 
@@ -152,7 +156,8 @@ export function getMappedClassName (infoIn: FullInfo | ClassInfo, from?: string)
     console.debug('Mapping class name ' + to.obfName + ' with package ' + (to.package || PKG.DEFAULT) + ' -> ' + (to.package || PKG.DEFAULT).replace(/\./g, '/') + '/' + getDefaultName(to))
     return (to.package || PKG.DEFAULT).replace(/\./g, '/') + '/' + getDefaultName(to)
   }
-  const toEnd = (to.name || from).slice((to.name || from).lastIndexOf('$') + 1)
+  const innerName = (to.name || from).slice((to.name || from).lastIndexOf('$') + 1)
+  const toEnd = /^[a-z]{,3}$/.test(innerName) ? 'Inner' + ucFirst(innerName) : innerName
   return getMappedClassName(info, from.slice(0, from.lastIndexOf('$'))) + '$' + toEnd
 }
 
@@ -179,6 +184,27 @@ export function perf (name: string) {
   performance.mark(name + '::start')
   return () => {
     performance.mark(name + '::end')
-    performance.measure(name, name + '::start', name + '::end')
+    return performance.measure(name, name + '::start', name + '::end')
   }
+}
+
+export function errorCause (err: Error, cause: Error) {
+  const linesErr = new Set(err.stack.split('\n'))
+  const linesCause = cause.stack.split('\n')
+  const filteredCause = linesCause.filter(line => !linesErr.has(line))
+  let addStack = 'Caused by: ' + filteredCause.join('\n')
+  if (filteredCause.length < linesCause.length) addStack += '\n    ...'
+  err.stack += '\n' + addStack
+  return err
+}
+
+export function chunkStr (str: string, size: number) {
+  const numChunks = Math.ceil(str.length / size)
+  const chunks = new Array(numChunks)
+
+  for (let i = 0, o = 0; i < numChunks; ++i, o += size) {
+    chunks[i] = str.substr(o, size)
+  }
+
+  return chunks
 }

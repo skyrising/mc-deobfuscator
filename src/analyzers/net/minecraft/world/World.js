@@ -8,7 +8,7 @@ export function field (fieldInfo: FieldInfo) {
     case '[I': return 'lightUpdateBlockList'
     case 'J': return 'cloudColor'
     case 'I':
-      if (fieldInfo.protected && fieldInfo.final) return 'TICK_RANDOM_ADDEND'
+      if (fieldInfo.flags.protected && fieldInfo.flags.final) return 'TICK_RANDOM_ADDEND'
       break
   }
   if (s`${CLASS.WORLD_INFO}`.matches(fieldInfo)) return 'worldInfo'

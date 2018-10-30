@@ -8,9 +8,11 @@ import { PerformanceObserver } from 'perf_hooks'
 let status = ''
 let statusInterval
 let statusInfo
+const passMeasures = []
 const perfObs = new PerformanceObserver(list => {
   for (const e of list.getEntries()) {
     console.debug(e)
+    if (e.name.startsWith('pass::') && e.entryType === 'measure') passMeasures.push(e)
   }
 })
 
@@ -24,6 +26,7 @@ export function endStatus () {
   clearInterval(statusInterval)
   statusInterval = undefined
   perfObs.disconnect()
+  console.log(passMeasures)
 }
 
 export function printStatus (s?: string) {
@@ -31,7 +34,7 @@ export function printStatus (s?: string) {
   if (!statusInfo || !statusInterval) return
   if (statusInfo.currentPass) {
     const pass = statusInfo.currentPass
-    const numClasses = statusInfo.classNames.length
+    const numClasses = statusInfo.classNames ? statusInfo.classNames.length : statusInfo.estNumClasses
     const numPasses = statusInfo.passes.length
     const weightedDone = statusInfo.passes.reduce((sum, pass) => sum + (pass.ended ? pass.weight : 0), 0) + pass.analyzed * pass.weight / numClasses
     const weightedTotal = statusInfo.passes.reduce((sum, pass) => sum + pass.weight, 0)
@@ -62,12 +65,33 @@ function log (fmt: string, ...args: Array<mixed>) {
 }
 
 let errorLog
+let prevError
+let prevErrorCount = 1
 
 ;(console: any).error = (fmt: string, ...args: Array<mixed>) => {
-  printLine(31, fmt, ...args)
-  if (errorLog) errorLog.write(util.format(fmt, ...args) + '\n')
-  printStatus()
+  const formatted = util.format(fmt, ...args)
+  if (formatted === prevError) {
+    prevErrorCount++
+  } else {
+    if (prevErrorCount > 1) {
+      printLine(32, 'Previous error repeated %d times', prevErrorCount)
+      if (errorLog) errorLog.write('Previous error repeated ' + prevErrorCount + ' times\n')
+    }
+    prevError = formatted
+    prevErrorCount = 1
+    printLine(31, fmt, ...args)
+    if (errorLog) errorLog.write(formatted + '\n')
+    printStatus()
+  }
 }
+
+process.on('exit', () => {
+  if (prevErrorCount > 1) {
+    printLine(32, 'Previous error repeated %d times', prevErrorCount)
+    if (errorLog) errorLog.write('Previous error repeated ' + prevErrorCount + ' times\n')
+  }
+  prevErrorCount = 1
+})
 
 // $FlowFixMe: value expected but TypeError: Invalid property descriptor. Cannot both specify accessors and a value or writable attribute, #<Object>
 Object.defineProperty(console.error, 'log', {

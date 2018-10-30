@@ -53,6 +53,7 @@ class Info extends EventEmitter {
     this.totalAnalyzed = {}
     this.classReverse = {}
     this.enriched = false
+    this.data = {}
     this.class = new Proxy(({
       [util.inspect.custom] (depth, opts) {
         return opts.stylize('[Classes: ', 'special') +
@@ -145,60 +146,9 @@ class Info extends EventEmitter {
               get (mds, fullSig) {
                 if (typeof fullSig !== 'string') return mds[fullSig]
                 if (!mds[fullSig]) {
+                  if (info.enriched) throw Error('Too late to create skeleton method')
                   const [origName, sig] = fullSig.split(':')
-                  mds[fullSig] = {
-                    [util.inspect.custom] (depth, opts) {
-                      return opts.stylize('[Method ', 'special') +
-                        util.inspect(this.clsInfo, opts) +
-                        opts.stylize(origName, 'string') +
-                        opts.stylize(sig, 'special') +
-                        (this._name ? ' (' + opts.stylize(this._name, 'string') + ')' : '') +
-                        opts.stylize(']', 'special')
-                    },
-                    type: 'method',
-                    info,
-                    clsInfo,
-                    origName,
-                    sig,
-                    static: false,
-                    set name (deobfName) {
-                      const argSig = fullSig.slice(fullSig.indexOf('('), fullSig.indexOf(')') + 1) + (this.static ? ':static' : '')
-                      const objectMethods = ['toString', 'clone', 'equals', 'hashCode', '<clinit>', '<init>']
-                      if (clsInfo.superClassName === 'java/lang/Enum') objectMethods.push('values', 'valueOf')
-                      if (objectMethods.includes(this.origName) && deobfName !== this.origName) {
-                        console.warn(Error('Tried renaming ' + this.origName + ' to ' + deobfName))
-                        return
-                      }
-                      if (this._name !== deobfName) {
-                        if (clsInfo.reverseMethod[deobfName] &&
-                            argSig in clsInfo.reverseMethod[deobfName] &&
-                            clsInfo.reverseMethod[deobfName][argSig] !== origName) {
-                          console.warn('%s.%s%s already exists (%s vs. %s)',
-                            (clsInfo.name || clsObfName), deobfName, argSig,
-                            clsInfo.reverseMethod[deobfName][argSig], origName)
-                          return
-                        }
-                        if (this._name) {
-                          console.debug('%s.%s%s renamed to %s', (clsInfo.name || clsObfName), this._name, argSig, deobfName)
-                        }
-                        debugMd('MD: %s/%s %s %s/%s %s', slash(clsObfName), origName, sig, slash(classes[clsObfName].name || clsObfName), deobfName, sig)
-                        const inherited = getMethodInheritance(this)[1]
-                        if (inherited) {
-                          info.class[inherited].method[fullSig].name = deobfName
-                          console.debug('renaming super(' + inherited + ') ' + fullSig + ' -> ' + deobfName)
-                        }
-                      }
-                      this._name = deobfName
-                      clsInfo.reverseMethod[deobfName] = clsInfo.reverseMethod[deobfName] || []
-                      clsInfo.reverseMethod[deobfName][argSig] = origName
-                    },
-                    get name () {
-                      if (this._name) return this._name
-                      const inherited = getMethodInheritance(this)[1]
-                      if (inherited) return info.class[inherited].method[fullSig].name
-                      return this.origName
-                    }
-                  }
+                  mds[fullSig] = info.newMethod(clsInfo.obfName, origName, sig)
                 }
                 return mds[fullSig]
               }
@@ -219,12 +169,13 @@ class Info extends EventEmitter {
         return info.class[className].method[methodSig]
       }
     })
-    this.data = {}
   }
 
-  async init ({ version, side, classNames }: {version: Version|string, side: Side, classNames: Array<string>}) {
+  async init ({ version, side, jarFile, fullClassPath }: {version: Version|string, side: Side, jarFile: string, fullClassPath: Array<string>}) {
     this.side = side
-    this.classNames = classNames
+    this.jarFile = jarFile
+    this.fullClassPath = fullClassPath
+    this.estNumClasses = side === 'client' ? 4000 : 2000
     const [, versionMajor, versionMinor, versionPatch] = (typeof version === 'string' ? version : version.id)
       .match(/^(\d+)\.(\d+)(\.\d+)?/) || []
     this.version = {
@@ -236,7 +187,6 @@ class Info extends EventEmitter {
         return version.id || version
       }
     }
-    this._queue.push(...classNames)
   }
 
   [util.inspect.custom] (depth, opts) {
@@ -267,7 +217,7 @@ class Info extends EventEmitter {
           this.started = false
           this.ended = true
           info.currentPass = undefined
-          end()
+          this.measure = end()
         }
         this.started = true
       },
@@ -277,6 +227,78 @@ class Info extends EventEmitter {
     }
     this.passes.push(pass)
     return pass
+  }
+
+  newMethod (clsName: string, obfName: string, sig: string) {
+    const key = obfName + ':' + sig
+    const info = this
+    const clsInfo = this.class[clsName]
+    return {
+      [util.inspect.custom] (depth, opts) {
+        return opts.stylize('[Method ', 'special') +
+          util.inspect(this.clsInfo, opts) +
+          opts.stylize(obfName, 'string') +
+          opts.stylize(sig, 'special') +
+          (this._name ? ' (' + opts.stylize(this._name, 'string') + ')' : '') +
+          opts.stylize(']', 'special')
+      },
+      type: 'method',
+      info,
+      clsInfo,
+      obfName,
+      sig,
+      get base () {
+        if (this._base) return this._base
+        if (this.flags.static) return this
+        const chain = getMethodInheritance(this)
+        const inherited = chain.length > 1 && chain[chain.length - 1]
+        if (inherited && key in info.class[inherited].method) {
+          this._base = info.class[inherited].method[key]
+        } else if (inherited) {
+          console.warn('Could not get inherited method info for ' + key + ' from ' + inherited)
+          console.log(Object.keys(info.class[inherited].method))
+        } else {
+          this._base = this
+        }
+        return this._base
+      },
+      set name (deobfName) {
+        if (this.base !== this) {
+          this.base.name = deobfName
+          console.debug('renaming super(' + this.base.clsInfo.name + ') ' + key + ' -> ' + deobfName)
+          return
+        }
+        const argSig = sig + (this.flags.static ? ':static' : '')
+        const objectMethods = ['toString', 'clone', 'equals', 'hashCode', '<clinit>', '<init>']
+        if (clsInfo.superClassName === 'java/lang/Enum') objectMethods.push('values', 'valueOf')
+        if (objectMethods.includes(this.obfName) && deobfName !== this.obfName) {
+          console.warn(Error('Tried renaming ' + this.obfName + ' to ' + deobfName))
+          return
+        }
+        if (this._name !== deobfName) {
+          if (clsInfo.reverseMethod[deobfName] &&
+              argSig in clsInfo.reverseMethod[deobfName] &&
+              clsInfo.reverseMethod[deobfName][argSig] !== obfName) {
+            console.warn('%s.%s%s already exists (%s vs. %s)',
+              (clsInfo.name || clsName), deobfName, argSig,
+              clsInfo.reverseMethod[deobfName][argSig], obfName)
+            return
+          }
+          if (this._name) {
+            console.debug('%s.%s%s renamed to %s', (clsInfo.name || clsName), this._name, argSig, deobfName)
+          }
+          debugMd('MD: %s/%s %s %s/%s %s', slash(clsName), obfName, sig, slash(clsInfo.name || clsName), deobfName, sig)
+        }
+        this._name = deobfName
+        clsInfo.reverseMethod[deobfName] = clsInfo.reverseMethod[deobfName] || []
+        clsInfo.reverseMethod[deobfName][argSig] = obfName
+      },
+      get name () {
+        if (this.base !== this) return this.base.name
+        if (this._name) return this._name
+        return this.origName
+      }
+    }
   }
 
   get hasWork (): boolean {
@@ -346,7 +368,7 @@ class Info extends EventEmitter {
   }
 }
 
-export async function createInfo (base: {version: Version|string, side: Side, classNames: Array<string>}): Promise<FullInfo> {
+export async function createInfo (base: {version: Version|string, side: Side, jarFile: string, fullClassPath: Array<string>}): Promise<FullInfo> {
   const info = new Info()
   await info.init(base)
   return info

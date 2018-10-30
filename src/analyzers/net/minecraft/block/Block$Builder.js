@@ -10,7 +10,7 @@ export function method (methodInfo: MethodInfo) {
     info.class[methodInfo.argSigs[0].slice(1, -1)].name = CLASS.MATERIAL
     info.class[methodInfo.argSigs[1].slice(1, -1)].name = CLASS.MAP_COLOR
   }
-  if (sig.endsWith(')L' + Builder + ';') && methodInfo.static) return 'create'
+  if (sig.endsWith(')L' + Builder + ';') && methodInfo.flags.static) return 'create'
   switch (sig) {
     case '(I)L' + Builder + ';': return 'setLightOpacity'
     case '(FF)L' + Builder + ';': return 'setHardnessAndResistance'
@@ -22,8 +22,8 @@ export function method (methodInfo: MethodInfo) {
 }
 
 export function field (fieldInfo: FieldInfo) {
-  if (s`${CLASS.MAP_COLOR}`) return 'mapColor'
-  if (s`${CLASS.MATERIAL}`) return 'material'
+  if (s`${CLASS.MAP_COLOR}`.matches(fieldInfo)) return 'mapColor'
+  if (s`${CLASS.MATERIAL}`.matches(fieldInfo)) return 'material'
   switch (fieldInfo.sig) {
     case 'I': return 'lightOpacity'
   }

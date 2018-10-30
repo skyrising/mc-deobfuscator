@@ -3,15 +3,33 @@ import fs from 'mz/fs'
 import path from 'path'
 // import {graph} from './graphviz'
 import { getDefaultName } from './util'
-import { enrichClsInfo } from './util/code'
+import { readAllClasses } from './util/bcel/adapter'
 import { createInfo } from './util/info'
 import { startStatus, endStatus } from './util/status'
-import { specialSource as runSpecialSource, extractJar as runExtractJar } from './util/tools'
+import {
+  specialSource as runSpecialSource,
+  extractJar as runExtractJar,
+  procyon, fernflower, forgeflower
+} from './util/tools'
 import { generateOutput } from './util/output'
-import { getAllClasses, initJava } from './util/java'
-import { analyzeClassWrapper, runAnalyzer, initAnalyzer } from './util/analyzers'
+import { analyzeClass, runAnalyzer, initAnalyzer } from './util/analyzers'
+import { getLibraries, getMinecraftHome } from './util/version'
+import { createWorkspace as createIdeaWorkspace } from './util/ide/idea'
 import * as renameGetterSetter from './analyzers/getterSetter'
 import * as hierarchyAnalyzer from './analyzers/hierarchy'
+
+type Options = {
+  specialSource: boolean;
+  extractJar: boolean;
+  debugLog: boolean;
+  errorLog: boolean;
+  status: boolean;
+  decompile: 'procyon' | 'fernflower' | 'forgeflower' | boolean;
+  ide: {
+    idea: boolean;
+  };
+  version: Version | string;
+}
 
 let debugConsole
 const dbg = require('debug')('mc:deobf')
@@ -29,103 +47,99 @@ function enableDebugLog () {
 if (require.main === module) {
   enableDebugLog()
   const version = process.argv[2] || '1.12'
-  const options = {
+  const options: {...Options, version: string} = {
     specialSource: true,
     extractJar: true,
     debugLog: true,
     errorLog: true,
-    status: true
+    status: true,
+    /*
+    decompile: 'forgeflower',
+    ide: {
+      idea: true
+    },
+    */
+    version
   }
   if (version.endsWith('.jar')) analyzeJar(path.resolve(version), [], options).catch(console.error)
-  else analyzeVersion(version, options).catch(console.error)
+  else analyzeClient(options).catch(console.error)
 }
 
-export async function analyzeVersion (version, options) {
+export async function analyzeClient (options: {...Options, version: string}) {
+  const { version } = options
   console.log('Analyzing Minecraft version %s', version)
-  const versionDir = path.resolve(process.env.HOME, '.minecraft/versions', version)
+  const mcHome = getMinecraftHome()
+  const versionDir = path.resolve(mcHome, 'versions', version)
   console.log('Version directory: %s', versionDir)
   const metaFile = path.resolve(versionDir, version + '.json')
   debug('Reading meta file %s', metaFile)
   const meta = JSON.parse(await fs.readFile(metaFile, 'utf8'))
-  const classPath = [...new Set(meta.libraries.map(l => {
-    const file = l.name.split(':')[0].replace(/\./g, '/').replace(/:/g, '/')
-    const fn = l.name.split(':')
-    return path.resolve(process.env.HOME, '.minecraft/libraries/' + file + '/' + fn[1] + '/' + fn[2] + '/' + fn[1] + '-' + fn[2] + '.jar')
-  }))]
+  const libraries = getLibraries(meta)
   console.log('Type: %s, Main class: %s', meta.type, meta.mainClass)
   const jarFile = path.resolve(versionDir, version + '.jar')
-  return analyzeJar(jarFile, classPath, options)
+  return analyzeJar(jarFile, libraries, options)
 }
 
-type Options = {
-  specialSource: boolean;
-  extractJar: boolean;
-  debugLog: boolean;
-  errorLog: boolean;
-  status: boolean;
-  version: Version | string;
-}
-
-export async function analyzeJar (jarFile: string, classPath: Array<string>, options: $Shape<Options> = {}) {
-  const { specialSource, extractJar, debugLog, errorLog, version, status }: Options = {
+export async function analyzeJar (jarFile: string, libraries: Array<{id: string, path: string}>, options: $Shape<Options> = {}) {
+  const { specialSource, extractJar, debugLog, errorLog, version, status, decompile, ide }: Options = {
     specialSource: false,
     extractJar: false,
     debugLog: false,
     errorLog: false,
     status: false,
     version: path.basename(jarFile, '.jar').split('.').filter(p => /\d/.test(p)).join('.'),
+    decompile: false,
+    ide: {
+      idea: false,
+      ...(options.ide || {})
+    },
     ...options
   }
   if (debugLog) enableDebugLog()
   if (errorLog) console.error.log = true
-  const fullClassPath = [jarFile, ...classPath]
+  const fullClassPath = [jarFile, ...libraries.map(l => l.path)]
   console.log('Class path: ' + fullClassPath.join(','))
-  const Repository = await initJava(fullClassPath)
-  const classNames = getAllClasses(jarFile).filter(name => !name.includes('.') || name.startsWith('net.minecraft'))
-  const forEachClass = (fn: (BCELClass, ClassInfo) => any) => Promise.all(classNames.map(async name => {
+  const side = jarFile.includes('server') ? 'server' : 'client'
+  const info: FullInfo = await createInfo({ version, side, jarFile, fullClassPath })
+  global.info = info
+  const genericPasses = []
+  const passClsInfo = info.newPass('reading classes', { weight: 13.5 })
+  const genericWeights = [5.7, 4.1, 1.8]
+  // TODO: figure out if unknown fields e.g. in World are caused by not enough passes
+  for (let i = 0; i < 3; i++) genericPasses.push(info.newPass('generic[' + i + ']', { weight: genericWeights[i] }))
+  const passHierarchy = info.newPass('hierarchy', { weight: 1.4 })
+  const passGetterSetter = info.newPass('getters & setters', { weight: 2.2 })
+  if (status) startStatus(info)
+  passClsInfo.start()
+  console.log('Reading classes')
+  await readAllClasses(info)
+  passClsInfo.end()
+  const forEachClass = (fn: (ClassInfo) => any) => Promise.all(info.classNames.map(async name => {
     try {
-      const cls = await Repository.lookupClass(name)
-      const clsInfo = info.class[name]
-      await fn(cls, clsInfo)
+      await fn(info.class[name])
       if (info.currentPass) info.currentPass.analyzed++
     } catch (e) {
       console.warn(e)
     }
   }))
-  console.log(classNames.length + ' classes, ' + classNames.filter(name => !name.includes('$')).length + ' outer classes')
-  const side = jarFile.includes('server') ? 'server' : 'client'
-  const info: FullInfo = await createInfo({ version, side, classNames })
-  global.info = info
-  const genericPasses = []
-  const passClsInfo = info.newPass('reading classes', { weight: 2 })
-  // TODO: figure out if unknown fields e.g. in World are caused by not enough passes
-  for (let i = 0; i < 3; i++) genericPasses.push(info.newPass('generic[' + i + ']'))
-  const passHierarchy = info.newPass('hierarchy', { weight: 0.3 })
-  const passGetterSetter = info.newPass('getters & setters', { weight: 0.6 })
-  if (status) startStatus(info)
-  passClsInfo.start()
-  console.log('Reading classes')
-  await forEachClass(cls => enrichClsInfo(cls, info))
-  info.enriched = true
-  passClsInfo.end()
   await initAnalyzer(hierarchyAnalyzer, info)
   for (const pass of genericPasses) {
     pass.start()
-    await forEachClass(cls => analyzeClassWrapper(cls, info, Repository))
+    await forEachClass(analyzeClass)
     pass.end()
   }
   passHierarchy.start()
   console.log('Analyzing hierarchy')
-  await forEachClass((cls, clsInfo) => runAnalyzer(hierarchyAnalyzer, clsInfo))
+  await forEachClass(clsInfo => runAnalyzer(hierarchyAnalyzer, clsInfo))
   passHierarchy.end()
   passGetterSetter.start()
   console.log('Renaming getters & setters')
-  await forEachClass((cls, clsInfo) => runAnalyzer(renameGetterSetter, clsInfo))
+  await forEachClass(clsInfo => runAnalyzer(renameGetterSetter, clsInfo))
   passGetterSetter.end()
   if (status) endStatus()
   // await renderGraph(info)
   const unknownClasses = ((Object.values(info.class): any): Array<ClassInfo>).filter(c => !c.name)
-  console.log(classNames.filter(name => info.class[name].name && !info.class[name].name.endsWith(getDefaultName(info.class[name]))).length + ' class names found')
+  console.log(info.classNames.filter(name => info.class[name].name && !info.class[name].name.endsWith(getDefaultName(info.class[name]))).length + ' class names found')
   console.log(Object.values(info.classReverse).length + ' classes packaged')
   console.log(unknownClasses.length + ' unknown classes: (Top 100)')
   console.log(unknownClasses
@@ -159,15 +173,36 @@ export async function analyzeJar (jarFile: string, classPath: Array<string>, opt
     const deobfJar = path.resolve('work', path.basename(jarFile, '.jar') + '-deobf.jar')
     await runSpecialSource(jarFile, deobfJar, info)
     if (extractJar) {
-      const binDir = path.resolve('./work/bin/')
+      const binDir = path.resolve('work/bin/')
       await runExtractJar(deobfJar, binDir)
+    }
+    if (decompile) {
+      const wsDir = path.resolve('work/workspace')
+      const srcDir = path.resolve(wsDir, 'src')
+      switch (decompile) {
+        case 'procyon':
+          await procyon(deobfJar, srcDir)
+          break
+        case 'fernflower':
+          await fernflower(deobfJar, srcDir)
+          break
+        case 'forgeflower':
+          await forgeflower(deobfJar, srcDir)
+          break
+      }
+      const workspace = {
+        name: 'Minecraft ' + version.toString(),
+        projects: [{
+          name: side === 'server' ? 'Server' : 'Client',
+          libraries,
+          sources: [srcDir]
+        }]
+      }
+      if (ide.idea) createIdeaWorkspace(wsDir, workspace)
     }
   } else {
     await generateOutput(info)
   }
-  // const srcDir = path.resolve('./work/src/')
-  // await procyon(deobfJar, srcDir)
-  // await fernflower(deobfJar, srcDir)
 }
 
 const sortEnums = (a, b) => {

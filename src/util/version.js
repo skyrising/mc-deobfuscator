@@ -1,4 +1,6 @@
+// @flow
 import fs from 'mz/fs'
+import os from 'os'
 import path from 'path'
 import request0 from 'request'
 import request from 'request-promise-native'
@@ -75,6 +77,57 @@ export async function addVersion (info) {
     await addVersion({ ...await request(info, { json: true }), info })
   }
 }
+
+/*
+export function getLibraries (meta) {
+  return [...new Set(meta.libraries.map(l => {
+    const file = l.name.split(':')[0].replace(/\./g, '/').replace(/:/g, '/')
+    const fn = l.name.split(':')
+    return path.resolve(getMinecraftHome(), 'libraries/' + file + '/' + fn[1] + '/' + fn[2] + '/' + fn[1] + '-' + fn[2] + '.jar')
+  }))]
+}
+*/
+
+export function getLibraries (meta: {libraries: Array<{name: string, downloads: {artifact: {path: string}}}>}): Array<{id: string, path: string}> {
+  const libDir = path.resolve(getMinecraftHome(), 'libraries')
+  return meta.libraries.filter(lib => {
+    if (!lib.rules) return true
+    for (const rule of lib.rules) {
+      const result = testRule(rule)
+      if (result && rule.action === 'disallow') return false
+      if (!result && rule.action === 'allow') return false
+    }
+  }).map(l => ({
+    id: l.name,
+    path: path.resolve(libDir, l.downloads.artifact.path)
+  }))
+}
+
+type Rule = {
+  os?: {name: string};
+}
+
+function testRule (rule: Rule) {
+  if (rule.os) {
+    const expected = rule.os.name
+    const pf = os.platform()
+    if (pf === 'darwin') return expected === 'osx'
+    if (pf === 'windows') return expected === 'win32'
+    return expected === os
+  }
+}
+
+/* eslint-disable no-return-assign */
+let _mcHome
+export function getMinecraftHome () {
+  if (_mcHome) return _mcHome
+  switch (os.platform()) {
+    case 'win32': return _mcHome = path.resolve('%APPDATA%\\.minecraft')
+    case 'darwin': return _mcHome = path.resolve(process.env.HOME || '.', 'Library/Application Support/minecraft')
+    default: return _mcHome = path.resolve(process.env.HOME || '.', '.minecraft')
+  }
+}
+/* eslint-enable no-return-assign */
 
 if (require.main === module) {
   (async () => {

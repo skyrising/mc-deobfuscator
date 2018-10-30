@@ -1,10 +1,11 @@
+// @flow
 import * as PKG from '../PackageNames'
 import fs from 'fs'
 import path from 'path'
 import { getMappedClassName, sortObfClassName, slash } from './index'
 import { digraph } from './graphviz'
 
-export function generateOutput (info) {
+export function generateOutput (info: FullInfo) {
   const dataDir = path.resolve('data')
   if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir)
   const versionDir = path.resolve(dataDir, info.version.toString())
@@ -35,7 +36,7 @@ export function generateOutput (info) {
   return { version, srg, tsrg, obfClasses, deobfClasses, hashClasses, dataFiles, inheritanceGraph }
 }
 
-export function generateClassLists (info, obfFile, deobfFile, hashFile) {
+export function generateClassLists (info: FullInfo, obfFile: string, deobfFile: string, hashFile: string) {
   const obfClasses = info.classNames.sort(sortObfClassName)
   const deobfClasses = obfClasses.map(cls => getMappedClassName(info, cls)).filter(Boolean)
   const hashCount = {}
@@ -54,8 +55,8 @@ export function generateClassLists (info, obfFile, deobfFile, hashFile) {
   fs.writeFileSync(hashFile, hashClasses.map(cls => cls + '\n').join(''))
 }
 
-export function generateSrg (info, srgFile) {
-  const srg = [
+export function generateSrg (info: FullInfo, srgFile: string, sort: boolean = false) {
+  let srg = [
     'PK: . ' + slash(PKG.DEFAULT),
     'PK: net net',
     'PK: ' + slash(PKG.BASE) + ' ' + slash(PKG.BASE),
@@ -69,44 +70,47 @@ export function generateSrg (info, srgFile) {
     const to = info.class[from]
     const toName = getMappedClassName(info, from)
     if (toName) srg.push(`CL: ${slash(from)} ${slash(toName)}`)
-    for (const fd in to.fields) srg.push(`FD: ${slash(from)}/${fd} ${slash(toName)}/${to.fields[fd].name || fd}`)
+    for (const fd in to.fields) srg.push(`FD: ${slash(from)}/${fd} ${slash(toName)}/${to.fields[fd].bestName}`)
     for (const mdFrom in to.method) {
       const md = to.method[mdFrom]
-      if (md.name) srg.push(`MD: ${slash(from)}/${md.origName} ${md.sig} ${slash(toName)}/${md.name || md.origName} ${md.sig}`)
+      if (md.name) srg.push(`MD: ${slash(from)}/${md.origName} ${md.sig} ${slash(toName)}/${md.bestName} ${md.sig}`)
     }
   }
-  const sectionOrder = ['PK:', 'CL:', 'FD:', 'MD:']
-  fs.writeFileSync(srgFile, srg.sort((a, b) => {
-    const colsA = a.split(' ')
-    const colsB = b.split(' ')
-    if (colsA[0] !== colsB[0]) return sectionOrder.indexOf(colsA[0]) - sectionOrder.indexOf(colsB[0])
-    const [clsA, clsB] = colsA[1].includes('/')
-      ? [colsA[1].slice(0, colsA[1].indexOf('/')), colsB[1].slice(0, colsB[1].indexOf('/'))]
-      : [colsA[1], colsB[1]]
-    const cmpCls = sortObfClassName(clsA, clsB)
-    if (cmpCls !== 0) return cmpCls
-    if (a > b) return 1
-    if (a < b) return -1
-    return 0
-  }).join('\n'))
+  if (sort) {
+    const sectionOrder = ['PK:', 'CL:', 'FD:', 'MD:']
+    srg = srg.sort((a, b) => {
+      const colsA = a.split(' ')
+      const colsB = b.split(' ')
+      if (colsA[0] !== colsB[0]) return sectionOrder.indexOf(colsA[0]) - sectionOrder.indexOf(colsB[0])
+      const [clsA, clsB] = colsA[1].includes('/')
+        ? [colsA[1].slice(0, colsA[1].indexOf('/')), colsB[1].slice(0, colsB[1].indexOf('/'))]
+        : [colsA[1], colsB[1]]
+      const cmpCls = sortObfClassName(clsA, clsB)
+      if (cmpCls !== 0) return cmpCls
+      if (a > b) return 1
+      if (a < b) return -1
+      return 0
+    })
+  }
+  fs.writeFileSync(srgFile, srg.join('\n'))
 }
 
-export function generateTsrg (info, tsrgFile) {
+export function generateTsrg (info: FullInfo, tsrgFile: string) {
   const lines = []
   for (const from of info.classNames) {
     const to = info.class[from]
     const toName = getMappedClassName(info, from)
     lines.push(slash(from) + ' ' + slash(toName))
-    for (const fd in to.fields) lines.push(`\t${fd} ${to.fields[fd].name || fd}`)
+    for (const fd in to.fields) lines.push(`\t${fd} ${to.fields[fd].bestName}`)
     for (const mdFrom in to.method) {
       const md = to.method[mdFrom]
-      lines.push(`\t${md.origName} ${md.sig} ${md.name || md.origName}`)
+      lines.push(`\t${md.origName} ${md.sig} ${md.bestName}`)
     }
   }
   fs.writeFileSync(tsrgFile, lines.join('\n'))
 }
 
-export function generateDataFiles (info, dir) {
+export function generateDataFiles (info: FullInfo, dir: string) {
   const files = []
   for (const basename in info.data) {
     let data
@@ -127,7 +131,7 @@ export function generateDataFiles (info, dir) {
   return files
 }
 
-export function renderGraph (info, file) {
+export function renderGraph (info: FullInfo, file: string) {
   const g = digraph({
     fontname: 'sans-serif',
     overlap: false,
@@ -159,11 +163,11 @@ export function renderGraph (info, file) {
     if (inheritsFrom.length === 0 && clsInfo.subClasses.size === 0) continue
     const name = getMappedClassName(clsInfo).replace(/\//g, '.')
     const s = name.indexOf('.') > 0 ? getSubgraph(name.slice(0, name.lastIndexOf('.'))) : g
-    const type = clsInfo.isInterface
+    const type = clsInfo.flags.interface
       ? 'interface'
       : (clsInfo.superClassName === 'java.lang.Enum'
         ? 'enum'
-        : (clsInfo.isAbstract ? 'abstract class' : 'class')
+        : (clsInfo.flags.abstract ? 'abstract class' : 'class')
       )
     const label = `${type} | {${obfName} | ${name.replace(PKG.BASE + '.', '')}}`
     const color = ({
@@ -177,7 +181,7 @@ export function renderGraph (info, file) {
       label,
       fillcolor: color
     }
-    if (clsInfo.isInterface) attr.fontsize = 16
+    if (clsInfo.flags.interface) attr.fontsize = 16
     if (clsInfo.isInnerClass) attr.fontsize = 12
     if (inheritsFrom.length === 0) {
       attr.root = true

@@ -9,7 +9,7 @@ export function field (fieldInfo: FieldInfo) {
 export function method (methodInfo: MethodInfo) {
   switch (methodInfo.sig) {
     case '()Z': {
-      if (methodInfo.isAbstract) return 'shouldExecute'
+      if (methodInfo.flags.abstract) return 'shouldExecute'
       if (methodInfo.code.lines[0].op === 'iconst_1') return 'isInterruptible'
       return 'shouldContinueExecuting'
     }

@@ -8,14 +8,14 @@ export function method (methodInfo: MethodInfo) {
     info.class[methodInfo.argSigs[1].slice(1, -1)].name = CLASS.PACKET
     return 'getPacketId'
   }
-  if (sig.endsWith('L' + clsInfo.obfName + ';') && methodInfo.static && !methodInfo.origName.startsWith('value')) return 'get'
+  if (sig.endsWith('L' + clsInfo.obfName + ';') && methodInfo.flags.static && !methodInfo.origName.startsWith('value')) return 'get'
   if (sig === '()I') return 'getId'
 }
 
 export function field (fieldInfo: FieldInfo) {
   const { clsInfo } = fieldInfo
   switch (fieldInfo.sig) {
-    case 'Ljava/util/Map;': return fieldInfo.static ? 'BACKWARD' : 'FORWARD'
+    case 'Ljava/util/Map;': return fieldInfo.flags.static ? 'BACKWARD' : 'FORWARD'
     case '[L' + clsInfo.obfName + ';': return 'STATES'
   }
 }

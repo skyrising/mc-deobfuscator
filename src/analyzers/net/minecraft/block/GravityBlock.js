@@ -14,7 +14,7 @@ export function method (methodInfo: MethodInfo) {
     return 'tickDelay'
   }
   const { sig } = methodInfo
-  if (methodInfo.static && sig.endsWith(')Z')) {
+  if (methodInfo.flags.static && sig.endsWith(')Z')) {
     info.class[methodInfo.argSigs[0].slice(1, -1)].name = CLASS.BLOCK_STATE
     return 'canFallThrough'
   }
