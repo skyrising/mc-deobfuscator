@@ -204,5 +204,15 @@ export const BLOCK_CLASS_NAMES = {
   structure_block: 'StructureBlock',
   bamboo: 'Bamboo',
   bamboo_sapling: 'BambooSapling',
-  loom: 'Loom'
+  loom: 'Loom',
+  barrel: 'Barrel',
+  smoker: 'Smoker',
+  blast_furnace: 'BlastFurnace',
+  cartography_table: 'CartographyTable',
+  fletching_table: 'FletchingTable',
+  grindstone: 'Grindstone',
+  lectern: 'Lectern',
+  smithing_table: 'SmithingTable',
+  stonecutter: 'Stonecutter',
+  bell: 'Bell'
 }
