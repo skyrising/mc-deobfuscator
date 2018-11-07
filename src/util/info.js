@@ -89,19 +89,24 @@ class Info extends EventEmitter {
             },
             isInnerClass: clsObfName.indexOf('$') > 0,
             set name (deobfName: string) {
+              this.setName(deobfName, Error().stack.split('\n')[2])
+            },
+            setName (deobfName: string, by?: string) {
               if (clsObfName.startsWith('java.')) {
                 console.warn(Error('Tried renaming ' + clsObfName))
                 return
               }
               deobfName = deobfName.replace(/\//g, '.')
               if (info.classReverse[deobfName] && info.classReverse[deobfName] !== slash(clsObfName)) {
-                throw Error(`Duplicate name ${deobfName}: ${info.classReverse[deobfName]}, ${slash(clsObfName)}`)
+                this.namedBy = by
+                throw new DuplicateNamingError(deobfName, info.class[info.classReverse[deobfName]], this)
               }
               info.classReverse[deobfName] = slash(clsObfName)
               if (this.isInnerClass) deobfName = deobfName.slice(deobfName.lastIndexOf(deobfName.includes('$') ? '$' : '.') + 1)
               if (this._name !== deobfName) {
                 info.genericAnalyzed[deobfName] = -1
                 info.specialAnalyzed[deobfName] = 0
+                if (!this.namedBy) this.namedBy = by
                 debugCl('CL: %s %s', slash(clsObfName), slash(deobfName))
                 printStatus(clsObfName + ' -> ' + deobfName)
                 info.emit('class-name', { obf: clsObfName, deobf: deobfName, clsInfo })
@@ -366,6 +371,24 @@ class Info extends EventEmitter {
         this._queue.unshift(name)
       })
     }
+  }
+}
+
+export class DuplicateNamingError extends Error {
+  deobfName: string;
+  a: ClassInfo;
+  b: ClassInfo;
+
+  constructor (deobfName: string, a: ClassInfo, b: ClassInfo) {
+    super(`Duplicate name ${deobfName} for ${a.obfName} (by ${a.namedBy}) and ${b.obfName} (by ${b.namedBy})`)
+    this.name = 'DuplicateNamingError'
+    this.deobfName = deobfName
+    this.a = a
+    this.b = b
+  }
+
+  [util.inspect.custom] () {
+    return this.stack
   }
 }
 

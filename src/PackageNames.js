@@ -42,6 +42,7 @@ export const RECIPE = ITEM + '.recipe'
 
 export const NETWORK = BASE + '.network'
 export const NETWORK_HANDSHAKING = NETWORK + '.handshaking'
+export const NETWORK_HANDSHAKING_CLIENT = NETWORK_HANDSHAKING + '.client'
 export const NETWORK_LOGIN = NETWORK + '.login'
 export const NETWORK_LOGIN_SERVER = NETWORK_LOGIN + '.server'
 export const NETWORK_LOGIN_CLIENT = NETWORK_LOGIN + '.client'

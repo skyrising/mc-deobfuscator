@@ -36,6 +36,15 @@ const OBF_PACKAGE_MAP = {
   'com.mojang.datafixers.schemas.Schema': PKG.DATAFIX_SCHEMAS
 }
 
+function isInterface (scInfo: ClassInfo) {
+  if (scInfo && scInfo.flags) return scInfo.flags.interface
+  switch (scInfo.obfName) {
+    case 'com.mojang.datafixers.DataFix': return false
+    case 'com.mojang.datafixers.schemas.Schema': return false
+  }
+  return false
+}
+
 type SCInfo = {
   superClass?: string;
   interfaces?: Array<string> | Array<Array<string>>;
@@ -107,37 +116,30 @@ export function init (info: FullInfo) {
   })
 }
 
-function isInterface (scInfo: ClassInfo) {
-  if (scInfo && scInfo.flags) return scInfo.flags.interface
-  switch (scInfo.obfName) {
-    case 'com.mojang.datafixers.DataFix': return false
-    case 'com.mojang.datafixers.schemas.Schema': return false
-  }
-  return false
-}
-
 export function cls (clsInfo: ClassInfo) {
   if (clsInfo.name) return
   const { info } = clsInfo
   clsInfo.done = false
-  for (const scObfName in OBF_PACKAGE_MAP) {
-    const scInfo = info.class[scObfName]
-    const doesExtend = isInterface(scInfo)
-      ? doesAnyImplement(clsInfo, scObfName)
-      : hasSuperClass(clsInfo, scObfName)
-    console.debug('does %s extend %s: %o', clsInfo.obfName, scObfName, doesExtend)
-    if (doesExtend) {
-      clsInfo.package = OBF_PACKAGE_MAP[scObfName]
-      console.debug('Packaged: ' + clsInfo.obfName + ' -> ' + clsInfo.package)
-      postPackageSubclass(clsInfo, scInfo)
-      break
+  if (!clsInfo.package) {
+    for (const scObfName in OBF_PACKAGE_MAP) {
+      const scInfo = info.class[scObfName]
+      const doesExtend = isInterface(scInfo)
+        ? doesAnyImplement(clsInfo, scObfName)
+        : hasSuperClass(clsInfo, scObfName)
+      console.debug('does %s extend %s: %o', clsInfo.obfName, scObfName, doesExtend)
+      if (doesExtend) {
+        clsInfo.package = OBF_PACKAGE_MAP[scObfName]
+        console.debug('Packaged: ' + clsInfo.obfName + ' -> ' + clsInfo.package)
+        postPackageSubclass(clsInfo, scInfo)
+        break
+      }
     }
-  }
-  const NBTBase = info.classReverse[CLASS.NBT_BASE]
-  if (NBTBase && (hasSuperClass(clsInfo, NBTBase) || doesAnyImplement(clsInfo, NBTBase))) {
-    if (clsInfo.flags.abstract) return CLASS.NBT_PRIMITIVE
-    clsInfo.package = PKG.NBT
-    return
+    const NBTBase = info.classReverse[CLASS.NBT_BASE]
+    if (NBTBase && (hasSuperClass(clsInfo, NBTBase) || doesAnyImplement(clsInfo, NBTBase))) {
+      if (clsInfo.flags.abstract) return CLASS.NBT_PRIMITIVE
+      clsInfo.package = PKG.NBT
+      return
+    }
   }
   // XXX: Other types too?
   if (doesAnyImplement(clsInfo, 'java.lang.Comparable')) {

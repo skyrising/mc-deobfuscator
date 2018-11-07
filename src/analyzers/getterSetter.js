@@ -9,18 +9,18 @@ export function method (methodInfo: MethodInfo) {
 
 function nameAccessor (methodInfo: MethodInfo, fieldInfo: FieldInfo, type: 'get' | 'set') {
   const prefix = type === 'get' && fieldInfo.sig === 'Z' ? 'is' : type
-  const name = fieldInfo.accessorSuffix || fieldInfo.name || fieldInfo.obfName
+  const name = fieldInfo.accessorSuffix || fieldInfo.bestName
   if (/^[A-Z]/.test(name)) return prefix + '_' + name
   return prefix + name[0].toUpperCase() + name.slice(1)
 }
 
-const GETTER_PREDICATE = methodInfo => methodInfo.argSigs.length === 0 && methodInfo.code.matches([
+const GETTER_PREDICATE = methodInfo => methodInfo.code.matches([
   'aload_0',
   'getfield',
   /^.return$/
 ])
 
-const GETTER_SUPPLIER_PREDICATE = methodInfo => (methodInfo.argSigs.length === 0 && methodInfo.code.matches([
+const GETTER_SUPPLIER_PREDICATE = methodInfo => (methodInfo.code.matches([
   'aload_0',
   'getfield',
   line => line.op === 'invokeinterface' && line.arg.startsWith('java.util.function.Supplier.get:()Ljava/lang/Object;'),

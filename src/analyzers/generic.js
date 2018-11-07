@@ -764,7 +764,18 @@ const simpleConstToClass: {[string]: string | SimpleHandler | Array<SimpleHandle
     name: CLASS.SERVER_WORLD,
     method: 'initialize',
     args: [CLASS.WORLD_SETTINGS]
-  }
+  },
+  'Failed to create mob': CLASS.ENTITY_SPAWNER,
+  'Multiple values have the same name \'': CLASS.BLOCK_PROPERTY_ENUM,
+  'Unknown dimension type : %s': CLASS.DIMENSION_STRUCTURES,
+  'Tried to read NBT tag with too high complexity, depth > 512': [{
+    predicate ({ code }) {
+      return code.consts.includes('Missing type on ListTag')
+    },
+    name: CLASS.NBT_LIST
+  }, {
+    name: CLASS.NBT_COMPOUND
+  }]
 })
 
 function handleSimple (obj: ?(string | SimpleHandler | Array<SimpleHandler>), params: HandleFuncArg) {
@@ -830,7 +841,11 @@ function getClassNameForConstant (c: string, line: CodeLineLoadConst | CodeLineN
   const { code, sig, clsInfo, info } = methodInfo
   const param: HandleFuncArg = { line, const: c, sig, code, clsInfo, info, methodInfo }
   const simple = handleSimple(simpleConstToClass[c], param)
-  if (simple) return simple
+  if (simple) {
+    // Trigger possible duplication exception to have context
+    clsInfo.setName(simple, `${c} -> ${JSON.stringify(simpleConstToClass[c])}`)
+    return simple
+  }
   const Entity = info.classReverse[CLASS.ENTITY]
   switch (c) {
     // case 'RecordItem': return !clsInfo.isInnerClass && CLASS.BLOCK_JUKEBOX
@@ -933,8 +948,13 @@ export function method (methodInfo: MethodInfo) {
   }
   for (const line of code.lines) {
     if (line.const === undefined) continue
-    const name = getClassNameForConstant(String(line.const), line, methodInfo)
-    if (name) clsInfo.name = name
+    try {
+      const name = getClassNameForConstant(String(line.const), line, methodInfo)
+      if (name) clsInfo.setName(name, `constant ${line.const}`)
+    } catch (e) {
+      if (e.name === 'DuplicateNamingError') console.error(e.message)
+      else console.error(e)
+    }
   }
   const NBTBase = info.classReverse[CLASS.NBT_BASE]
   const Locale = info.classReverse[CLASS.I18N_LOCALE]

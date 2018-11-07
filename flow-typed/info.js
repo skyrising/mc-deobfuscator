@@ -164,6 +164,7 @@ declare type FieldInfo = {
   name: string;
   obfName: string;
   sig: string;
+  rawGenericSignature?: string;
   fieldType: BCELType;
   acc: number;
   clsInfo: ClassInfo;
