@@ -289,7 +289,10 @@ export async function enrichClsInfo (cls: BCELClass, info: FullInfo): Promise<Cl
     hash = h2(hash, hsig(methodInfo.retSig))
     hash = h2(hash, methodInfo.flags.abstract)
     for (const c of methodInfo.code.consts) {
-      if (typeof c === 'string') clsInfo.consts.add(c)
+      if (typeof c === 'string') {
+        hash = h2(hash, c)
+        clsInfo.consts.add(c)
+      }
     }
     methodInfo.infoComplete = true
   }
