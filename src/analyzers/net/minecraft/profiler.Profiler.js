@@ -2,7 +2,7 @@
 
 export function method (methodInfo: MethodInfo) {
   const { sig, code } = methodInfo
-  if (methodInfo.origName === '<init>') return
+  if (methodInfo.obfName === '<init>') return
   switch (sig) {
     case '(Ljava/util/function/Supplier;)V': return 'start'
     case '()V': return 'end'

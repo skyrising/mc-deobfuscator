@@ -16,5 +16,5 @@ export function method (methodInfo: MethodInfo) {
     info.class[methodInfo.argSigs[0].slice(1, -1)].name = CLASS.DATA_PROVIDER
     return 'addProvider'
   }
-  if (sig === '()V' && !methodInfo.origName.endsWith('init>')) return 'generate'
+  if (sig === '()V' && !methodInfo.obfName.endsWith('init>')) return 'generate'
 }

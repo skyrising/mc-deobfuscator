@@ -1,9 +1,9 @@
 // @flow
 
 export function method (methodInfo: MethodInfo) {
-  console.debug('MapColor.method', method.origName)
-  if (methodInfo.origName === '<init>') return init(methodInfo)
-  if (methodInfo.origName === '<clinit>') return clinit(methodInfo)
+  console.debug('MapColor.method', method.obfName)
+  if (methodInfo.obfName === '<init>') return init(methodInfo)
+  if (methodInfo.obfName === '<clinit>') return clinit(methodInfo)
   if (methodInfo.sig === '(I)I') return 'getMapColor'
 }
 

@@ -8,7 +8,7 @@ export function field (fieldInfo: FieldInfo) {
 
 export function method (methodInfo: MethodInfo) {
   const { sig, code, clsInfo } = methodInfo
-  if (methodInfo.origName === '<clinit>') {
+  if (methodInfo.obfName === '<clinit>') {
     for (const line of code.lines) {
       if (typeof line.const !== 'string') continue
       const name = line.const

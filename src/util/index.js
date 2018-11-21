@@ -87,6 +87,7 @@ export function toUpperCamelCase (underScoreCase: string) {
 }
 
 export function toUnderScoreCase (camelCase: string) {
+  if (/^[A-Z_]*$/.test(camelCase)) return camelCase
   const usc = camelCase.replace(/[A-Z]/g, c => '_' + c)
   if (usc.startsWith('_')) return usc.slice(1)
   return usc
@@ -149,6 +150,7 @@ export function getMappedClassName (infoIn: FullInfo | ClassInfo, from?: string)
   if ('obfName' in infoIn) from = ((infoIn: any): ClassInfo).obfName
   const info: FullInfo = 'info' in infoIn ? ((infoIn: any): ClassInfo).info : (infoIn: any)
   if (!from) throw Error('Need obfuscated class name')
+  if (!(from in info.class)) return from
   const to = info.class[from]
   if (from.indexOf('$') < 0) {
     if (to.name) return to.name.replace(/\./g, '/')
@@ -207,4 +209,39 @@ export function chunkStr (str: string, size: number) {
   }
 
   return chunks
+}
+
+export function sharedPrefix (arr: Array<string>): string {
+  if (!arr.length) return ''
+  let maxLength = arr[0].length
+  for (let i = 0; i < arr.length - 1; i++) {
+    const a = arr[i]
+    const b = arr[i + 1]
+    for (let l = 0; l < a.length && l < b.length && l < maxLength; l++) {
+      if (a.charAt(l) !== b.charAt(l)) {
+        maxLength = l
+        break
+      }
+    }
+    if (maxLength === 0) return ''
+  }
+  return arr[0].slice(0, maxLength)
+}
+
+export function commonWords (arr: Array<Array<string>>, threshold: number = 1): Array<string> {
+  const words: {[string]: {count: number, offsetSum: number}} = {}
+  for (const a of arr) {
+    a.forEach((w, i) => {
+      if (!words[w]) words[w] = { count: 0, offsetSum: 0 }
+      words[w].count++
+      words[w].offsetSum += i
+    })
+  }
+  const result = []
+  for (const word in words) {
+    const { count, offsetSum } = words[word]
+    if (count < arr.length * threshold) continue
+    result.push({ word, offsetSum: offsetSum * (arr.length / count) })
+  }
+  return result.sort((a, b) => a.offsetSum - b.offsetSum).map(o => o.word)
 }

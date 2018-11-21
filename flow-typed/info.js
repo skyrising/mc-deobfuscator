@@ -27,12 +27,23 @@ declare type BytecodeOpNumberConst = 'bipush' | 'sipush' | 'ipush'
 declare type BytecodeOpLoadConst = 'ldc' | 'ldc_w' | 'ldc2_w'
 declare type BytecodeOpConst = BytecodeOpNumberConst | BytecodeOpLoadConst
 declare type BytecodeOpNew = 'new'
+declare type BytecodeOpInvokeDynamic = 'invokedynamic'
+declare type BytecodeOpLoad =
+| 'iload' | 'iload_0' | 'iload_1' | 'iload_2' | 'iload_3'
+| 'lload' | 'lload_0' | 'lload_1' | 'lload_2' | 'lload_3'
+| 'fload' | 'fload_0' | 'fload_1' | 'fload_2' | 'fload_3'
+| 'dload' | 'dload_0' | 'dload_1' | 'dload_2' | 'dload_3'
+| 'aload' | 'aload_0' | 'aload_1' | 'aload_2' | 'aload_3'
+declare type BytecodeOpReturn = 'ireturn' | 'lreturn' | 'freturn' | 'dreturn' | 'areturn' | 'return'
 
 declare type BytecodeOp =
 | BytecodeOpField
 | BytecodeOpCall
 | BytecodeOpConst
 | BytecodeOpNew
+| BytecodeOpInvokeDynamic
+| BytecodeOpLoad
+| BytecodeOpReturn
 
 interface CodeLine$$matching_op {
   (BytecodeOpField, includeSelf?: boolean): ?CodeLineField;
@@ -65,19 +76,55 @@ declare type CodeLineCall = CodeLineBase & {|
   call: OpCall;
 |}
 
+declare type IntegerConstant = {| type: 'int', value: number, line: CodeLineNumberConst|CodeLineLoadConst |}
+
+declare type Constant =
+| {| type: 'string'|'class', value: string, line: CodeLineLoadConst |}
+| IntegerConstant
+| {| type: 'double', value: number, line: CodeLineLoadConst |}
+| {| type: 'unknown', value: any, line: CodeLineLoadConst|CodeLineNumberConst |}
+| {| type: 'long', value: any, line: CodeLineLoadConst |}
+
 declare type CodeLineNumberConst = CodeLineBase & {|
   op: BytecodeOpNumberConst;
   const: number;
+  constant: IntegerConstant;
 |}
 
 declare type CodeLineLoadConst = CodeLineBase & {|
   op: BytecodeOpLoadConst;
   const: string | number;
+  constant: Constant;
 |}
 
 declare type CodeLineNew = CodeLineBase & {|
   op: BytecodeOpNew;
   className: string;
+|}
+
+declare type CodeLineInvokeDynamic = CodeLineBase & {|
+  op: BytecodeOpInvokeDynamic;
+  invokeDynamic: {
+    bootstrapMethod: {
+      method: any;
+      args: Array<any>;
+      argIndexes: Array<number>;
+    };
+    name: string;
+    descriptor: string;
+  };
+|}
+
+declare type CodeLineLoad = CodeLineBase & {|
+  op: BytecodeOpLoad;
+  load: number;
+  loadType: 'i' | 'l' | 'f' | 'd' | 'a';
+|}
+
+declare type CodeLineReturn = CodeLineBase & {|
+  op: BytecodeOpReturn;
+  return: true;
+  returnType: 'i' | 'l' | 'f' | 'd' | 'a';
 |}
 
 declare type CodeLine =
@@ -86,14 +133,16 @@ declare type CodeLine =
 | CodeLineNumberConst
 | CodeLineLoadConst
 | CodeLineNew
+| CodeLineInvokeDynamic
+| CodeLineLoad
+| CodeLineReturn
 
 declare type Code = {
   lines: Array<CodeLine>;
   consts: Array<string|number>;
+  constants: Array<Constant>;
   fields: Array<OpField>;
-  internalFields: Array<OpField>;
   calls: Array<OpCall>;
-  internalCalls: Array<OpCall>;
   matches (predicates: Array<string | RegExp | (CodeLine => any)>): boolean;
   error?: Error;
 }
@@ -140,7 +189,7 @@ declare type MethodAccessFlags = {|
 declare type MethodInfo = {
   type: 'method';
   name: string;
-  origName: string;
+  obfName: string;
   sig: string;
   args: Array<BCELType>;
   argSigs: Array<string>;
@@ -152,7 +201,8 @@ declare type MethodInfo = {
   info: FullInfo;
   done: boolean;
   infoComplete: boolean;
-  flags: AccessFlags;
+  flags: MethodAccessFlags;
+  attributes: {[string]: any};
   getter?: boolean | FieldInfo;
   setter?: boolean | FieldInfo;
   bestName: string;
@@ -171,7 +221,8 @@ declare type FieldInfo = {
   info: FullInfo;
   done: boolean;
   accessorSuffix?: string;
-  flags: AccessFlags;
+  flags: FieldAccessFlags;
+  attributes: {[string]: any};
   bestName: string;
   depends?: (() => ?string) | FieldInfo;
 }
@@ -188,7 +239,7 @@ declare type ClassInfo = {
   superClassName: string;
   subClasses: Set<string>;
   interfaceNames: Array<string>;
-  flags: AccessFlags;
+  flags: ClassAccessFlags;
   ...({|
     isInnerClass: false;
   |} | {|
@@ -218,6 +269,11 @@ declare type Pass = {
   end (): void;
 }
 
+declare type Task = {
+  predicate (FullInfo): any;
+  run (FullInfo): any;
+}
+
 declare type FullInfo = {
   running: number;
   pass: number;
@@ -236,6 +292,8 @@ declare type FullInfo = {
   data: {[string]: any};
   enriched: boolean;
   newPass (name: string, info?: {weight: number}): Pass;
+  scheduleTask (task: Task): void;
+  runScheduledTasks (all?: boolean): void;
 } & events$EventEmitter;
 
 declare type InfoData = {

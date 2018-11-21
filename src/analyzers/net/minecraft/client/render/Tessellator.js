@@ -1,11 +1,11 @@
 // @flow
 
-import { GL_QUADS } from '../../../../GLConsts'
+import { GL_QUADS } from '../../../../../GLConsts.json'
 
 export function method (methodInfo: MethodInfo) {
   const { code, sig, clsInfo } = methodInfo
   const firstLine = code.lines[0]
-  if (methodInfo.origName === '<init>') {
+  if (methodInfo.obfName === '<init>') {
     for (const line of code.lines) {
       if (line.call) {
         const call = line.call.methodName

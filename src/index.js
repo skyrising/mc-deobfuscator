@@ -23,6 +23,7 @@ type Options = {
   extractJar: boolean;
   debugLog: boolean;
   errorLog: boolean;
+  classNameLog: boolean;
   status: boolean;
   decompile: 'procyon' | 'fernflower' | 'forgeflower' | boolean;
   ide: {
@@ -52,6 +53,7 @@ if (require.main === module) {
     extractJar: true,
     debugLog: true,
     errorLog: true,
+    classNameLog: true,
     status: true,
     /*
     decompile: 'forgeflower',
@@ -81,11 +83,12 @@ export async function analyzeClient (options: {...Options, version: string}) {
 }
 
 export async function analyzeJar (jarFile: string, libraries: Array<{id: string, path: string}>, options: $Shape<Options> = {}) {
-  const { specialSource, extractJar, debugLog, errorLog, version, status, decompile, ide }: Options = {
+  const { specialSource, extractJar, debugLog, errorLog, classNameLog, version, status, decompile, ide }: Options = {
     specialSource: false,
     extractJar: false,
     debugLog: false,
     errorLog: false,
+    classNameLog: false,
     status: false,
     version: path.basename(jarFile, '.jar').split('.').filter(p => /\d/.test(p)).join('.'),
     decompile: false,
@@ -100,7 +103,7 @@ export async function analyzeJar (jarFile: string, libraries: Array<{id: string,
   const fullClassPath = [jarFile, ...libraries.map(l => l.path)]
   console.log('Class path: ' + fullClassPath.join(','))
   const side = jarFile.includes('server') ? 'server' : 'client'
-  const info: FullInfo = await createInfo({ version, side, jarFile, fullClassPath })
+  const info: FullInfo = await createInfo({ version, side, jarFile, fullClassPath, classNameLog })
   global.info = info
   const genericPasses = []
   const passClsInfo = info.newPass('reading classes', { weight: 13.5 })
@@ -113,6 +116,7 @@ export async function analyzeJar (jarFile: string, libraries: Array<{id: string,
   passClsInfo.start()
   console.log('Reading classes')
   await readAllClasses(info)
+  info.runScheduledTasks()
   passClsInfo.end()
   const forEachClass = (fn: (ClassInfo) => any) => Promise.all(info.classNames.map(async name => {
     try {
@@ -126,16 +130,20 @@ export async function analyzeJar (jarFile: string, libraries: Array<{id: string,
   for (const pass of genericPasses) {
     pass.start()
     await forEachClass(analyzeClass)
+    info.runScheduledTasks()
     pass.end()
   }
   passHierarchy.start()
   console.log('Analyzing hierarchy')
   await forEachClass(clsInfo => runAnalyzer(hierarchyAnalyzer, clsInfo))
+  info.runScheduledTasks()
   passHierarchy.end()
   passGetterSetter.start()
   console.log('Renaming getters & setters')
   await forEachClass(clsInfo => runAnalyzer(renameGetterSetter, clsInfo))
+  info.runScheduledTasks()
   passGetterSetter.end()
+  info.runScheduledTasks(true)
   if (status) endStatus()
   // await renderGraph(info)
   const unknownClasses = ((Object.values(info.class): any): Array<ClassInfo>).filter(c => !c.name)
@@ -178,6 +186,7 @@ export async function analyzeJar (jarFile: string, libraries: Array<{id: string,
     }
     if (decompile) {
       const wsDir = path.resolve('work/workspace')
+      if (!fs.existsSync(wsDir)) fs.mkdirSync(wsDir)
       const srcDir = path.resolve(wsDir, 'src')
       switch (decompile) {
         case 'procyon':

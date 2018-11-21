@@ -9,7 +9,7 @@ export function field (fieldInfo: FieldInfo) {
 
 export function method (methodInfo: MethodInfo) {
   const { sig, code, clsInfo } = methodInfo
-  if (methodInfo.origName === '<init>' && sig === '(III)V') {
+  if (methodInfo.obfName === '<init>' && sig === '(III)V') {
     for (const line of code.lines) {
       if (!line.load) continue
       clsInfo.fields[line.nextOp('putfield').field.fieldName].name = 'xyz'[line.load - 1]

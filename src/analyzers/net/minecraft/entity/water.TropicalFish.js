@@ -1,7 +1,7 @@
 // @flow
 
 export function method (methodInfo: MethodInfo) {
-  if (methodInfo.origName === '<clinit>') {
+  if (methodInfo.obfName === '<clinit>') {
     for (const line of methodInfo.code.lines) {
       if (typeof line.const !== 'string') continue
       const fieldName = ({

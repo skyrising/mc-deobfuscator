@@ -4,7 +4,7 @@ import { signatureTag as s } from '../../../../util/code'
 
 export function method (methodInfo: MethodInfo) {
   const { code, info } = methodInfo
-  if (methodInfo.origName === '<init>' && methodInfo.argSigs.length > 6) {
+  if (methodInfo.obfName === '<init>' && methodInfo.argSigs.length > 6) {
     info.class[methodInfo.argSigs[2].slice(1, -1)].name = 'com.mojang.datafixers.DataFixer'
     info.class[methodInfo.argSigs[6].slice(1, -1)].name = CLASS.PLAYER_PROFILE_CACHE
   }

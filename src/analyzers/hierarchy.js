@@ -28,7 +28,8 @@ const PACKAGE_MAP = {
   [CLASS.CARVER]: PKG.WORLD_GEN_CARVING,
   [CLASS.DECORATOR]: PKG.WORLD_GEN_DECORATION,
   [CLASS.FEATURE]: PKG.WORLD_GEN_FEATURE,
-  [CLASS.SURFACE_BUILDER]: PKG.WORLD_GEN_SURFACE
+  [CLASS.SURFACE_BUILDER]: PKG.WORLD_GEN_SURFACE,
+  [CLASS.STRUCTURE_PROCESSOR]: PKG.STRUCTURE_PROCESSOR
 }
 
 const OBF_PACKAGE_MAP = {
@@ -113,6 +114,16 @@ export function init (info: FullInfo) {
         console.log('Unknown interface count %d for %s', clsInfo.interfaceNames.length, deobf)
       }
     }
+    if (deobf === CLASS.BLOCK_PROPERTY_CONTAINER) {
+      for (const scName of clsInfo.subClasses) {
+        const subClass = info.class[scName]
+        if (subClass.superClassName === deobf) {
+          const firstTypeVar = subClass.genericSignature.superClassSignature.simple[0].typeArguments.value[0].value.simple[0].identifier
+          const typeVarClassName = info.class[firstTypeVar].name
+          if (typeVarClassName === CLASS.BLOCK) subClass.name = CLASS.BLOCK_STATE
+        }
+      }
+    }
   })
 }
 
@@ -144,7 +155,7 @@ export function cls (clsInfo: ClassInfo) {
   // XXX: Other types too?
   if (doesAnyImplement(clsInfo, 'java.lang.Comparable')) {
     for (const md of ((Object.values(clsInfo.method): any): Array<MethodInfo>)) {
-      if (md.origName !== 'compareTo') continue
+      if (md.obfName !== 'compareTo') continue
       if (!md.flags.synthetic) continue
       const call = md.code.calls[0]
       if (!call) continue
@@ -157,6 +168,9 @@ export function cls (clsInfo: ClassInfo) {
       return clsInfo.superClassName === info.classReverse[CLASS.BLOCK_POS]
         ? CLASS.BLOCK_POS$MUTABLE_BLOCK_POS
         : CLASS.BLOCK_POS$POOLED_MUTABLE_BLOCK_POS
+    }
+    if (clsInfo.superClassName === info.classReverse[CLASS.ADVANCEMENT_ABSTRACT_CRITERION_INSTANCE] && clsInfo.outerClass.name) {
+      return clsInfo.outerClass.name + '$Instance'
     }
   }
 }

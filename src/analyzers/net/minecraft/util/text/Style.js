@@ -22,7 +22,7 @@ export function method (methodInfo: MethodInfo) {
   else if (s`()${CLASS.TEXT_FORMATTING}`.matches(methodInfo)) methodInfo.getter = true
   else if (s`()${CLASS.TEXT_CLICK_EVENT}`.matches(methodInfo)) methodInfo.getter = true
   else if (s`()${CLASS.TEXT_HOVER_EVENT}`.matches(methodInfo)) methodInfo.getter = true
-  if (methodInfo.origName === 'toString') {
+  if (methodInfo.obfName === 'toString') {
     for (const line of methodInfo.code.lines) {
       if (!line.const || typeof line.const === 'number' || !/^, (.+)=$/.test(line.const)) continue
       const name = line.const.match(/^, (.+)=$/)[1]

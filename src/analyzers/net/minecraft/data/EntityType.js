@@ -134,6 +134,7 @@ export function method (methodInfo: MethodInfo) {
       if (name === 'VillagerGolem') name = 'IronGolem'
       if (name === 'Potion') name = 'ThrownPotion'
       if (name === 'ThrownEnderpearl') name = 'EnderPearl'
+      if (name === 'Item' || name === 'Tnt') name += 'Entity'
       const fieldName = (flat ? line.const : toUnderScoreCase(line.const)).toUpperCase()
       clsInfo.fields[line.nextOp('putstatic').field.fieldName].name = fieldName
       const entClass = flat ? line.next.const : line.previous.const
@@ -146,15 +147,16 @@ export function method (methodInfo: MethodInfo) {
   if (sig.startsWith('(Ljava/lang/String;II)L')) return 'registerSpawnEgg'
   if (sig === '(Ljava/lang/Class;Ljava/lang/String;I)V') return 'registerEntity'
   if (s`(Ljava/lang/String;${CLASS.ENTITIES$BUILDER})${CLASS.ENTITIES}`.matches(methodInfo)) return 'registerEntity'
+  if (s`(${CLASS.WORLD}${CLASS.ENTITY})`.matches(methodInfo)) return 'create'
   // TODO: matches register
   // if (sig.startsWith('(Ljava/lang/String;L') && methodInfo.flags.static) return 'createEntity'
   for (const c of code.consts) {
     if (typeof c === 'string' && c.startsWith('Skipping Entity with id ')) {
       if (!sig.startsWith('(IL')) {
-        info.class[methodInfo.args[0].getClassName()].name = CLASS.NBT_COMPOUND
-        info.class[methodInfo.args[1].getClassName()].name = CLASS.WORLD
+        info.class[methodInfo.argSigs[0].slice(1, -1)].name = CLASS.NBT_COMPOUND
+        info.class[methodInfo.argSigs[1].slice(1, -1)].name = CLASS.WORLD
       }
-      return 'createEntity'
+      return 'create'
     }
   }
 }

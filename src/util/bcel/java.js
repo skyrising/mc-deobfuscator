@@ -63,3 +63,12 @@ export async function initJava (classPath) {
   Repository.setRepository(new ClassPathRepository(new ClassPath(classPath.join(':'))))
   return Repository
 }
+
+export function dump (obj) {
+  const ByteArrayOutputStream = java.import('java.io.ByteArrayOutputStream')
+  const DataOutputStream = java.import('java.io.DataOutputStream')
+  const baos = new ByteArrayOutputStream()
+  const dos = new DataOutputStream(baos)
+  obj.dump(dos)
+  return Buffer.from(baos.toByteArray())
+}

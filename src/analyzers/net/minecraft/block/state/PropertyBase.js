@@ -10,6 +10,6 @@ export function field (fieldInfo: FieldInfo) {
 
 export function method (methodInfo: MethodInfo) {
   switch (methodInfo.sig) {
-    case '()I': return methodInfo.origName === 'hashCode' ? 'hashCode' : 'computeHash'
+    case '()I': return methodInfo.obfName === 'hashCode' ? 'hashCode' : 'computeHash'
   }
 }

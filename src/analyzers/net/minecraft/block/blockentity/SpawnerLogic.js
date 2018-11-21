@@ -7,11 +7,13 @@ export function method (methodInfo: MethodInfo) {
   const NBTCompound = info.classReverse[CLASS.NBT_COMPOUND]
   if (!NBTCompound) clsInfo.done = false
   if (NBTCompound && methodInfo.sig === '(L' + NBTCompound + ';)V') {
-    for (const line of code.lines) {
-      if (typeof line.const !== 'string') continue
-      if (!line.next.call) continue
-      if (line.next.next.op !== 'putfield') continue
-      clsInfo.fields[line.next.next.field.fieldName].name = toLowerCamelCase(line.const)
+    for (const c of code.constants) {
+      if (c.type !== 'string') continue
+      const next = c.line.next
+      if (!next || !('call' in next)) continue
+      const putfield = next.next
+      if (!putfield || putfield.op !== 'putfield') continue
+      clsInfo.fields[putfield.field.fieldName].name = toLowerCamelCase(c.value)
     }
     return 'readFromNBT'
   }

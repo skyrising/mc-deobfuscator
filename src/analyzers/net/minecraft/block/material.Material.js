@@ -5,7 +5,7 @@ import { signatureTag as s } from '../../../../util/code'
 
 export function method (methodInfo: MethodInfo) {
   const { code, clsInfo, info } = methodInfo
-  if (methodInfo.origName === '<clinit>') {
+  if (methodInfo.obfName === '<clinit>') {
     const newCls = code.lines[0].nextOp('new', true)
     if (newCls && newCls.className && newCls.className.startsWith(clsInfo.obfName + '$')) info.class[newCls.className].name = CLASS.MATERIAL$BUILDER
   }

@@ -16,7 +16,7 @@ export function method (methodInfo: MethodInfo) {
     }
     return 'loadOptions'
   }
-  if (methodInfo.origName === '<init>') {
+  if (methodInfo.obfName === '<init>') {
     for (const line of code.lines) {
       if (typeof line.const !== 'string' || !line.const.startsWith('key.') || line.previous.op !== 'dup') continue
       clsInfo.fields[line.nextOp('putfield').field.fieldName].name = toLowerCamelCase(line.const.split('.'))

@@ -146,6 +146,10 @@ export const OP_D2F = 0x90
 export const OP_I2B = 0x91
 export const OP_I2C = 0x92
 export const OP_I2S = 0x93
+
+export const OP_CONVERSION_FROM = [...'IIIJJJFFFDDDIII']
+export const OP_CONVERSION_TO = [...'JFDIFDIJDIJFBCS']
+
 export const OP_LCMP = 0x94
 export const OP_FCMPL = 0x95
 export const OP_FCMPG = 0x96
@@ -295,3 +299,15 @@ export const CONSTANT_InvokeDynamic = 18
 export const CONSTANT_Module = 19
 export const CONSTANT_Package = 20
 /* esline-enable camelcase */
+
+export const JAVA_TYPE = {
+  A: 'Object',
+  B: 'byte',
+  C: 'char',
+  D: 'double',
+  F: 'float',
+  I: 'int',
+  J: 'long',
+  S: 'short',
+  Z: 'boolean'
+}

@@ -3,7 +3,7 @@ import * as CLASS from '../../../../../ClassNames'
 
 export function method (methodInfo: MethodInfo) {
   const { sig, code, clsInfo, info } = methodInfo
-  if (methodInfo.origName === '<clinit>') {
+  if (methodInfo.obfName === '<clinit>') {
     for (const line of code.lines) {
       if (typeof line.const !== 'string') continue
       if (!/^[a-z_\d/]+$/.test(line.const)) continue

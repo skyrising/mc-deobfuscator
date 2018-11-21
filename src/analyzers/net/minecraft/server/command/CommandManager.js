@@ -4,7 +4,7 @@ import * as PKG from '../../../../../PackageNames'
 
 export function method (methodInfo: MethodInfo) {
   const { info } = methodInfo
-  if (methodInfo.origName === '<init>') {
+  if (methodInfo.obfName === '<init>') {
     for (const line of methodInfo.code.lines) {
       if (line.op !== 'invokestatic' || line.call.signature !== '(Lcom/mojang/brigadier/CommandDispatcher;)V') continue
       const commandCls = info.class[line.call.fullClassName]

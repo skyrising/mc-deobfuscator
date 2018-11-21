@@ -1,53 +1,51 @@
 // @flow
 import util from 'util'
-import java from 'java'
-import { initJava, getAllClasses } from './java'
+import { initJava, getAllClasses, dump } from './java'
 import { parseClassSignature, parseFieldTypeSignature } from '../parse'
 import { h2, hsig, base26 } from '../hash'
 import { decodeClassAccessFlags, decodeMethodAccessFlags, decodeFieldAccessFlags } from '../class-reader/util'
-import { lcFirst } from '../index'
+import Interpreter from '../class-reader/interpreter'
+import { lcFirst, toUnderScoreCase } from '../index'
+import { parseSignature } from '../code'
 import * as C from '../class-reader/constants'
 
-function decodeLine (l: string, parent: Code, cp: BCELConstantPool, bm: Array<BCELBootstrapMethod>): ?CodeLine {
-  const match = l.match(/^(\d+):\s*([^\t]+)\s*(.*?)(?: \(\d+\))?$/)
-  if (!match) return
-  const [, offset, op, arg] = match
-  const line: CodeLine = ({
-    offset: +offset,
-    op,
-    arg,
-    nextMatching (predicate: CodeLine => boolean, includeSelf = false) {
-      if (includeSelf && predicate(this)) return this
-      if (!this.next) return
-      return this.next.nextMatching(predicate, true)
-    },
-    nextOp (line: string|Array<string>, includeSelf = false) {
-      line = Array.isArray(line) ? line : [line]
-      for (const candidate of line) {
-        const [op, arg] = candidate.split(' ')
-        if (includeSelf && this.op === op && (!arg || this.arg === arg)) return this
-      }
-      if (!this.next) return
-      return this.next.nextOp(line, true)
-    },
-    prevMatching (predicate: CodeLine => boolean, includeSelf = false) {
-      if (includeSelf && predicate(this)) return this
-      if (!this.next) return
-      return this.next.prevMatching(predicate, true)
-    },
-    prevOp (line: string|Array<string>, includeSelf = false) {
-      line = Array.isArray(line) ? line : [line]
-      for (const candidate of line) {
-        const [op, arg] = candidate.split(' ')
-        if (includeSelf && this.op === op && (!arg || this.arg === arg)) return this
-      }
-      if (!this.previous) return
-      return this.previous.prevOp(line, true)
-    },
-    [util.inspect.custom]: () => op + ' ' + arg
-  }: any)
-  if (op === 'invokestatic' || op === 'invokevirtual' || op === 'invokespecial' || op === 'invokeinterface') {
-    const fullSig = arg
+const _CodeLine = {
+  nextMatching (predicate: CodeLine => boolean, includeSelf = false) {
+    if (includeSelf && predicate(this)) return this
+    if (!this.next) return
+    return this.next.nextMatching(predicate, true)
+  },
+  nextOp (line: string|Array<string>, includeSelf = false) {
+    line = Array.isArray(line) ? line : [line]
+    for (const candidate of line) {
+      const [op, arg] = candidate.split(' ')
+      if (includeSelf && this.op === op && (!arg || this.arg === arg)) return this
+    }
+    if (!this.next) return
+    return this.next.nextOp(line, true)
+  },
+  prevMatching (predicate: CodeLine => boolean, includeSelf = false) {
+    if (includeSelf && predicate(this)) return this
+    if (!this.next) return
+    return this.next.prevMatching(predicate, true)
+  },
+  prevOp (line: string|Array<string>, includeSelf = false) {
+    line = Array.isArray(line) ? line : [line]
+    for (const candidate of line) {
+      const [op, arg] = candidate.split(' ')
+      if (includeSelf && this.op === op && (!arg || this.arg === arg)) return this
+    }
+    if (!this.previous) return
+    return this.previous.prevOp(line, true)
+  },
+  [util.inspect.custom] () {
+    return this.op + ' ' + this.arg
+  }
+}
+
+const decoders: {[string]: (CodeLine, Code, BCELConstantPool, Array<BCELBootstrapMethod>) => any} = {
+  _call (line: CodeLine, parent: Code, cp: BCELConstantPool, bm: Array<BCELBootstrapMethod>) {
+    const fullSig = line.arg
     const match = fullSig.match(/(?:((?:.*\.)*(?:.*))\.)?(.*)\.(.*):(.*)$/)
     if (match) {
       const [, pkg, className, methodName, signature] = match
@@ -58,22 +56,22 @@ function decodeLine (l: string, parent: Code, cp: BCELConstantPool, bm: Array<BC
         methodName,
         signature,
         fullClassName: pkg ? pkg + '.' + className : className,
-        [util.inspect.custom]: () => op + ' ' + fullSig
+        [util.inspect.custom]: () => line.op + ' ' + fullSig
       }
-      line.call = call
+      ;((line: any): CodeLineCall).call = call
       parent.calls.push(call)
-      if ((!pkg || pkg.startsWith('net.minecraft')) && className[0] !== '[') parent.internalCalls.push(call)
     }
-  } else if (op === 'invokedynamic') {
-    const match = arg.match(/\((\d+)\)\t00$/)
+  },
+  invokedynamic (line: CodeLine, parent: Code, cp: BCELConstantPool, bm: Array<BCELBootstrapMethod>) {
+    const match = line.arg.match(/\((\d+)\)\t00$/)
     if (match) {
       const index = +match[1]
-      const cInvokeDynamic = expandConstant(cp, index)
+      const cInvokeDynamic: any = expandConstant(cp, index)
       const bootMethod = bm[cInvokeDynamic.bootstrapMethodAttrIndex]
       const bootMethodRef = expandConstant(cp, bootMethod.getBootstrapMethodRef())
       const argIndexes = [...bootMethod.getBootstrapArguments()]
       const bootMethodArgs = argIndexes.map(n => expandConstant(cp, n))
-      line.invokeDynamic = {
+      ;((line: any): CodeLineInvokeDynamic).invokeDynamic = {
         bootstrapMethod: {
           method: bootMethodRef,
           args: bootMethodArgs,
@@ -83,64 +81,115 @@ function decodeLine (l: string, parent: Code, cp: BCELConstantPool, bm: Array<BC
         descriptor: cInvokeDynamic.nameAndType.descriptor
       }
     }
-  } else if (op === 'getfield' || op === 'getstatic') {
-    const match = arg.match(/(?:((?:.*\.)*(?:.*))\.)?(.*)\.(.*):(.*)$/)
+  },
+  _getfield (line: CodeLine, parent: Code, cp: BCELConstantPool, bm: Array<BCELBootstrapMethod>) {
+    const match = line.arg.match(/(?:((?:.*\.)*(?:.*))\.)?(.*)\.(.*):(.*)$/)
     if (match) {
       const [, pkg, className, fieldName, type] = match
       const field: OpField = {
-        fullSig: arg,
+        fullSig: line.arg,
         pkg,
         className,
         fieldName,
         type,
         fullClassName: pkg ? pkg + '.' + className : className,
-        [util.inspect.custom]: () => op + ' ' + arg
+        [util.inspect.custom]: () => line.op + ' ' + line.arg
       }
-      line.field = field
+      ;((line: any): CodeLineField).field = field
       parent.fields.push(field)
-      if ((!pkg || pkg.startsWith('net.minecraft')) && className[0] !== '[') parent.internalFields.push(field)
     }
-  } else if (op === 'putfield' || op === 'putstatic') {
-    const match = arg.match(/(?:((?:.*\.)*(?:.*))\.)?(.*)\.(.*):(.*)$/)
+  },
+  _putfield (line: CodeLine, parent: Code, cp: BCELConstantPool, bm: Array<BCELBootstrapMethod>) {
+    const match = line.arg.match(/(?:((?:.*\.)*(?:.*))\.)?(.*)\.(.*):(.*)$/)
     if (match) {
       const [, pkg, className, fieldName, type] = match
       const field: OpField = {
-        fullSig: arg,
+        fullSig: line.arg,
         pkg,
         className,
         fieldName,
         type,
         fullClassName: pkg ? pkg + '.' + className : className,
-        [util.inspect.custom]: () => op + ' ' + arg
+        [util.inspect.custom]: () => line.op + ' ' + line.arg
       }
-      line.field = field
+      ;((line: any): CodeLineField).field = field
       parent.fields.push(field)
-      if ((!pkg || pkg.startsWith('net.minecraft')) && className[0] !== '[') parent.internalFields.push(field)
     }
-  } else if (op === 'ldc_w' || op === 'ldc2_w' || op === 'ldc' || op === 'bipush' || op === 'sipush' || op === 'ipush') {
+  }
+}
+decoders.invokestatic = decoders._call
+decoders.invokevirtual = decoders._call
+decoders.invokespecial = decoders._call
+decoders.invokeinterface = decoders._call
+decoders.getfield = decoders._getfield
+decoders.getstatic = decoders._getfield
+decoders.putfield = decoders._putfield
+decoders.putstatic = decoders._putfield
+
+function decodeLine (l: string, parent: Code, cp: BCELConstantPool, bm: Array<BCELBootstrapMethod>): ?CodeLine {
+  const match = l.match(/^(\d+):\s*([^\t]+)\s*(.*?)(?: \(\d+\))?$/)
+  if (!match) return
+  const [, offset, op, arg] = match
+  const line: $Shape<CodeLine> = Object.create(_CodeLine)
+  line.offset = +offset
+  line.op = op
+  line.arg = arg
+  if (decoders[op]) decoders[op](line, parent, cp, bm)
+  if (op === 'ldc_w' || op === 'ldc2_w' || op === 'ldc' || op === 'bipush' || op === 'sipush' || op === 'ipush') {
+    const l: CodeLineLoadConst = (line: any)
     try {
-      line.const = parseConst(arg)
+      const constant = parseConst(arg)
+      constant.line = l
+      l.constant = constant
+      l.const = constant.value
     } catch (e) {
       console.debug('cannot parse constant: %s (%s)', arg, e)
-      line.const = arg
+      l.constant = { type: 'unknown', value: arg }
+      l.const = arg
     }
-    parent.consts.push(line.const)
+    parent.consts.push(l.const)
+    parent.constants.push(l.constant)
   } else if (op.startsWith('iconst_')) {
-    line.const = +op[7]
-    parent.consts.push(line.const)
+    const l: CodeLineNumberConst = (line: any)
+    l.const = +op[7]
+    parent.consts.push(l.const)
+    l.constant = { type: 'int', value: +op[7], line: l }
+    parent.constants.push(l.constant)
   } else if (op === 'new' || op === 'instanceof') {
-    line.className = arg.slice(1, -1)
+    (line: any).className = arg.slice(1, -1)
+  } else if (op === 'tableswitch') {
+    const [, defaultOffset, low, high, offsets] = (arg.match(/default = (\d+), low = (\d+), high = (\d+)\((.*)\)/): any)
+    const tableswitch = {
+      defaultOffset: +defaultOffset,
+      low: +low,
+      high: +high,
+      offsets: offsets.split(', ').map(Number),
+      get cases () {
+        const cases = []
+        const lines = []
+        for (const line of parent.lines) lines[line.offset] = line
+        this.offsets.forEach((off, i) => {
+          cases.push({ value: this.low + i, target: lines[off] })
+        })
+        cases.push({ value: 'default', target: lines[this.defaultOffset] })
+        return cases
+      }
+    }
+    ;((line: any): CodeLineTableSwitch).tableswitch = tableswitch
   } else if (/^[ilfda]load_\d$/.test(op)) {
-    line.load = +op[6]
-    line.loadType = op[0]
+    const l: CodeLineLoad = (line: any)
+    l.load = +op[6]
+    l.loadType = (op[0]: any)
   } else if (/^[ilfda]load$/.test(op)) {
-    line.load = +arg.slice(1)
-    line.loadType = op[0]
+    const l: CodeLineLoad = (line: any)
+    l.load = +arg.slice(1)
+    l.loadType = (op[0]: any)
   } else if (/^[ilfda]return$/.test(op)) {
-    line.return = true
-    line.returnType = op[0]
+    const l: CodeLineReturn = (line: any)
+    l.return = true
+    l.returnType = (op[0]: any)
   }
-  return line
+  return (line: any)
 }
 
 function expandConstant (cp: BCELConstantPool, index: number) {
@@ -187,30 +236,25 @@ function expandConstant (cp: BCELConstantPool, index: number) {
   }
 }
 
-function parseConst (c: string) {
+function parseConst (c: string): $Shape<Constant> {
   if (/^\d+$/.test(c)) {
     const i = BigInt.asIntN(64, c)
-    if (i >> BigInt(32)) return i
-    return Number(i)
+    if (i >> BigInt(32)) return { type: 'long', value: i }
+    return { type: 'int', value: Number(i) }
   }
-  return JSON.parse(c)
+  if (c.startsWith('<')) return { type: 'class', value: c.slice(1, -1) }
+  if (c.startsWith('"')) return { type: 'string', value: JSON.parse(c) }
+  return { type: 'double', value: JSON.parse(c) }
 }
 
 export async function getCode (method: BCELMethod, cp: BCELConstantPool, bm: Array<BCELBootstrapMethod>): Promise<Code> {
-  let source
-  try {
-    source = await method.getCodeAsync().then(c => c.toStringAsync())
-  } catch (error) {
-    return { code: '', lines: [], calls: [], internalCalls: [], fields: [], internalFields: [], consts: [], matches: () => false, error }
-  }
-  const code: Code = {
-    code: source,
+  const code: Code & {code: string} = {
+    code: '',
     lines: [],
     calls: [],
     fields: [],
     consts: [],
-    internalCalls: [],
-    internalFields: [],
+    constants: [],
     matches (predicates: Array<string | RegExp | (CodeLine => any)>) {
       if (predicates.length !== this.lines.length) return false
       for (let i = 0; i < predicates.length; i++) {
@@ -223,7 +267,12 @@ export async function getCode (method: BCELMethod, cp: BCELConstantPool, bm: Arr
       return true
     }
   }
-  code.lines = source.split('\n')
+  try {
+    code.code = await method.getCodeAsync().then(c => c.toStringAsync())
+  } catch (error) {
+    return code
+  }
+  code.lines = code.code.split('\n')
     .filter(l => /^\d+:/.test(l))
     .map(l => decodeLine(l, code, cp, bm))
     .filter(Boolean)
@@ -232,17 +281,15 @@ export async function getCode (method: BCELMethod, cp: BCELConstantPool, bm: Arr
   return code
 }
 
-export async function enrichClsInfo (cls: BCELClass, info: FullInfo): Promise<ClassInfo> {
-  const className = await cls.getClassNameAsync()
-  const clsInfo: ClassInfo = info.class[className]
-  if (clsInfo.infoComplete) return clsInfo
+async function getClsInfo (cls: BCELClass, clsInfo: ClassInfo) {
+  const { info } = clsInfo
   let hash = 1
   clsInfo.superClassName = await cls.getSuperclassNameAsync()
   if (clsInfo.superClassName.startsWith('java')) hash = h2(hash, clsInfo.superClassName)
-  info.class[clsInfo.superClassName].subClasses.add(className)
+  info.class[clsInfo.superClassName].subClasses.add(clsInfo.obfName)
   clsInfo.interfaceNames = await cls.getInterfaceNamesAsync()
   hash = h2(hash, clsInfo.interfaceNames.map((s, i) => s.startsWith('java') ? s : i))
-  for (const ifn of clsInfo.interfaceNames) info.class[ifn].subClasses.add(className)
+  for (const ifn of clsInfo.interfaceNames) info.class[ifn].subClasses.add(clsInfo.obfName)
   clsInfo.bin = cls
   const acc = await cls.getAccessFlagsAsync()
   clsInfo.flags = decodeClassAccessFlags(acc)
@@ -257,50 +304,53 @@ export async function enrichClsInfo (cls: BCELClass, info: FullInfo): Promise<Cl
     const methodInfo: MethodInfo = clsInfo.method[name + ':' + sig]
     const acc = await md.getAccessFlagsAsync()
     hash = h2(hash, acc)
+    const parsedSig = parseSignature(sig)
     Object.assign((methodInfo: any), {
       bin: md,
       acc,
       flags: decodeMethodAccessFlags(acc),
       clsInfo,
       info,
-      origName: name,
+      obfName: name,
       sig,
       args: await md.getArgumentTypesAsync(),
       ret: await md.getReturnTypeAsync(),
       code: await getCode(md, cp, bm),
-      get bestName () {
-        if (this.name) return this.name
-        if (this.depends) {
-          if (typeof this.depends === 'function') {
-            const dependentName = this.depends()
-            if (dependentName) return dependentName
-          } else {
-            const dependentName = this.depends !== this && this.depends.bestName
-            if (dependentName) return dependentName
-          }
-        }
-        return this.origName
+      interpreter () {
+        if (!this.attributes.Code) throw Error('No Code attribute')
+        return new Interpreter(dump(this.attributes.Code).slice(6), dump(cp))
       }
     })
-    // TODO: await getAttributes([methodInfo, md])
-    methodInfo.argSigs = methodInfo.args.map(t => t.getSignature())
+    await getAttributes([methodInfo, md])
+    let mdHash = 1
+    methodInfo.argSigs = parsedSig.args || []
     hash = h2(hash, methodInfo.argSigs.map(hsig))
-    methodInfo.retSig = await methodInfo.ret.getSignatureAsync()
+    mdHash = h2(mdHash, methodInfo.argSigs.map(hsig))
+    methodInfo.retSig = parsedSig.return
     hash = h2(hash, hsig(methodInfo.retSig))
+    mdHash = h2(mdHash, hsig(methodInfo.retSig))
     hash = h2(hash, methodInfo.flags.abstract)
     for (const c of methodInfo.code.consts) {
       if (typeof c === 'string') {
-        hash = h2(hash, c)
+        if (c.length > 7) {
+          hash = h2(hash, c)
+          mdHash = h2(mdHash, c)
+        }
         clsInfo.consts.add(c)
+      } else if (typeof c === 'number') {
+        hash = h2(hash, c)
+        mdHash = h2(mdHash, c)
       }
     }
+    methodInfo.hash = mdHash
     methodInfo.infoComplete = true
   }
   hash = h2(hash, [...clsInfo.consts])
   const fieldsByType = {}
+  const visibleFieldsByType = {}
   for (const fd of await cls.getFieldsAsync()) {
     const acc = await fd.getAccessFlagsAsync()
-    const fieldInfo: FieldInfo = ({
+    const fieldInfo: FieldInfo & {defaultNameIndex: number} = ({
       type: 'field',
       clsInfo,
       info,
@@ -310,10 +360,14 @@ export async function enrichClsInfo (cls: BCELClass, info: FullInfo): Promise<Cl
       flags: decodeFieldAccessFlags(acc),
       getDefaultName () {
         const base = getDefaultNameForFieldType(this)
-        if (fieldsByType[fieldInfo.sig].length > 1) {
-          return base + (this.defaultNameIndex + 1)
+        const sc = clsInfo.superClassName in info.class && info.class[clsInfo.superClassName]
+        const fotis = (sc && sc.getVisibleFieldsByType && sc.getVisibleFieldsOfType(this.sig)) || []
+        if (fotis.length + fieldsByType[this.sig].length > 1) {
+          const index = fotis.length + this.defaultNameIndex
+          const b = fieldInfo.flags.static && fieldInfo.flags.final ? toUnderScoreCase(base).toUpperCase() + '_' : base
+          return b + index
         } else {
-          return base
+          return fieldInfo.flags.static && fieldInfo.flags.final ? toUnderScoreCase(base).toUpperCase() : base
         }
       },
       get bestName () {
@@ -336,13 +390,29 @@ export async function enrichClsInfo (cls: BCELClass, info: FullInfo): Promise<Cl
     const sameType = fieldsByType[fieldInfo.sig] = fieldsByType[fieldInfo.sig] || []
     fieldInfo.defaultNameIndex = sameType.length
     sameType.push(fieldInfo)
+    if (!fieldInfo.acc.private && !fieldInfo.acc.static) {
+      const sameTypeVisible = visibleFieldsByType[fieldInfo.sig] = visibleFieldsByType[fieldInfo.sig] || []
+      sameTypeVisible.push(fieldInfo)
+    }
     hash = h2(hash, hsig(fieldInfo.sig))
+    clsInfo.visibleFieldsOfType = function (sig) {
+      const sc = clsInfo.superClassName in info.class && info.class[clsInfo.superClassName]
+      if (!sc || !sc.visibleFieldsOfType) return visibleFieldsByType[sig] || []
+      return [...sc.visibleFieldsOfType(sig), ...(visibleFieldsByType[sig] || [])]
+    }
     clsInfo.fields[fieldInfo.obfName] = fieldInfo
   }
   clsInfo.hash = hash
   clsInfo.hashBase26 = base26(hash)
   clsInfo.infoComplete = true
   return clsInfo
+}
+
+export async function enrichClsInfo (cls: BCELClass, info: FullInfo): Promise<ClassInfo> {
+  const className = await cls.getClassNameAsync()
+  const clsInfo: ClassInfo = info.class[className]
+  if (clsInfo.infoComplete) return clsInfo
+  return getClsInfo(cls, clsInfo)
 }
 
 function getDefaultNameForFieldType (fieldInfo: FieldInfo) {
@@ -356,33 +426,44 @@ function getDefaultNameForFieldType (fieldInfo: FieldInfo) {
   if (baseType[0] === 'L') {
     const clsInfo = info.class[baseType.slice(1, -1)]
     let name = clsInfo.name || clsInfo.obfName
-    name = name.slice(name.lastIndexOf('.') + 1)
-    return lcFirst(name) + suffix
+    name = lcFirst(name.slice(name.lastIndexOf('.') + 1))
+    name = ({
+      boolean: 'aboolean',
+      byte: 'abyte',
+      class: 'clazz',
+      double: 'adouble',
+      float: 'afloat',
+      long: 'along',
+      short: 'ashort'
+    })[name] || name
+    return name + suffix
   }
   switch (baseType[0]) {
-    case 'I': return 'i'
-    case 'J': return 'l'
-    case 'B': return 'b'
-    case 'S': return 's'
-    case 'C': return 'c'
-    case 'Z': return 'flag'
-    case 'F': return 'f'
-    case 'D': return 'd'
+    case 'I': return 'i' + suffix
+    case 'J': return 'l' + suffix
+    case 'B': return 'b' + suffix
+    case 'S': return 's' + suffix
+    case 'C': return 'c' + suffix
+    case 'Z': return 'flag' + suffix
+    case 'F': return 'f' + suffix
+    case 'D': return 'd' + suffix
   }
+  throw Error('invalid state')
 }
 
-async function getAttributes (arg: [ClassInfo, BCELClass] | [FieldInfo, BCELField]) {
+async function getAttributes (arg: [ClassInfo, BCELClass] | [FieldInfo, BCELField] | [MethodInfo, BCELMethod]) {
   const base = arg[0]
   const attributes = await arg[1].getAttributesAsync()
   const parse = ({
     field: parseFieldTypeSignature,
-    class: parseClassSignature
+    class: parseClassSignature,
+    method: null
   })[base.type]
   base.attributes = {}
   for (const attr of attributes) {
     const name = await attr.getNameAsync()
     base.attributes[name] = attr
-    if (name === 'Signature') {
+    if (name === 'Signature' && parse) {
       base.rawGenericSignature = await attr.getSignatureAsync()
       Object.defineProperty(base, 'genericSignature', {
         get () {
@@ -397,7 +478,7 @@ async function getAttributes (arg: [ClassInfo, BCELClass] | [FieldInfo, BCELFiel
 export async function readAllClasses (info: FullInfo) {
   const Repository = await initJava(info.fullClassPath)
   const classNames = getAllClasses(info.jarFile).filter(name => !name.includes('.') || name.startsWith('net.minecraft'))
-  info.classNames = classNames
+  info.classNames = classNames.slice(0)
   const forEachClass = (fn: (BCELClass, ClassInfo) => any) => Promise.all(classNames.map(async name => {
     try {
       const cls = await Repository.lookupClass(name)
@@ -409,6 +490,18 @@ export async function readAllClasses (info: FullInfo) {
     }
   }))
   console.log(classNames.length + ' classes, ' + classNames.filter(name => !name.includes('$')).length + ' outer classes')
-  await forEachClass(cls => enrichClsInfo(cls, info))
+  await forEachClass(getClsInfo)
+  classNames.sort((a, b) => b.length - a.length)
+  await forEachClass((cls, clsInfo) => {
+    let currentName = clsInfo.obfName
+    if (currentName.includes('$')) {
+      const outerName = currentName.slice(0, currentName.lastIndexOf('$'))
+      if (outerName in clsInfo.info.class) {
+        const outerClass = clsInfo.info.class[outerName]
+        outerClass.hash = h2(outerClass.hash, clsInfo.hash)
+        outerClass.hashBase26 = base26(outerClass.hash)
+      }
+    }
+  })
   info.enriched = true
 }

@@ -5,7 +5,7 @@ import { signatureTag as s } from '../../../../util/code'
 export function method (methodInfo: MethodInfo) {
   const { sig, code, clsInfo } = methodInfo
   const PacketBuffer = clsInfo.obfName
-  if (sig.endsWith('[B') && methodInfo.origName !== 'array') return 'readByteArray'
+  if (sig.endsWith('[B') && methodInfo.obfName !== 'array') return 'readByteArray'
   else if (sig.endsWith('[I')) return 'readVarIntArray'
   else if (sig.endsWith('[J')) return 'readLongArray'
   if (s`([B)${CLASS.PACKET_BUFFER}`.matches(methodInfo)) return 'writeByteArray'

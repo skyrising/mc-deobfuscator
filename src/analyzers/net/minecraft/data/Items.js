@@ -3,7 +3,7 @@ import { toUpperCamelCase } from '../../../../util'
 
 export function method (methodInfo: MethodInfo) {
   const { code, clsInfo, info } = methodInfo
-  if (methodInfo.origName === '<clinit>') {
+  if (methodInfo.obfName === '<clinit>') {
     info.data.items = {}
     for (const line of code.lines) {
       if (typeof line.const !== 'string') {

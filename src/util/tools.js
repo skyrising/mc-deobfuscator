@@ -5,10 +5,10 @@ import { sync as rmrf } from 'rimraf'
 
 import { generateOutput } from './output'
 
-export function specialSource (inFile, outFile, info, format = 'srg') {
+export function specialSource (inFile, outFile, info, format = 'tsrg') {
   const mapping = generateOutput(info)[format]
   console.log('Deobfuscating with SpecialSource')
-  cp.spawnSync('java', ['-jar', 'work/specialsource.jar', '-i', inFile, '-o', outFile, '-m', mapping, '--kill-lvt'], {
+  cp.spawnSync('java', ['-jar', 'work/lib/specialsource.jar', '-i', inFile, '-o', outFile, '-m', mapping, '--kill-lvt'], {
     stdio: ['ignore', 'inherit', fs.openSync('./temp/specialsource.warn', 'w')]
   })
 }
@@ -40,7 +40,7 @@ export function retroguard (inFile, outFile, info, classPath) {
   ].join('\n'))
   generateSrg(info, 'temp/mapping.srg')
   console.log('Deobfuscating with RetroGuard')
-  cp.spawnSync('java', ['-cp', 'work/retroguard.jar:' + classPath.join(':'), 'RetroGuard', '-searge', 'temp/retroguard.cfg'], {
+  cp.spawnSync('java', ['-cp', 'work/lib/retroguard.jar:' + classPath.join(':'), 'RetroGuard', '-searge', 'temp/retroguard.cfg'], {
     stdio: ['ignore', 'inherit', fs.openSync('./temp/rg.warn', 'w')]
   })
 }
@@ -69,7 +69,7 @@ export async function fernflower (jar, to, flavor = 'fernflower') {
   fs.mkdirSync(to)
   console.log('Decompiling with ' + flavor)
   const args = ['-din=1', '-rbr=1', '-dgs=1', '-asc=1', '-rsy=1', '-iec=1', '-jvn=1', '-sef=1', '-log=WARN', binDir, to]
-  const decompJar = path.resolve('work', flavor + '.jar')
+  const decompJar = path.resolve('work/lib', flavor + '.jar')
   if (fs.existsSync(decompJar)) return spawn('java', ['-jar', decompJar].concat(args), { stdio: 'inherit' })
   return spawn(flavor, args, { stdio: 'inherit' })
 }

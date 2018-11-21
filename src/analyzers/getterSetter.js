@@ -3,7 +3,7 @@ export const generic = true
 export const name = 'getters & setters'
 
 export function method (methodInfo: MethodInfo) {
-  if (methodInfo.origName.length > 3) return
+  if (methodInfo.obfName.length > 3) return
   return nameGetterSetter(methodInfo)
 }
 
@@ -52,7 +52,7 @@ const IS_SETTER = methodInfo => methodInfo.setter === true || (methodInfo.setter
 ))
 
 export function nameGetterSetter (methodInfo: MethodInfo) {
-  if (methodInfo.origName.length > 3 || methodInfo.code.error) return methodInfo.origName
+  if (methodInfo.obfName.length > 3 || methodInfo.code.error) return methodInfo.obfName
   const { code, clsInfo } = methodInfo
   const { lines } = code
   if (IS_GETTER(methodInfo)) {

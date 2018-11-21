@@ -113,7 +113,7 @@ export async function runAnalyzer (analyzer: Analyzer, clsInfo: ClassInfo, runGe
   if (analyzer.method) {
     for (const methodFullSig of Object.keys(clsInfo.method)) {
       const methodInfo = clsInfo.method[methodFullSig]
-      const { origName: name, sig } = methodInfo
+      const { obfName: name, sig } = methodInfo
       if (methodInfo.done) continue
       const methodProxy = getCallStats((methodInfo: any).bin)
       if (analyzer !== GENERIC_ANALYZER) console.debug('Analyzing method %s.%s:%s', (clsInfo.name || className), name, sig)
@@ -142,7 +142,7 @@ async function callAnalyzerClass (analyzer: Analyzer, cls: BCELClass, clsInfo: C
 
 async function callAnalyzerMethod (analyzer: Analyzer, method: BCELMethod, methodInfo: MethodInfo) {
   if (!analyzer.method) return false
-  const end = perf(`${analyzer.name || analyzer.file || 'unknown'}.method(${methodInfo.clsInfo.name || methodInfo.clsInfo.obfName}.${methodInfo.name || methodInfo.origName}:${methodInfo.sig})`)
+  const end = perf(`${analyzer.name || analyzer.file || 'unknown'}.method(${methodInfo.clsInfo.name || methodInfo.clsInfo.obfName}.${methodInfo.name || methodInfo.obfName}:${methodInfo.sig})`)
   const name = analyzer.method.length === 1 ? await analyzer.method(methodInfo) : await analyzer.method((methodInfo.clsInfo: any).bin, method, methodInfo.code, methodInfo, methodInfo.clsInfo, methodInfo.info)
   if (name) methodInfo.name = name
   end()

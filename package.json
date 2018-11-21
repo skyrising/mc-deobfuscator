@@ -9,6 +9,7 @@
     "start": "node build/index.js",
     "dev": "node -r @babel/register src/index.js",
     "dl-server": "node -r @babel/register src/util/version.js",
+    "dl-deps": "node -r @babel/register src/util/dependencies.js",
     "data": "node build/util/mc-data.js",
     "add-version": "node -r @babel/register src/util/version.js add",
     "check:eslint": "eslint .",
@@ -35,6 +36,7 @@
   },
   "dependencies": {
     "debug": "^3.1.0",
+    "diff": "^3.5.0",
     "java": "^0.10.0",
     "mz": "^2.7.0",
     "node-java-maven": "^0.1.1",

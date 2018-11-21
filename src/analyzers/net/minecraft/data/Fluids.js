@@ -3,7 +3,7 @@ import * as CLASS from '../../../../ClassNames'
 
 export function method (methodInfo: MethodInfo) {
   const { code, clsInfo, info } = methodInfo
-  if (methodInfo.origName === '<clinit>') {
+  if (methodInfo.obfName === '<clinit>') {
     info.data.fluids = {
       post () {
         for (const data of Object.values(this)) {

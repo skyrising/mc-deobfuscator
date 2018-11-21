@@ -38,28 +38,8 @@ export function readClass (buf: Buffer, name?: string) {
     if (cf.majorVersion > 55 || (cf.majorVersion === 55 && cf.minorVersion > 0)) {
       throw Error(`Unsupported class file version ${cf.majorVersion}.${cf.minorVersion} > 55.0`)
     }
-    cf.constantPoolCount = io.rb16(pb, 'constant_pool_count')
-    const cp = new Proxy(Array(cf.constantPoolCount), {
-      get (base, key) {
-        if (typeof key === 'number' && (key < 0 || key >= cf.constantPoolCount)) throw Error('Out of bounds: ' + key)
-        return base[key]
-      }
-    })
-    cp[0] = null
-    for (let i = 1; i < cf.constantPoolCount; i++) {
-      try {
-        io.start(pb, `cp[${i}]`)
-        const entry = { index: i, ...readConstantPoolEntry(pb) }
-        cp[i] = entry
-        if (entry.type === C.CONSTANT_Long || entry.type === C.CONSTANT_Double) {
-          cp[++i] = entry
-        }
-        io.end(pb)
-      } catch (e) {
-        throw errorCause(new Error(`Cannot read cp[${i}], previous: ${util.inspect(cp[i - 1], { customInspect: false })}`), e)
-      }
-    }
-    cf.constantPool = cp.map(e => e && refConstantPoolEntry(e, cp))
+    const cp = readConstantPool(pb)
+    cf.constantPool = cp
     if (name === 'crk.class') {
       for (const e of cf.constantPool) console.log(util.inspect(e, { customInspect: false }))
       console.log(io.error(pb, ''))
@@ -92,6 +72,31 @@ export function readClass (buf: Buffer, name?: string) {
     throw errorCause(io.error(pb, msg + '\n' + info), e)
   }
   return cf
+}
+
+export function readConstantPool (pb) {
+  const count = io.rb16(pb, 'constant_pool_count')
+  const cp = new Proxy(Array(count), {
+    get (base, key) {
+      if (typeof key === 'number' && (key < 0 || key >= count)) throw Error('Out of bounds: ' + key)
+      return base[key]
+    }
+  })
+  cp[0] = null
+  for (let i = 1; i < count; i++) {
+    try {
+      io.start(pb, `cp[${i}]`)
+      const entry = { index: i, ...readConstantPoolEntry(pb) }
+      cp[i] = entry
+      if (entry.type === C.CONSTANT_Long || entry.type === C.CONSTANT_Double) {
+        cp[++i] = entry
+      }
+      io.end(pb)
+    } catch (e) {
+      throw errorCause(new Error(`Cannot read cp[${i}], previous: ${util.inspect(cp[i - 1], { customInspect: false })}`), e)
+    }
+  }
+  return cp.map(e => e && refConstantPoolEntry(e, cp))
 }
 
 function readConstantPoolEntry (pb) {

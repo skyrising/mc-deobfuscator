@@ -31,7 +31,7 @@ export function parseCode (buf, cp) {
         line.operands.push(line.const = io.rsb16(pb))
       } else if (op === CONSTS.OP_LDC) {
         line.operands.push(line.const = cp[line.index = io.r8(pb)])
-      } else if (op === CONSTS.OP_LDC_W || line.opId === CONSTS.OP_LDC2_W) {
+      } else if (op === CONSTS.OP_LDC_W || op === CONSTS.OP_LDC2_W) {
         line.operands.push(line.const = cp[line.index = io.rb16(pb)])
       } else if (op >= CONSTS.OP_ILOAD && op <= CONSTS.OP_ALOAD) {
         line.operands.push(line.load = io.r8(pb))

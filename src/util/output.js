@@ -2,7 +2,8 @@
 import * as PKG from '../PackageNames'
 import fs from 'fs'
 import path from 'path'
-import { getMappedClassName, sortObfClassName, slash } from './index'
+import { Expression } from './class-reader/interpreter'
+import { getMappedClassName, sortObfClassName, slash, toUnderScoreCase } from './index'
 import { digraph } from './graphviz'
 
 export function generateOutput (info: FullInfo) {
@@ -69,11 +70,11 @@ export function generateSrg (info: FullInfo, srgFile: string, sort: boolean = fa
   for (const from of info.classNames) {
     const to = info.class[from]
     const toName = getMappedClassName(info, from)
-    if (toName) srg.push(`CL: ${slash(from)} ${slash(toName)}`)
+    srg.push(`CL: ${slash(from)} ${slash(toName)}`)
     for (const fd in to.fields) srg.push(`FD: ${slash(from)}/${fd} ${slash(toName)}/${to.fields[fd].bestName}`)
     for (const mdFrom in to.method) {
       const md = to.method[mdFrom]
-      if (md.name) srg.push(`MD: ${slash(from)}/${md.origName} ${md.sig} ${slash(toName)}/${md.bestName} ${md.sig}`)
+      srg.push(`MD: ${slash(from)}/${md.obfName} ${md.sig} ${slash(toName)}/${md.bestName} ${md.sig}`)
     }
   }
   if (sort) {
@@ -104,7 +105,7 @@ export function generateTsrg (info: FullInfo, tsrgFile: string) {
     for (const fd in to.fields) lines.push(`\t${fd} ${to.fields[fd].bestName}`)
     for (const mdFrom in to.method) {
       const md = to.method[mdFrom]
-      lines.push(`\t${md.origName} ${md.sig} ${md.bestName}`)
+      lines.push(`\t${md.obfName} ${md.sig} ${md.bestName}`)
     }
   }
   fs.writeFileSync(tsrgFile, lines.join('\n'))
@@ -125,7 +126,13 @@ export function generateDataFiles (info: FullInfo, dir: string) {
       for (const key of Object.keys(info.data[basename]).sort()) data[key] = info.data[basename][key]
     }
     const file = path.resolve(dir, basename + '.json')
-    fs.writeFileSync(file, JSON.stringify(data, null, 2))
+    fs.writeFileSync(file, JSON.stringify(data, function (key, value) {
+      const rawValue = this[key]
+      if (rawValue instanceof Expression) return rawValue.deobfuscate(info).toString()
+      if (typeof rawValue === 'object' && rawValue.type === 'class') return getMappedClassName(rawValue)
+      if (typeof rawValue === 'object' && rawValue.type === 'field') return toUnderScoreCase(rawValue.bestName).toLowerCase()
+      return value
+    }, 2))
     files.push(file)
   }
   return files

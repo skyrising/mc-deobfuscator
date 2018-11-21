@@ -3,6 +3,7 @@ import * as PKG from '../PackageNames'
 import * as CLASS from '../ClassNames'
 import { hasSuperClass, toUpperCamelCase, decodeType, getBaseInterfaces } from '../util'
 import { signatureTag as s } from '../util/code'
+import { toStringFieldNamer } from './sharedLogic'
 
 export const generic = true
 export const name = 'generic'
@@ -107,9 +108,9 @@ const simpleConstToClass: {[string]: string | SimpleHandler | Array<SimpleHandle
   'minecraft:blocks/destroy_stage_': CLASS.RENDER_GLOBAL,
   'Rendering item': CLASS.RENDER_ITEM,
   'Unable to load variant: {} from {}': CLASS.BLOCK_MODEL_BAKERY,
-  'livingEntityBaseTick': CLASS.ENTITY_LIVING_BASE,
-  'HurtTime': CLASS.ENTITY_LIVING_BASE,
-  'DeathLootTableSeed': CLASS.ENTITY_LIVING,
+  'livingEntityBaseTick': CLASS.ENTITY_LIVING,
+  'HurtTime': CLASS.ENTITY_LIVING,
+  'DeathLootTableSeed': CLASS.ENTITY_MOB,
   'playerGameType': CLASS.ENTITY_PLAYER_BASE,
   'ChestedHorse': CLASS.ENTITY_CHESTED_HORSE,
   'HorseChest': CLASS.ENTITY_ABSTRACT_HORSE,
@@ -121,7 +122,12 @@ const simpleConstToClass: {[string]: string | SimpleHandler | Array<SimpleHandle
   'Fleeing speed bonus': CLASS.ENTITY_CREATURE,
   'Sitting': CLASS.ENTITY_TAMEABLE,
   'InLove': CLASS.ENTITY_BREEDABLE,
-  'OMPenthouse': CLASS.OCEAN_MONUMENT_PIECES,
+  'OMPenthouse': {
+    predicate ({ code }) {
+      return code.consts.includes('MSCorridor')
+    },
+    name: CLASS.STRUCTURE_PIECE
+  },
   'An Objective with the name \'': CLASS.SCOREBOARD,
   'X90_Y180': CLASS.MODEL_ROTATION,
   'Resource download thread': CLASS.RESOURCE_DOWNLOAD_THREAD,
@@ -381,7 +387,7 @@ const simpleConstToClass: {[string]: string | SimpleHandler | Array<SimpleHandle
   },
   'RENDER_DISTANCE': [{
     predicate: ({ clsInfo }) => clsInfo.isInnerClass,
-    name: 'Option'
+    name: CLASS.GAME_SETTINGS$OPTION
   }, {
     name: CLASS.GAME_SETTINGS_OPTION
   }],
@@ -398,9 +404,9 @@ const simpleConstToClass: {[string]: string | SimpleHandler | Array<SimpleHandle
     name: CLASS.ENTITY_ABSTRACT_ARROW
   },
   '=': {
-    predicate: ({ clsInfo, methodInfo }) => clsInfo.isInnerClass && methodInfo.origName === 'toString',
+    predicate: ({ clsInfo, methodInfo }) => clsInfo.isInnerClass && methodInfo.obfName === 'toString',
     outerClass: CLASS.INT_HASH_MAP,
-    name: 'Entry'
+    name: CLASS.INT_HASH_MAP$ENTRY
   },
   'options.chat.title': {
     predicate: ({ code }) => !code.consts.includes('options.video'),
@@ -435,32 +441,34 @@ const simpleConstToClass: {[string]: string | SimpleHandler | Array<SimpleHandle
     name: CLASS.ADVANCEMENT_TRIGGER_DAMAGE
   }],
   'enchanted_item': {
-    predicate: ({ methodInfo }) => methodInfo.origName === '<clinit>',
+    predicate: ({ methodInfo }) => methodInfo.obfName === '<clinit>',
     name: CLASS.ADVANCEMENT_TRIGGER_ENCHANTED_ITEM
   },
   'impossible': {
-    predicate: ({ methodInfo }) => methodInfo.origName === '<clinit>',
+    predicate: ({ methodInfo }) => methodInfo.obfName === '<clinit>',
     name: CLASS.ADVANCEMENT_TRIGGER_IMPOSSIBLE
   },
   'killing_blow': [{
-    predicate: ({ clsInfo }) => clsInfo.isInnerClass,
-    name: 'Instance'
-  }, {
+    predicate: ({ clsInfo }) => !clsInfo.isInnerClass,
     name: CLASS.ADVANCEMENT_TRIGGER_KILL
   }],
+  'killed_by_crossbow': {
+    predicate: ({ methodInfo }) => methodInfo.obfName === '<clinit>',
+    name: CLASS.ADVANCEMENT_TRIGGER_KILLED_BY_CROSSBOW
+  },
   'levitation': {
     predicate: ({ line }) => line.next && line.next.op === 'invokespecial',
     name: CLASS.ADVANCEMENT_TRIGGER_LEVITATION
   },
   'tick': [{
-    predicate: ({ methodInfo, code }) => methodInfo.origName === '<clinit>' && code.consts.includes('functions/'),
+    predicate: ({ methodInfo, code }) => methodInfo.obfName === '<clinit>' && code.consts.includes('functions/'),
     name: CLASS.FUNCTION_MANAGER
   }, {
-    predicate: ({ methodInfo }) => methodInfo.origName === '<clinit>',
+    predicate: ({ methodInfo }) => methodInfo.obfName === '<clinit>',
     name: CLASS.ADVANCEMENT_TRIGGER_TICK
   }],
   'used_totem': {
-    predicate: ({ methodInfo }) => methodInfo.origName === '<clinit>',
+    predicate: ({ methodInfo }) => methodInfo.obfName === '<clinit>',
     name: CLASS.ADVANCEMENT_TRIGGER_USED_TOTEM
   },
   'Enchant': {
@@ -469,14 +477,14 @@ const simpleConstToClass: {[string]: string | SimpleHandler | Array<SimpleHandle
   },
   'entityBaseTick': {
     name: CLASS.ENTITY,
-    method: 'tick',
+    method: 'entityTick',
     call: {
       class: CLASS.PROFILER,
       method: 'start'
     }
   },
   'falling_block': [{
-    predicate: ({ methodInfo }) => methodInfo.origName !== '<clinit>',
+    predicate: ({ methodInfo }) => methodInfo.obfName !== '<clinit>',
     name: CLASS.ENTITIES,
     method: 'init',
     call: {
@@ -541,7 +549,7 @@ const simpleConstToClass: {[string]: string | SimpleHandler | Array<SimpleHandle
   'Unable to get CW facing for axis ': {
     name: CLASS.FACING,
     method: 'rotateAround',
-    args: ['Axis']
+    args: [CLASS.FACING$AXIS]
   },
   'Unable to get X-rotated facing of ': {
     name: CLASS.FACING,
@@ -730,7 +738,9 @@ const simpleConstToClass: {[string]: string | SimpleHandler | Array<SimpleHandle
     eval ({ code, clsInfo }) {
       const newBanlist = code.lines[0].nextOp('new')
       if (newBanlist) {
-        clsInfo.info.class[newBanlist.className].name = CLASS.BAN_LIST
+        const banListClass = clsInfo.info.class[newBanlist.className]
+        if (banListClass.isInnerClass) return
+        banListClass.name = CLASS.BAN_LIST
       }
     }
   },
@@ -775,7 +785,62 @@ const simpleConstToClass: {[string]: string | SimpleHandler | Array<SimpleHandle
     name: CLASS.NBT_LIST
   }, {
     name: CLASS.NBT_COMPOUND
-  }]
+  }],
+  ' must be greater than min (': CLASS.BLOCK_PROPERTY_INT,
+  '*(': {
+    predicate ({ clsInfo, code }) {
+      return clsInfo.isInnerClass && code.consts.includes('-') && code.consts.includes('):')
+    },
+    name: CLASS.BIOME$SPAWN_LIST_ENTRY,
+    superClass: CLASS.WEIGHTED_RANDOM$ITEM
+  },
+  'JigsawJunction{sourceX=': {
+    name: CLASS.JIGSAW_JUNCTION,
+    eval ({ methodInfo }) {
+      toStringFieldNamer(methodInfo)
+    }
+  },
+  'pillager_outpost/feature_plates': CLASS.PILLAGER_OUTPOST_PIECES,
+  'event.minecraft.raid': CLASS.RAID,
+  'Raids': {
+    predicate ({ code }) {
+      return code.consts.includes('NextAvailableID')
+    },
+    name: CLASS.RAIDS
+  },
+  'Wave': {
+    predicate ({ code }) {
+      return code.consts.includes('RaidId')
+    },
+    name: CLASS.RAID_WAVE
+  },
+  'single_pool_element': {
+    name: CLASS.STRUTURE_SINGLE_POOL_ELEMENT,
+    superClass: CLASS.STRUCTURE_POOL_ELEMENT
+  },
+  'list_pool_element': {
+    name: CLASS.STRUCTURE_LIST_POOL_ELEMENT,
+    superClass: CLASS.STRUCTURE_POOL_ELEMENT
+  },
+  'gravity': {
+    predicate ({ clsInfo }) {
+      return clsInfo.consts.has('heightmap')
+    },
+    name: CLASS.STRUCTURE_PROCESSOR_GRAVITY,
+    superClass: CLASS.STRUCTURE_PROCESSOR
+  },
+  'block_ignore': {
+    name: CLASS.STRUCTURE_PROCESSOR_BLOCK_IGNORE,
+    superClass: CLASS.STRUCTURE_PROCESSOR
+  },
+  'block_rot': {
+    name: CLASS.STRUCTURE_PROCESSOR_BLOCK_ROTATION,
+    superClass: CLASS.STRUCTURE_PROCESSOR
+  },
+  'jigsaw_replacement': {
+    name: CLASS.STRUCTURE_PROCESSOR_JIGSAW_REPLACEMENT,
+    superClass: CLASS.STRUCTURE_PROCESSOR
+  }
 })
 
 function handleSimple (obj: ?(string | SimpleHandler | Array<SimpleHandler>), params: HandleFuncArg) {
@@ -941,8 +1006,8 @@ export function method (methodInfo: MethodInfo) {
   methodInfo.done = false
   const sc = clsInfo.superClassName
   if (sc === 'java.lang.Enum') {
-    if (methodInfo.origName === '<clinit>') enumClinit(methodInfo)
-    else if (methodInfo.origName === 'values') {
+    if (methodInfo.obfName === '<clinit>') enumClinit(methodInfo)
+    else if (methodInfo.obfName === 'values') {
       clsInfo.fields[code.lines[0].field.fieldName].name = '$VALUES'
     }
   }
@@ -1035,6 +1100,12 @@ function getEnumName (names: Array<string>, methodInfo: MethodInfo) {
     case 'NORMAL,DESTROY,BLOCK,IGNORE,PUSH_ONLY': return CLASS.PISTON_BEHAVIOR
     case 'GROWING,SHRINKING,STATIONARY': return CLASS.BORDER_STATUS
     case 'SAVE,LOAD,CORNER,DATA': return CLASS.STRUCTURE_BLOCK_MODE
+    case 'SOLID,CUTOUT_MIPPED,CUTOUT,TRANSLUCENT': return CLASS.BLOCK_RENDER_LAYER
+    case 'INVISIBLE,ENTITYBLOCK_ANIMATED,MODEL': return CLASS.BLOCK_RENDER_TYPE
+    case 'NATURAL,CHUNK_GENERATION,SPAWNER,STRUCTURE,BREEDING': return CLASS.SPAWN_REASON
+    case 'COMMON,UNCOMMON,RARE,VERY_RARE': return CLASS.ENCHANTMENT$RARITY
+    case 'ALL,FIRE,FALL,EXPLOSION,PROJECTILE': return CLASS.ENCHANTMENT_PROTECTION$TYPE
+    case 'NATURAL_STONE,NETHERRACK': return CLASS.ORE_CONFIG$TARGET
     case 'BITMAP,TTF,LEGACY_UNICODE': return CLASS.FONT_TYPE
     case 'CHAT,SYSTEM,GAME_INFO': return CLASS.CHAT_TYPE
     case 'NEVER,SOURCE_ONLY,ALWAYS': return CLASS.RAY_TRACE_FLUID_MODE
@@ -1047,40 +1118,26 @@ function getEnumName (names: Array<string>, methodInfo: MethodInfo) {
       if (clsInfo.interfaceNames.length) return CLASS.FACING
       return
     case 'NONE,TAIGA,EXTREME_HILLS,JUNGLE,MESA':
-      if (!clsInfo.isInnerClass) return
-      info.class[clsInfo.outerClassName].name = CLASS.BIOME
       return CLASS.BIOME$CATEGORY
     case 'NONE,RAIN,SNOW':
-      if (!clsInfo.isInnerClass) return
-      info.class[clsInfo.outerClassName].name = CLASS.BIOME
       return CLASS.BIOME$PRECIPITATION
+    case 'OCEAN,COLD,MEDIUM,WARM':
+      return CLASS.BIOME$CLIMATE
     case 'PINK,BLUE,RED,GREEN,YELLOW':
-      if (!clsInfo.isInnerClass) return
-      info.class[clsInfo.outerClassName].name = CLASS.BOSS_INFO
       return CLASS.BOSS_INFO$COLOR
     case 'PROGRESS,NOTCHED_6,NOTCHED_10,NOTCHED_12,NOTCHED_20':
-      if (!clsInfo.isInnerClass) return
-      info.class[clsInfo.outerClassName].name = CLASS.BOSS_INFO
       return CLASS.BOSS_INFO$OVERLAY
     case 'WORLD_SURFACE_WG,OCEAN_FLOOR_WG,LIGHT_BLOCKING,MOTION_BLOCKING,MOTION_BLOCKING_NO_LEAVES':
-      if (!clsInfo.isInnerClass) return
-      info.class[clsInfo.outerClassName].name = CLASS.HEIGHTMAP
+    case 'WORLD_SURFACE_WG,OCEAN_FLOOR_WG,MOTION_BLOCKING,MOTION_BLOCKING_NO_LEAVES,OCEAN_FLOOR':
       return CLASS.HEIGHTMAP$TYPE
     case 'WORLDGEN,LIVE_WORLD':
-      if (!clsInfo.isInnerClass) return
-      info.class[clsInfo.outerClassName].name = CLASS.HEIGHTMAP
+    case 'WORLDGEN,LIVE_WORLD,CLIENT':
       return CLASS.HEIGHTMAP$WORLD_STATE
     case 'LINUX,SOLARIS,WINDOWS,OSX,UNKNOWN':
-      if (!clsInfo.isInnerClass) return
-      info.class[clsInfo.outerClassName].name = CLASS.UTILS
       return CLASS.UTILS$OS
     case 'MISS,BLOCK,ENTITY':
-      if (!clsInfo.isInnerClass) return
-      info.class[clsInfo.outerClassName].name = CLASS.HIT_RESULT
       return CLASS.HIT_RESULT$TYPE
     case 'ON_GROUND,IN_WATER':
-      if (!clsInfo.isInnerClass) return
-      info.class[clsInfo.outerClassName].name = CLASS.SPAWN_CONDITIONS
       return CLASS.SPAWN_CONDITIONS$PLACE
     case 'AND,AND_INVERTED,AND_REVERSE,CLEAR,COPY': return innerClass(CLASS.GL_STATE_MANAGER$LOGIC_OP)
     case 'CONSTANT_ALPHA,CONSTANT_COLOR,DST_ALPHA,DST_COLOR,ONE':

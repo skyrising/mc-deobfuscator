@@ -48,6 +48,10 @@ class Signature {
   }
 }
 
+export function parseSignature (sig: string) {
+  return signatureTag([sig])
+}
+
 export function signatureTag (strings: Array<string>, ...args: Array<string>) {
   const parsedArgs = []
   let parsedReturn = ''
@@ -102,8 +106,8 @@ export function getMethodInheritance (methodInfo: MethodInfo, clsInfo?: ClassInf
     console.warn('No clsInfo:', methodInfo)
     return []
   }
-  if (methodInfo.origName === '<init>' || methodInfo.origName === '<clinit>') return []
-  const methodFullSig = methodInfo.origName + ':' + methodInfo.sig
+  if (methodInfo.obfName === '<init>' || methodInfo.obfName === '<clinit>') return []
+  const methodFullSig = methodInfo.obfName + ':' + methodInfo.sig
   const key = clsInfo.obfName + '/' + methodFullSig
   if (key in methodInheritance) return methodInheritance[key]
   const check = [clsInfo.superClassName, ...clsInfo.interfaceNames]
@@ -119,4 +123,18 @@ export function getMethodInheritance (methodInfo: MethodInfo, clsInfo?: ClassInf
   if (!(methodFullSig in clsInfo.method) || !clsInfo.method[methodFullSig].infoComplete) return []
   methodInheritance[key] = [clsInfo.obfName]
   return methodInheritance[key]
+}
+
+export function classNameTask <C: {[string]: string}> (names: C, task: ($ObjMap<C, string => ?string>) => any): Task {
+  return {
+    predicate (info: FullInfo) {
+      for (const name in names) if (!info.classReverse[names[name]]) return false
+      return true
+    },
+    run (info: FullInfo) {
+      const mapped: $Shape<$ObjMap<C, string => ?string>> = {}
+      for (const name in names) mapped[name] = info.classReverse[names[name]]
+      return task(mapped)
+    }
+  }
 }

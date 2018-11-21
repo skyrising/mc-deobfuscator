@@ -6,13 +6,14 @@ export type Options = {
   filterOut?: Array<string>;
   filter?: (id: string, idLine: CodeLineLoadConst) => any;
   eval?: (id: string, idLine: CodeLineLoadConst, field: FieldInfo) => any;
+  post?: (data: {[string]: any}) => any;
 }
 
 export function registryMethod (methodInfo: MethodInfo, dataKey: string = '', opts: Options = {}) {
   const { clsInfo, info } = methodInfo
   const { lines } = methodInfo.code
   const setData = dataKey && !(dataKey in info.data)
-  if (methodInfo.origName === '<clinit>') {
+  if (methodInfo.obfName === '<clinit>') {
     if (setData) info.data[dataKey] = {}
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i]
@@ -29,7 +30,8 @@ export function registryMethod (methodInfo: MethodInfo, dataKey: string = '', op
       if (setData) info.data[dataKey][id] = data
       i = lines.indexOf(putstatic)
     }
-    return methodInfo.origName
+    if (opts.post) opts.post(info.data[dataKey])
+    return methodInfo.obfName
   }
 }
 
@@ -37,17 +39,33 @@ export function registerBlocks (methodInfo: MethodInfo) {
   const { code, clsInfo, info } = methodInfo
   const Block = info.classReverse[CLASS.BLOCK]
   if (!Block) return
-  info.data.blocks = {
-    post () {
-      for (const data of Object.values(this)) {
-        data.class = info.class[data.class].name || data.class
-      }
-    }
-  }
+  info.data.blocks = {}
+  const BlockProperties = info.classReverse[CLASS.BLOCK_PROPERTIES]
+  const blockPropertiesCls = BlockProperties && info.class[BlockProperties]
   for (const line of code.lines) {
     if (typeof line.const !== 'string') continue
     const data = {}
-    if (line.next.op === 'new') data.class = line.next.className
+    if (line.next.op === 'new') {
+      const blockCls = info.class[line.next.className]
+      data.class = blockCls
+      try {
+        if (BlockProperties && blockCls) {
+          const blockClinit = '<clinit>:()V' in blockCls.method && blockCls.method['<clinit>:()V']
+          if (blockClinit) {
+            for (const line of blockClinit.code.lines) {
+              if (line.op !== 'getstatic') continue
+              if (line.field.className !== BlockProperties) continue
+              const putstatic = line.nextOp('putstatic')
+              if (!putstatic) break
+              if (putstatic.field.className !== blockCls.obfName) continue
+              blockCls.fields[putstatic.field.fieldName].depends = blockPropertiesCls.fields[line.field.fieldName]
+            }
+          }
+        }
+      } catch (e) {
+        console.error(e)
+      }
+    }
     const blockClass = BLOCK_CLASS_NAMES[line.const]
     if (blockClass) {
       const newCls = line.nextOp('new').className
@@ -60,6 +78,7 @@ export function registerBlocks (methodInfo: MethodInfo) {
   }
 }
 
+// TODO: switch to commonWords like decorators
 export const BLOCK_CLASS_NAMES = {
   grass_block: 'GrassBlock',
   podzol: 'Podzol',
@@ -96,10 +115,12 @@ export const BLOCK_CLASS_NAMES = {
   wheat: 'Wheat',
   furnace: 'Furnace',
   sign: 'StandingSign',
+  oak_sign: 'StandingSign',
   oak_door: 'Door',
   ladder: 'Ladder',
   rail: 'Rail',
   wall_sign: 'WallSign',
+  oak_wall_sign: 'WallSign',
   lever: 'Lever',
   stone_pressure_plate: 'PressurePlate',
   redstone_ore: 'RedstoneOre',
@@ -214,5 +235,24 @@ export const BLOCK_CLASS_NAMES = {
   lectern: 'Lectern',
   smithing_table: 'SmithingTable',
   stonecutter: 'Stonecutter',
-  bell: 'Bell'
+  bell: 'Bell',
+  scaffolding: 'Scaffolding',
+  grass: 'Grass',
+  dead_bush: 'DeadBush',
+  seagrass: 'Seagrass',
+  tall_seagrass: 'TallSeagrass',
+  melon: 'Melon'
+}
+
+export function toStringFieldNamer (methodInfo: MethodInfo) {
+  const { clsInfo } = methodInfo
+  for (const c of methodInfo.code.constants) {
+    if (c.type !== 'string') continue
+    const nextField = c.line.nextOp('getfield')
+    if (!nextField) return
+    const match = c.value.match(/([a-zA-Z]+)=$/)
+    if (!match) continue
+    const name = match[1]
+    clsInfo.fields[nextField.field.fieldName].name = name
+  }
 }

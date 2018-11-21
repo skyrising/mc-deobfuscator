@@ -10,8 +10,8 @@ export function field (fieldInfo: FieldInfo) {
 
 export function method (methodInfo: MethodInfo) {
   const { code, info } = methodInfo
-  if (code.lines.length === 2 && code.lines[0].const === 2 && code.lines[1].return) {
-    return 'tickDelay'
+  if (code.lines.length === 2 && code.lines[0].op === 'iconst_2' && code.lines[1].op === 'ireturn') {
+    return 'getTickDelay'
   }
   const { sig } = methodInfo
   if (methodInfo.flags.static && sig.endsWith(')Z')) {

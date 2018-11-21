@@ -3,7 +3,7 @@ import * as CLASS from '../../../../ClassNames'
 import { signatureTag as s } from '../../../../util/code'
 
 export function method (methodInfo: MethodInfo) {
-  if (methodInfo.origName === '<init>' && methodInfo.args.length === 3) {
+  if (methodInfo.obfName === '<init>' && methodInfo.args.length === 3) {
     methodInfo.clsInfo.info.class[methodInfo.argSigs[0].slice(1, -1)].name = CLASS.PLAYER_CHUNK_MAP
   }
 }

@@ -15,7 +15,7 @@ export function cls (clsInfo: ClassInfo) {
 export function method (methodInfo: MethodInfo) {
   const { clsInfo, code } = methodInfo
   const NBTCompound = clsInfo.obfName
-  const NBTBase = clsInfo.superClassName
+  const NBTBase = clsInfo.interfaceNames[0] || clsInfo.superClassName
   switch (methodInfo.sig) {
     case '(Ljava/lang/String;B)V': return 'setByte'
     case '(Ljava/lang/String;S)V': return 'setShort'

@@ -1,4 +1,5 @@
 // @flow
+import fs from 'fs'
 import util from 'util'
 import EventEmitter from 'events'
 import { perf } from './index'
@@ -14,6 +15,11 @@ const debugMd = require('debug')('deobf:md')
 const debugCl = require('debug')('deobf:cl')
 
 const slash = s => s.replace(/\./g, '/')
+
+type Task = {
+  predicate (info: FullInfo): any;
+  run (info: FullInfo): any;
+}
 
 class Info extends EventEmitter {
   running: number;
@@ -36,6 +42,8 @@ class Info extends EventEmitter {
   passes: Array<Pass>;
   currentPass: ?Pass;
   enriched: boolean;
+  classNameLog: ?WriteStream;
+  scheduledTasks: Set<Task>;
 
   constructor () {
     super()
@@ -54,6 +62,7 @@ class Info extends EventEmitter {
     this.classReverse = {}
     this.enriched = false
     this.data = {}
+    this.scheduledTasks = new Set()
     this.class = new Proxy(({
       [util.inspect.custom] (depth, opts) {
         return opts.stylize('[Classes: ', 'special') +
@@ -93,23 +102,35 @@ class Info extends EventEmitter {
             },
             setName (deobfName: string, by?: string) {
               if (clsObfName.startsWith('java.')) {
-                console.warn(Error('Tried renaming ' + clsObfName))
+                this.namedBy = by
+                console.warn(new NamingError(this, deobfName))
                 return
               }
               deobfName = deobfName.replace(/\//g, '.')
+              const fullDeobfName = deobfName
               if (info.classReverse[deobfName] && info.classReverse[deobfName] !== slash(clsObfName)) {
                 this.namedBy = by
                 throw new DuplicateNamingError(deobfName, info.class[info.classReverse[deobfName]], this)
               }
               info.classReverse[deobfName] = slash(clsObfName)
-              if (this.isInnerClass) deobfName = deobfName.slice(deobfName.lastIndexOf(deobfName.includes('$') ? '$' : '.') + 1)
+              if (this.isInnerClass) {
+                const lio$ = deobfName.lastIndexOf('$')
+                if (lio$ > 0) {
+                  const outerDeobf = deobfName.slice(0, lio$)
+                  this.outerClass.setName(outerDeobf, by)
+                  deobfName = deobfName.slice(lio$ + 1)
+                } else {
+                  throw new NamingError(this, fullDeobfName, `${this.outerClass.name || this.outerClassName}$${deobfName}: use full name`)
+                }
+              }
               if (this._name !== deobfName) {
                 info.genericAnalyzed[deobfName] = -1
                 info.specialAnalyzed[deobfName] = 0
                 if (!this.namedBy) this.namedBy = by
-                debugCl('CL: %s %s', slash(clsObfName), slash(deobfName))
-                printStatus(clsObfName + ' -> ' + deobfName)
-                info.emit('class-name', { obf: clsObfName, deobf: deobfName, clsInfo })
+                debugCl('CL: %s %s', slash(clsObfName), slash(fullDeobfName))
+                if (info.classNameLog) info.classNameLog.write(`[${info.pass}] ${clsObfName} -> ${fullDeobfName}\n`)
+                printStatus(clsObfName + ' -> ' + fullDeobfName)
+                info.emit('class-name', { obf: clsObfName, deobf: deobfName, full: fullDeobfName, clsInfo })
                 this.done = false
                 for (const sc of this.subClasses) info.class[sc].done = false
               }
@@ -152,8 +173,8 @@ class Info extends EventEmitter {
                 if (typeof fullSig !== 'string') return mds[fullSig]
                 if (!mds[fullSig]) {
                   if (info.enriched) throw Error('Too late to create skeleton method')
-                  const [origName, sig] = fullSig.split(':')
-                  mds[fullSig] = info.newMethod(clsInfo.obfName, origName, sig)
+                  const [obfName, sig] = fullSig.split(':')
+                  mds[fullSig] = info.newMethod(clsInfo.obfName, obfName, sig)
                 }
                 return mds[fullSig]
               }
@@ -176,7 +197,7 @@ class Info extends EventEmitter {
     })
   }
 
-  async init ({ version, side, jarFile, fullClassPath }: {version: Version|string, side: Side, jarFile: string, fullClassPath: Array<string>}) {
+  async init ({ version, side, jarFile, fullClassPath, classNameLog }: {version: Version|string, side: Side, jarFile: string, fullClassPath: Array<string>, classNameLog?: boolean}) {
     this.side = side
     this.jarFile = jarFile
     this.fullClassPath = fullClassPath
@@ -191,6 +212,9 @@ class Info extends EventEmitter {
       toString () {
         return version.id || version
       }
+    }
+    if (classNameLog) {
+      this.classNameLog = fs.createWriteStream('class-names.log')
     }
   }
 
@@ -217,8 +241,10 @@ class Info extends EventEmitter {
         info.pass++
         info.passAnalyzed = 0
         info.currentPass = this
+        if (info.classNameLog) info.classNameLog.write(`--- start: ${name} ---\n`)
         const end = perf('pass::' + name)
         this.end = () => {
+          if (info.classNameLog) info.classNameLog.write(`--- end: ${name} ---\n\n\n`)
           this.started = false
           this.ended = true
           info.currentPass = undefined
@@ -232,6 +258,19 @@ class Info extends EventEmitter {
     }
     this.passes.push(pass)
     return pass
+  }
+
+  scheduleTask (task: Task) {
+    this.scheduledTasks.add(task)
+  }
+
+  runScheduledTasks (all: boolean = false) {
+    for (const task of this.scheduledTasks) {
+      if (all || task.predicate(this)) {
+        this.scheduledTasks.delete(task)
+        task.run(this)
+      }
+    }
   }
 
   newMethod (clsName: string, obfName: string, sig: string) {
@@ -302,7 +341,23 @@ class Info extends EventEmitter {
         const base = this.base
         if (base && base !== this) return base.name
         if (this._name) return this._name
-        return this.origName
+        return this.obfName
+      },
+      get bestName () {
+        if (this._name) return this._name
+        if (this.depends) {
+          if (typeof this.depends === 'function') {
+            const dependentName = this.depends()
+            if (dependentName) return dependentName
+          } else {
+            const dependentName = this.depends !== this && this.depends.bestName
+            if (dependentName) return dependentName
+          }
+        }
+        const base = this.base
+        if (base && base !== this) return base.bestName
+        if (this.hash && this.obfName.length < 3) return `md_${this.hash & 0xffffff}_${this.obfName}`
+        return this.obfName
       }
     }
   }
@@ -374,13 +429,24 @@ class Info extends EventEmitter {
   }
 }
 
-export class DuplicateNamingError extends Error {
+export class NamingError extends Error {
+  constructor (clsInfo: ClassInfo, deobfName: string, message?: string) {
+    super(`Error renaming ${clsInfo.obfName} to ${deobfName} (by ${clsInfo.namedBy})${message ? `: ${message}` : ''}`)
+    this.name = 'NamingError'
+  }
+
+  [util.inspect.custom] () {
+    return this.stack
+  }
+}
+
+export class DuplicateNamingError extends NamingError {
   deobfName: string;
   a: ClassInfo;
   b: ClassInfo;
 
   constructor (deobfName: string, a: ClassInfo, b: ClassInfo) {
-    super(`Duplicate name ${deobfName} for ${a.obfName} (by ${a.namedBy}) and ${b.obfName} (by ${b.namedBy})`)
+    super(a, deobfName, `Duplicated name with ${b.obfName} (by ${b.namedBy})`)
     this.name = 'DuplicateNamingError'
     this.deobfName = deobfName
     this.a = a
@@ -392,7 +458,7 @@ export class DuplicateNamingError extends Error {
   }
 }
 
-export async function createInfo (base: {version: Version|string, side: Side, jarFile: string, fullClassPath: Array<string>}): Promise<FullInfo> {
+export async function createInfo (base: {version: Version|string, side: Side, jarFile: string, fullClassPath: Array<string>, classNameLog?: boolean}): Promise<FullInfo> {
   const info = new Info()
   await info.init(base)
   return info
