@@ -9,7 +9,7 @@ import { startStatus, endStatus } from './util/status'
 import {
   specialSource as runSpecialSource,
   extractJar as runExtractJar,
-  procyon, fernflower, forgeflower
+  procyon, fernflower, forgeflower, cfr
 } from './util/tools'
 import { generateOutput } from './util/output'
 import { analyzeClass, runAnalyzer, initAnalyzer } from './util/analyzers'
@@ -56,7 +56,7 @@ if (require.main === module) {
     classNameLog: true,
     status: true,
     
-    decompile: 'forgeflower',
+    decompile: 'cfr',
     ide: {
       idea: true
     },
@@ -100,6 +100,7 @@ export async function analyzeJar (jarFile: string, libraries: Array<{id: string,
   }
   if (debugLog) enableDebugLog()
   if (errorLog) console.error.log = true
+  libraries.push({ id: 'jsr305', path: path.resolve('work/lib/jsr305.jar') })
   const fullClassPath = [jarFile, ...libraries.map(l => l.path)]
   console.log('Class path: ' + fullClassPath.join(','))
   const side = jarFile.includes('server') ? 'server' : 'client'
@@ -190,13 +191,16 @@ export async function analyzeJar (jarFile: string, libraries: Array<{id: string,
       const srcDir = path.resolve(wsDir, 'src')
       switch (decompile) {
         case 'procyon':
-          await procyon(deobfJar, srcDir)
+          await procyon(deobfJar, srcDir, libraries.map(l => l.path))
           break
         case 'fernflower':
-          await fernflower(deobfJar, srcDir)
+          await fernflower(deobfJar, srcDir, libraries.map(l => l.path))
           break
         case 'forgeflower':
-          await forgeflower(deobfJar, srcDir)
+          await forgeflower(deobfJar, srcDir, libraries.map(l => l.path))
+          break
+        case 'cfr':
+          await cfr(deobfJar, srcDir, libraries.map(l => l.path))
           break
       }
       const workspace = {

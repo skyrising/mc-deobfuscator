@@ -4,7 +4,9 @@ import request0 from 'request'
 
 const DEPENDENCIES = {
   'specialsource.jar': 'https://oss.sonatype.org/content/repositories/snapshots/net/md-5/SpecialSource/1.8.6-SNAPSHOT/SpecialSource-1.8.6-20181101.100749-1-shaded.jar',
-  'forgeflower.jar': 'https://files.minecraftforge.net/maven/net/minecraftforge/forgeflower/1.5.380.24/forgeflower-1.5.380.24.jar'
+  'forgeflower.jar': 'https://files.minecraftforge.net/maven/net/minecraftforge/forgeflower/1.5.380.24/forgeflower-1.5.380.24.jar',
+  'cfr.jar': 'http://www.benf.org/other/cfr/cfr-0.137.jar',
+  'jsr305.jar': 'https://search.maven.org/remotecontent?filepath=com/google/code/findbugs/jsr305/3.0.2/jsr305-3.0.2.jar'
 }
 
 const WORK_DIR = 'work'

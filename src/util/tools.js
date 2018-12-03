@@ -63,7 +63,7 @@ export async function extractJar (jar, dir) {
   return spawn('jar', ['xf', jar], { cwd: dir })
 }
 
-export async function fernflower (jar, to, flavor = 'fernflower') {
+export async function fernflower (jar, to, cp, flavor = 'fernflower') {
   const binDir = path.resolve('work/bin/')
   rmrf(to)
   fs.mkdirSync(to)
@@ -74,13 +74,23 @@ export async function fernflower (jar, to, flavor = 'fernflower') {
   return spawn(flavor, args, { stdio: 'inherit' })
 }
 
-export function forgeflower (jar, to) {
-  return fernflower(jar, to, 'forgeflower')
+export function forgeflower (jar, to, cp) {
+  return fernflower(jar, to, cp, 'forgeflower')
 }
 
-export async function procyon (jar, to) {
+export async function procyon (jar, to, cp) {
   rmrf(to)
   fs.mkdirSync(to)
   console.log('Decompiling with procyon')
   return spawn('procyon-decompiler', ['-v', 0, '-jar', jar, '-r', '-o', to], { stdio: 'inherit' })
+}
+
+export async function cfr (jar, to, cp) {
+  rmrf(to)
+  fs.mkdirSync(to)
+  console.log('Decompiling with CFR')
+  const cfrJar = 'work/lib/cfr.jar'
+  const args = [jar, '--showversion', 'false', '--outputdir', to, '--extraclasspath', cp.join(':')]
+  if (fs.existsSync(cfrJar)) return spawn('java', ['-jar', cfrJar].concat(args), { stdio: 'inherit' })
+  return spawn('cfr', args, { stdio: 'inherit' })
 }
