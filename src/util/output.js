@@ -43,12 +43,12 @@ export function generateClassLists (info: FullInfo, obfFile: string, deobfFile: 
   const hashCount = {}
   const hashIndex = {}
   for (const cls of obfClasses) {
-    const hash = info.class[cls].hashBase26
+    const hash = info.class[cls].fullHashBase26
     hashIndex[hash] = 0
     hashCount[hash] = (hashCount[hash] || 0) + 1
   }
   const hashClasses = obfClasses.map(cls => {
-    const hash = info.class[cls].hashBase26
+    const hash = info.class[cls].fullHashBase26
     return hashCount[hash] > 1 ? hash + hashIndex[hash]++ : hash
   })
   fs.writeFileSync(obfFile, obfClasses.map(cls => cls + '\n').join(''))

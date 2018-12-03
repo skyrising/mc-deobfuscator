@@ -91,6 +91,15 @@ class Info extends EventEmitter {
             enumNames: [],
             consts: new Set(),
             subClasses: new Set(),
+            get allSubClasses () {
+              const all = new Set(this.subClasses)
+              for (const scName of this.subClasses) {
+                if (!info.classNames.includes(scName)) continue
+                const sc = info.class[scName]
+                for (const ssc of sc.allSubClasses) all.add(ssc)
+              }
+              return all
+            },
             outerClassName: clsObfName.indexOf('$') > 0 ? clsObfName.slice(0, clsObfName.lastIndexOf('$')) : undefined,
             get outerClass (): ClassInfo {
               if (!this.outerClassName) throw Error(`${this.name || this.obfName} is not an inner class`)

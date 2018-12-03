@@ -2,7 +2,7 @@
 import util from 'util'
 import { initJava, getAllClasses, dump } from './java'
 import { parseClassSignature, parseFieldTypeSignature } from '../parse'
-import { h2, hsig, base26 } from '../hash'
+import { h2, hsig, base26, compress } from '../hash'
 import { decodeClassAccessFlags, decodeMethodAccessFlags, decodeFieldAccessFlags } from '../class-reader/util'
 import Interpreter from '../class-reader/interpreter'
 import { lcFirst, toUnderScoreCase } from '../index'
@@ -283,7 +283,7 @@ export async function getCode (method: BCELMethod, cp: BCELConstantPool, bm: Arr
 
 async function getClsInfo (cls: BCELClass, clsInfo: ClassInfo) {
   const { info } = clsInfo
-  let hash = 1
+  let hash = BigInt(1)
   clsInfo.superClassName = await cls.getSuperclassNameAsync()
   if (clsInfo.superClassName.startsWith('java')) hash = h2(hash, clsInfo.superClassName)
   info.class[clsInfo.superClassName].subClasses.add(clsInfo.obfName)
@@ -322,7 +322,7 @@ async function getClsInfo (cls: BCELClass, clsInfo: ClassInfo) {
       }
     })
     await getAttributes([methodInfo, md])
-    let mdHash = 1
+    let mdHash = BigInt(1)
     methodInfo.argSigs = parsedSig.args || []
     hash = h2(hash, methodInfo.argSigs.map(hsig))
     mdHash = h2(mdHash, methodInfo.argSigs.map(hsig))
@@ -342,7 +342,7 @@ async function getClsInfo (cls: BCELClass, clsInfo: ClassInfo) {
         mdHash = h2(mdHash, c)
       }
     }
-    methodInfo.hash = mdHash
+    methodInfo.hash = Number(compress(mdHash, BigInt(10 ** 6)))
     methodInfo.infoComplete = true
   }
   hash = h2(hash, [...clsInfo.consts])
@@ -402,8 +402,10 @@ async function getClsInfo (cls: BCELClass, clsInfo: ClassInfo) {
     }
     clsInfo.fields[fieldInfo.obfName] = fieldInfo
   }
-  clsInfo.hash = hash
-  clsInfo.hashBase26 = base26(hash)
+  clsInfo.fullHash = hash
+  clsInfo.fullHashBase26 = base26(hash)
+  clsInfo.hash = Number(compress(clsInfo.fullHash, BigInt(26 ** 7)))
+  clsInfo.hashBase26 = base26(BigInt(clsInfo.hash))
   clsInfo.infoComplete = true
   return clsInfo
 }
@@ -498,8 +500,10 @@ export async function readAllClasses (info: FullInfo) {
       const outerName = currentName.slice(0, currentName.lastIndexOf('$'))
       if (outerName in clsInfo.info.class) {
         const outerClass = clsInfo.info.class[outerName]
-        outerClass.hash = h2(outerClass.hash, clsInfo.hash)
-        outerClass.hashBase26 = base26(outerClass.hash)
+        outerClass.fullHash = h2(outerClass.fullHash, clsInfo.fullHash)
+        outerClass.fullHashBase26 = base26(outerClass.fullHash)
+        outerClass.hash = Number(compress(outerClass.fullHash, BigInt(26 ** 7)))
+        outerClass.hashBase26 = base26(BigInt(outerClass.hash))
       }
     }
   })

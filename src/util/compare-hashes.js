@@ -1,6 +1,6 @@
 import fs from 'fs'
 import path from 'path'
-import {diffArrays} from 'diff'
+import { base26, compress } from './hash'
 
 const dirOld = process.argv[2]
 const dirNew = process.argv[3]
@@ -14,6 +14,42 @@ const hashesNew = readList(dirNew, 'class-hashes.txt')
 
 const classesOld = readList(dirOld, 'classes-deobf.txt')
 const classesNew = readList(dirNew, 'classes-deobf.txt')
+
+function parseBase26 (str) {
+  let n = BigInt(0)
+  for (let i = 0; i < str.length; i++) {
+    n = n * BigInt(26) + BigInt(str.charCodeAt(i) - 97)
+  }
+  return n
+}
+
+function printChange (oldName, oldHash, newName, newHash) {
+  const oldHashN = parseBase26(oldHash)
+  const newHashN = parseBase26(newHash)
+  const oldCompressed = base26(compress(oldHashN, BigInt(26 ** 7)))
+  const newCompressed = base26(compress(newHashN, BigInt(26 ** 7)))
+  const diffStr = (newHashN - oldHashN).toString(31)
+  const diffs = [...diffStr].map((c, k) => [k, c !== '0']).filter(d => d[1]).map(d => d[0])
+  const diffRanges = []
+  let lastRangeStart
+  let lastRangeEnd
+  for (const diff of diffs) {
+    if (lastRangeEnd !== undefined) {
+      if (diff === lastRangeEnd + 1) {
+        lastRangeEnd = diff
+        continue
+      }
+      diffRanges.push(lastRangeStart === lastRangeEnd ? lastRangeStart.toString() : `${lastRangeStart}-${lastRangeEnd}`)
+      lastRangeStart = diff
+      lastRangeEnd = diff
+    } else {
+      lastRangeStart = diff
+      lastRangeEnd = diff
+    }
+  }
+  diffRanges.push(lastRangeStart === lastRangeEnd ? lastRangeStart.toString() : `${lastRangeStart}-${lastRangeEnd}`)
+  console.log(`${oldName} (${oldCompressed}) -> ${newName} (${newCompressed}) diffs: ${diffRanges}`)
+}
 
 console.log(hashesOld.length + ' -> ' + hashesNew.length)
 let oldIndex = 0
@@ -35,7 +71,7 @@ while (oldIndex < hashesOld.length && newIndex < hashesNew.length) {
     for (let i = 0; i < newLength - 1; i++) {
       // console.log(i, i < newInOldIndex)
       if (i < newInOldIndex) {
-        console.log(`${classesOld[oldSetStartOffset + i]} (${oldSet.shift()}) -> ${classesNew[newSetStartOffset + i]} (${newSet.shift()})`)
+        printChange(classesOld[oldSetStartOffset + i], oldSet.shift(), classesNew[newSetStartOffset + i], newSet.shift())
       } else {
         newSet.shift()
         console.log('+' + classesNew[newSetStartOffset + i])
@@ -50,7 +86,7 @@ while (oldIndex < hashesOld.length && newIndex < hashesNew.length) {
     const oldLength = oldSet.length
     for (let i = 0; i < oldLength - 1; i++) {
       if (i < oldInNewIndex) {
-        console.log(`${classesOld[oldSetStartOffset + i]} (${oldSet.shift()}) -> ${classesNew[newSetStartOffset + i]} (${newSet.shift()})`)
+        printChange(classesOld[oldSetStartOffset + i], oldSet.shift(), classesNew[newSetStartOffset + i], newSet.shift())
       } else {
         oldSet.shift()
         console.log('-' + classesOld[oldSetStartOffset + i])

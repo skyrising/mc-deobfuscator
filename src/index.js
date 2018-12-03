@@ -55,12 +55,12 @@ if (require.main === module) {
     errorLog: true,
     classNameLog: true,
     status: true,
-    /*
+    
     decompile: 'forgeflower',
     ide: {
       idea: true
     },
-    */
+    
     version
   }
   if (version.endsWith('.jar')) analyzeJar(path.resolve(version), [], options).catch(console.error)

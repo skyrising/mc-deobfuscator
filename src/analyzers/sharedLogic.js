@@ -1,6 +1,7 @@
 // @flow
 import * as PKG from '../PackageNames'
 import * as CLASS from '../ClassNames'
+import { lcFirst } from '../util'
 
 export type Options = {
   filterOut?: Array<string>;
@@ -254,5 +255,45 @@ export function toStringFieldNamer (methodInfo: MethodInfo) {
     if (!match) continue
     const name = match[1]
     clsInfo.fields[nextField.field.fieldName].name = name
+  }
+}
+
+export function anyConstuctorFieldNamer (clsInfo: ClassInfo, names: Array<?string>) {
+  if (clsInfo.enumNames) names.unshift(null, null)
+  for (const md of Object.values(clsInfo.method)) {
+    if (md.obfName !== '<init>') continue
+    if (md.argSigs.length !== names.length) continue
+    constructorFieldNamer(md, names)
+    break
+  }
+}
+
+export function constructorFieldNamer (methodInfo: MethodInfo, names: Array<?string>) {
+  const { clsInfo } = methodInfo
+  for (const line of methodInfo.code.lines) {
+    if (!line.load) continue
+    const name = names[line.load - 1]
+    if (!name) continue
+    const putfield = line.next
+    if (putfield.op !== 'putfield') continue
+    clsInfo.fields[putfield.field.fieldName].name = name
+  }
+}
+
+export function nbtFieldNamer (methodInfo: MethodInfo, mappings: {[string]: Array<string>|string} = {}) {
+  const { clsInfo, info } = methodInfo
+  for (const c of methodInfo.code.constants) {
+    if (c.type !== 'string') continue
+    let mapping = mappings[c.value] || lcFirst(c.value)
+    if (!Array.isArray(mapping)) mapping = [mapping]
+    let line = c.line.next
+    for (let i = 0; i < mapping.length && line;) {
+      if (line.op === 'getfield' && line.field.className === clsInfo.obfName) {
+        clsInfo.fields[line.field.fieldName].name = mapping[i++]
+      } else if (line.call && line.call.className === info.classReverse[CLASS.NBT_COMPOUND]) {
+        break
+      }
+      line = line.next
+    }
   }
 }

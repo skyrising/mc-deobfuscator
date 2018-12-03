@@ -1,6 +1,7 @@
 // @flow
 import * as CLASS from '../../../../ClassNames'
 import { signatureTag as s } from '../../../../util/code'
+import { nbtFieldNamer } from '../../../sharedLogic'
 
 export function field (fieldInfo: FieldInfo) {
   const { clsInfo } = fieldInfo
@@ -18,7 +19,7 @@ export function field (fieldInfo: FieldInfo) {
 }
 
 export function method (methodInfo: MethodInfo) {
-  const { info, code } = methodInfo
+  const { info, clsInfo, code } = methodInfo
   for (const c of code.constants) {
     switch (c.value) {
       case 'changeDimension': return 'changeDimension'
@@ -31,11 +32,38 @@ export function method (methodInfo: MethodInfo) {
       case 'Use x.stopRiding(y), not y.removePassenger(x)': return 'removePassenger'
       case 'Saving entity NBT': {
         info.class[methodInfo.argSigs[0].slice(1, -1)].name = CLASS.NBT_COMPOUND
-        return 'saveToNBT'
+        nbtFieldNamer(methodInfo, {
+          Pos: ['x', 'y', 'z'],
+          Motion: ['vx', 'vy', 'vz'],
+          Rotation: ['yaw', 'pitch']
+        })
+        for (const c of code.calls) {
+          if (c.signature === `(${methodInfo.argSigs[0]})V`) {
+            const key = `${c.methodName}:${c.signature}`
+            clsInfo.method[key].name = 'addAdditionalSaveData'
+            for (const scName of clsInfo.allSubClasses) {
+              if (!info.classNames.includes(scName)) continue
+              const sc = info.class[scName]
+              try {
+                nbtFieldNamer(sc.method[key])
+              } catch (e) {
+                console.error(e)
+              }
+            }
+            break
+          }
+        }
+        return 'readAdditionalSaveData'
       }
       case 'Loading entity NBT': {
         info.class[methodInfo.argSigs[0].slice(1, -1)].name = CLASS.NBT_COMPOUND
-        return 'readFromNBT'
+        for (const c of code.calls) {
+          if (c.signature === `(${methodInfo.argSigs[0]})V`) {
+            clsInfo.method[`${c.methodName}:${c.signature}`].name = 'readEntityFromNBT'
+            break
+          }
+        }
+        return 'load'
       }
       case 'Checking entity block collision': return 'move'
       case 'Colliding entity with block': return 'checkBlockCollisions'

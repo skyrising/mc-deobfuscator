@@ -238,6 +238,7 @@ declare type ClassInfo = {
   consts: Set<string|number>;
   superClassName: string;
   subClasses: Set<string>;
+  allSubClasses: Set<string>;
   interfaceNames: Array<string>;
   flags: ClassAccessFlags;
   ...({|

@@ -3,7 +3,7 @@ import * as PKG from '../PackageNames'
 import * as CLASS from '../ClassNames'
 import { hasSuperClass, toUpperCamelCase, decodeType, getBaseInterfaces } from '../util'
 import { signatureTag as s } from '../util/code'
-import { toStringFieldNamer } from './sharedLogic'
+import { toStringFieldNamer, anyConstuctorFieldNamer } from './sharedLogic'
 
 export const generic = true
 export const name = 'generic'
@@ -35,6 +35,7 @@ type SimpleHandler = {|
   |};
   field?: string;
   interfaces?: Array<string>;
+  constructorFieldNames?: Array<?string>;
 |}
 
 const COMMANDS = {
@@ -792,7 +793,8 @@ const simpleConstToClass: {[string]: string | SimpleHandler | Array<SimpleHandle
       return clsInfo.isInnerClass && code.consts.includes('-') && code.consts.includes('):')
     },
     name: CLASS.BIOME$SPAWN_LIST_ENTRY,
-    superClass: CLASS.WEIGHTED_RANDOM$ITEM
+    superClass: CLASS.WEIGHTED_RANDOM$ITEM,
+    constructorFieldNames: ['type', 'weight', 'minPackSize', 'maxPackSize']
   },
   'JigsawJunction{sourceX=': {
     name: CLASS.JIGSAW_JUNCTION,
@@ -812,7 +814,7 @@ const simpleConstToClass: {[string]: string | SimpleHandler | Array<SimpleHandle
     predicate ({ code }) {
       return code.consts.includes('RaidId')
     },
-    name: CLASS.RAID_WAVE
+    name: CLASS.RAIDER
   },
   'single_pool_element': {
     name: CLASS.STRUTURE_SINGLE_POOL_ELEMENT,
@@ -898,6 +900,7 @@ function handleSimple (obj: ?(string | SimpleHandler | Array<SimpleHandler>), pa
       console.log('Number of interfaces for ' + (obj.name || clsInfo.obfName) + ' mismatch: expected ' + obj.interfaces.length + ' got ' + ifn.length)
     }
   }
+  if (obj.constructorFieldNames) anyConstuctorFieldNamer(clsInfo, obj.constructorFieldNames)
   if (obj.eval) obj.eval(params)
   return obj.name
 }
@@ -1087,7 +1090,12 @@ function getEnumName (names: Array<string>, methodInfo: MethodInfo) {
     case 'NONE,IRON,GOLD,DIAMOND': return CLASS.HORSE_ARMOR_TYPE
     case 'LEATHER,CHAIN,IRON,GOLD,DIAMOND': return CLASS.HORSE_ARMOR_TYPE
     case 'WOOD,STONE,IRON,DIAMOND,GOLD': return clsInfo.isInnerClass ? CLASS.ITEM$TOOL_MATERIAL : CLASS.TOOL_MATERIAL
-    case 'MONSTER,CREATURE,AMBIENT,WATER_CREATURE': return CLASS.CREATURE_TYPE
+    case 'MONSTER,CREATURE,AMBIENT,WATER_CREATURE': {
+      anyConstuctorFieldNamer(clsInfo, ['mobClass', 'mobCap', 'material', 'peaceful', 'animal'])
+      anyConstuctorFieldNamer(clsInfo, ['name', 'mobClass', 'mobCap', 'peaceful', 'animal'])
+      return CLASS.CREATURE_TYPE
+    }
+    case 'FLYING,HOOKED_IN_ENTITY,BOBBING': return CLASS.FISHING_BOBBER$STATE
     case 'WHITE,ORANGE,MAGENTA,LIGHT_BLUE,YELLOW': return CLASS.DYE_COLOR
     case 'HARP,BASEDRUM,SNARE,HAT,BASS': return CLASS.NOTE_BLOCK_INSTRUMENT
     case 'MAINHAND,OFFHAND,FEET,LEGS,CHEST': return CLASS.EQUIPMENT_SLOT
