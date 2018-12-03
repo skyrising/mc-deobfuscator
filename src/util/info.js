@@ -328,6 +328,10 @@ class Info extends EventEmitter {
           console.warn(Error('Tried renaming ' + this.obfName + ' to ' + deobfName))
           return
         }
+        if (this.flags.synthetic && !deobfName.includes('$')) {
+          console.warn(Error(`Tried renaming synthetic ${this.obfName}${this.sig} to ${deobfName}`))
+          return
+        }
         if (this._name !== deobfName) {
           if (clsInfo.reverseMethod[deobfName] &&
               argSig in clsInfo.reverseMethod[deobfName] &&
@@ -357,15 +361,15 @@ class Info extends EventEmitter {
         if (this.depends) {
           if (typeof this.depends === 'function') {
             const dependentName = this.depends()
-            if (dependentName) return dependentName
+            if (dependentName && (!this.flags.synthetic || dependentName.includes('$'))) return dependentName
           } else {
             const dependentName = this.depends !== this && this.depends.bestName
-            if (dependentName) return dependentName
+            if (dependentName && (!this.flags.synthetic || dependentName.includes('$'))) return dependentName
           }
         }
         const base = this.base
         if (base && base !== this) return base.bestName
-        if (this.hash && this.obfName.length < 3) return `md_${this.hash & 0xffffff}_${this.obfName}`
+        if (this.hash && this.obfName.length < 3 && !this.flags.synthetic) return `md_${this.hash & 0xffffff}_${this.obfName}`
         return this.obfName
       }
     }
