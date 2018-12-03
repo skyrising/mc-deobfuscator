@@ -90,7 +90,7 @@ export async function cfr (jar, to, cp) {
   fs.mkdirSync(to)
   console.log('Decompiling with CFR')
   const cfrJar = 'work/lib/cfr.jar'
-  const args = [jar, '--showversion', 'false', '--outputdir', to, '--extraclasspath', cp.join(':')]
+  const args = [jar, '--showversion', 'false', '--silent', 'true', '--extraclasspath', cp.join(':'), '--outputdir', to]
   if (fs.existsSync(cfrJar)) return spawn('java', ['-jar', cfrJar].concat(args), { stdio: 'inherit' })
   return spawn('cfr', args, { stdio: 'inherit' })
 }
