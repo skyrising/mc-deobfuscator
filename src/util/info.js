@@ -359,12 +359,16 @@ class Info extends EventEmitter {
       get bestName () {
         if (this._name) return this._name
         if (this.depends) {
-          if (typeof this.depends === 'function') {
-            const dependentName = this.depends()
-            if (dependentName && (!this.flags.synthetic || dependentName.includes('$'))) return dependentName
-          } else {
-            const dependentName = this.depends !== this && this.depends.bestName
-            if (dependentName && (!this.flags.synthetic || dependentName.includes('$'))) return dependentName
+          try {
+            if (typeof this.depends === 'function') {
+              const dependentName = this.depends()
+              if (dependentName && (!this.flags.synthetic || dependentName.includes('$'))) return dependentName
+            } else {
+              const dependentName = this.depends !== this && this.depends.bestName
+              if (dependentName && (!this.flags.synthetic || dependentName.includes('$'))) return dependentName
+            }
+          } catch (e) {
+            console.warn(`${e.message}: ${this.clsInfo.name || this.clsInfo.obfName} depends on ${this.depends}`)
           }
         }
         const base = this.base

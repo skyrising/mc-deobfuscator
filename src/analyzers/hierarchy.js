@@ -152,6 +152,7 @@ export function cls (clsInfo: ClassInfo) {
       return
     }
   }
+  /*
   // XXX: Other types too?
   if (doesAnyImplement(clsInfo, 'java.lang.Comparable')) {
     for (const md of ((Object.values(clsInfo.method): any): Array<MethodInfo>)) {
@@ -162,6 +163,7 @@ export function cls (clsInfo: ClassInfo) {
       clsInfo.method[call.methodName + ':' + call.signature].name = 'compareTo'
     }
   }
+  */
   if (clsInfo.isInnerClass) {
     if (clsInfo.outerClassName === info.classReverse[CLASS.PROFILER]) return 'Result'
     if (clsInfo.outerClassName === info.classReverse[CLASS.BLOCK_POS] && hasSuperClass(clsInfo, info.classReverse[CLASS.BLOCK_POS])) {

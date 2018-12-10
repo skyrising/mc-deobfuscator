@@ -2,11 +2,6 @@
 export const generic = true
 export const name = 'getters & setters'
 
-export function method (methodInfo: MethodInfo) {
-  if (methodInfo.obfName.length > 3) return
-  return nameGetterSetter(methodInfo)
-}
-
 function nameAccessor (methodInfo: MethodInfo, fieldInfo: FieldInfo, type: 'get' | 'set') {
   const prefix = type === 'get' && fieldInfo.sig === 'Z' ? 'is' : type
   const name = fieldInfo.accessorSuffix || fieldInfo.bestName
@@ -51,11 +46,38 @@ const IS_SETTER = methodInfo => methodInfo.setter === true || (methodInfo.setter
   SETTER_PREDICATE(methodInfo) || SETTER_THIS_PREDICATE(methodInfo)
 ))
 
-export function nameGetterSetter (methodInfo: MethodInfo) {
-  if (methodInfo.obfName.length > 3 || methodInfo.code.error) return methodInfo.obfName
+const IS_BRIDGE = methodInfo => {
+  if (!methodInfo.flags.synthetic || methodInfo.code.calls.length !== 1) return false
+  let phase = 'load'
+  for (const line of methodInfo.code.lines) {
+    if (phase === 'load' && (line.loadType || line.op === 'checkcast')) continue
+    if (phase === 'load' && line.call) {
+      phase = 'call'
+      continue
+    }
+    if (phase === 'call' && line.return) return !line.next
+    return false
+  }
+  return false
+}
+
+export function method (methodInfo: MethodInfo) {
   const { code, clsInfo } = methodInfo
   const { lines } = code
+  if (IS_BRIDGE(methodInfo)) {
+    const targetCall = methodInfo.code.calls[0]
+    const target = clsInfo.method[targetCall.methodName + ':' + targetCall.signature]
+    console.debug(`${clsInfo.name || clsInfo.obfName}.${methodInfo.obfName}${methodInfo.sig} is bridge to ${target.obfName}${target.sig}`)
+    if (methodInfo.flags.static && target.flags.private) { // accessor for private method
+      methodInfo.depends = () => `access$${target.bestName}`
+    } else { // generic bridge
+      target.depends = methodInfo
+    }
+    return
+  }
+  if (methodInfo.obfName.length > 3 || methodInfo.code.error) return methodInfo.obfName
   if (IS_GETTER(methodInfo)) {
+    console.debug(`${clsInfo.name || clsInfo.obfName}.${methodInfo.obfName}${methodInfo.sig} is getter`)
     const getfield = lines[0].nextOp('getfield', true)
     if (!getfield) return
     const fieldInfo = clsInfo.fields[getfield.field.fieldName]
@@ -63,6 +85,7 @@ export function nameGetterSetter (methodInfo: MethodInfo) {
   }
   if (methodInfo.getter) return nameAccessor(methodInfo, methodInfo.getter, 'get')
   if (IS_SETTER(methodInfo)) {
+    console.debug(`${clsInfo.name || clsInfo.obfName}.${methodInfo.obfName}${methodInfo.sig} is setter`)
     const getfield = lines[0].nextOp('putfield', true)
     if (!getfield) return
     const fieldInfo = clsInfo.fields[getfield.field.fieldName]
