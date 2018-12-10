@@ -53,13 +53,13 @@ export function method (methodInfo: MethodInfo) {
             break
           }
         }
-        return 'readAdditionalSaveData'
+        return 'save'
       }
       case 'Loading entity NBT': {
         info.class[methodInfo.argSigs[0].slice(1, -1)].name = CLASS.NBT_COMPOUND
         for (const c of code.calls) {
           if (c.signature === `(${methodInfo.argSigs[0]})V`) {
-            clsInfo.method[`${c.methodName}:${c.signature}`].name = 'readEntityFromNBT'
+            clsInfo.method[`${c.methodName}:${c.signature}`].name = 'readAdditionalSaveData'
             break
           }
         }
