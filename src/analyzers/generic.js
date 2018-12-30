@@ -3,7 +3,7 @@ import * as PKG from '../PackageNames'
 import * as CLASS from '../ClassNames'
 import { hasSuperClass, toUpperCamelCase, decodeType, getBaseInterfaces } from '../util'
 import { signatureTag as s } from '../util/code'
-import { toStringFieldNamer, anyConstuctorFieldNamer } from './sharedLogic'
+import { toStringFieldNamer, anyConstuctorFieldNamer, nbtFieldNamer } from './sharedLogic'
 
 export const generic = true
 export const name = 'generic'
@@ -842,6 +842,14 @@ const simpleConstToClass: {[string]: string | SimpleHandler | Array<SimpleHandle
   'jigsaw_replacement': {
     name: CLASS.STRUCTURE_PROCESSOR_JIGSAW_REPLACEMENT,
     superClass: CLASS.STRUCTURE_PROCESSOR
+  },
+  'RandomSeed': {
+    predicate: ({ methodInfo }) => methodInfo.obfName !== '<init>',
+    name: CLASS.WORLD_INFO,
+    method: 'save',
+    eval ({ methodInfo }) {
+      nbtFieldNamer(methodInfo)
+    }
   }
 })
 
