@@ -382,6 +382,9 @@ async function getClsInfo (cls: BCELClass, clsInfo: ClassInfo) {
           }
         }
         return this.getDefaultName() || this.obfName
+      },
+      [util.inspect.custom] () {
+        return `[Field ${clsInfo.bestName}.${this.bestName}(${this.obfName})]`
       }
     }: any)
     await getAttributes([fieldInfo, fd])
@@ -426,9 +429,12 @@ function getDefaultNameForFieldType (fieldInfo: FieldInfo) {
     baseType = baseType.slice(1)
   }
   if (baseType[0] === 'L') {
-    const clsInfo = info.class[baseType.slice(1, -1)]
-    let name = clsInfo.name || clsInfo.obfName
-    name = lcFirst(name.slice(name.lastIndexOf('.') + 1))
+    let name = baseType.slice(1, -1)
+    if (name in info.class) {
+      const clsInfo = info.class[name]
+      name = clsInfo.name || name
+    }
+    name = lcFirst(name.slice(Math.max(name.lastIndexOf('/'), name.lastIndexOf('.')) + 1))
     name = ({
       boolean: 'aboolean',
       byte: 'abyte',
@@ -504,6 +510,7 @@ export async function readAllClasses (info: FullInfo) {
         outerClass.fullHashBase26 = base26(outerClass.fullHash)
         outerClass.hash = Number(compress(outerClass.fullHash, BigInt(26 ** 7)))
         outerClass.hashBase26 = base26(BigInt(outerClass.hash))
+        outerClass.innerClasses.add(clsInfo)
       }
     }
   })

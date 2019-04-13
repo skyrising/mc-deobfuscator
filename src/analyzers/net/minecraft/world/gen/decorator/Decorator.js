@@ -12,7 +12,7 @@ export function method (methodInfo: MethodInfo) {
       if (!newDecorator || newDecorator.op !== 'new') return
       const { className } = ((newDecorator: any): CodeLineNew)
       const decoratorClass = info.class[className]
-      decoratorClass.name = PKG.WORLD_GEN_DECORATION + '.' + toUpperCamelCase(id)
+      decoratorClass.name = PKG.WORLD_GEN_DECORATION + '.' + toUpperCamelCase(id) + 'Decorator'
       return {
         class: decoratorClass,
         config: info.class[field.genericSignature.simple[0].typeArguments.value[0].value.simple[0].identifier]

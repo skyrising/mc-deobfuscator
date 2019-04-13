@@ -1,5 +1,5 @@
 // @flow
-import * as CLASS from '../../../../ClassNames'
+import * as CLASS from '../../../../../ClassNames'
 
 export function method (methodInfo: MethodInfo) {
   const { code, argSigs, info } = methodInfo
@@ -11,8 +11,11 @@ export function method (methodInfo: MethodInfo) {
         return 'initialize'
       case 'Tried to add entity {} but it was marked as removed already':
       case 'Keeping entity {} that already exists with UUID {}':
-      case 'Force-added player with duplicate UUID {}':
         return 'addEntity'
+      case 'Force-added player with duplicate UUID {}':
+        return 'addPlayer'
+      // case 'Removing entity while ticking!':
+      //  return 'removeEntity'
       case 'scoreboard':
         return 'init'
       case 'tickPending':

@@ -17,7 +17,7 @@ export function method (methodInfo: MethodInfo) {
       if (!newFeature || newFeature.op !== 'new') return
       const { className } = ((newFeature: any): CodeLineNew)
       const pkg = STRUCTURE_IDS.has(id) ? PKG.STRUCTURE : PKG.WORLD_GEN_FEATURE
-      info.class[className].name = pkg + '.' + toUpperCamelCase(id)
+      info.class[className].name = pkg + '.' + toUpperCamelCase(id) + 'Feature'
     }
   })
 }

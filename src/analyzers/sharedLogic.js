@@ -70,7 +70,7 @@ export function registerBlocks (methodInfo: MethodInfo) {
     const blockClass = BLOCK_CLASS_NAMES[line.const]
     if (blockClass) {
       const newCls = line.nextOp('new').className
-      if (newCls !== Block) info.class[newCls].name = PKG.BLOCK + '.' + blockClass
+      if (newCls !== Block) info.class[newCls].name = PKG.BLOCK + '.' + blockClass + 'Block'
     }
     const regBlock = line.nextOp('invokestatic')
     if (regBlock) info.data.blocks[line.const] = data
@@ -79,28 +79,37 @@ export function registerBlocks (methodInfo: MethodInfo) {
   }
 }
 
+export function nameBlocks (info: FullInfo, map: {[string]: string}) {
+  const lists = {}
+  for (const id in map) {
+    if (!lists[map[id]]) lists[map[id]] = []
+    lists[map[id]].push(id)
+  }
+}
+
 // TODO: switch to commonWords like decorators
 export const BLOCK_CLASS_NAMES = {
-  grass_block: 'GrassBlock',
+  grass_block: 'Grass',
   podzol: 'Podzol',
   bedrock: 'Bedrock',
-  water: 'Liquid',
+  water: 'Fluid',
   sand: 'Sand',
   gravel: 'Gravel',
   gold_ore: 'Ore',
   stripped_spruce_log: 'Log',
   stripped_oak_wood: 'Wood',
   oak_leaves: 'Leaves',
+  oak_sapling: 'Sapling',
   sponge: 'Sponge',
   wet_sponge: 'WetSponge',
   glass: 'Glass',
   dispenser: 'Dispenser',
-  note_block: 'NoteBlock',
+  note_block: 'Note',
   white_bed: 'Bed',
   powered_rail: 'PoweredRail',
   detector_rail: 'DetectorRail',
   sticky_piston: 'Piston',
-  cobweb: 'CobWeb',
+  cobweb: 'Web',
   piston_head: 'PistonHead',
   moving_piston: 'MovingPiston',
   tnt: 'Tnt',
@@ -113,7 +122,7 @@ export const BLOCK_CLASS_NAMES = {
   chest: 'Chest',
   redstone_wire: 'RedstoneWire',
   crafting_table: 'CraftingTable',
-  wheat: 'Wheat',
+  wheat: 'Crop',
   furnace: 'Furnace',
   sign: 'StandingSign',
   oak_sign: 'StandingSign',
@@ -128,9 +137,8 @@ export const BLOCK_CLASS_NAMES = {
   redstone_torch: 'RedstoneTorch',
   redstone_wall_torch: 'RedstoneWallTorch',
   stone_button: 'StoneButton',
-  snow: 'Snow',
   ice: 'Ice',
-  snow_block: 'SnowBlock',
+  snow_block: 'Snow',
   clay: 'Clay',
   sugar_cane: 'SugarCane',
   jukebox: 'Jukebox',
@@ -144,7 +152,7 @@ export const BLOCK_CLASS_NAMES = {
   white_stained_glass: 'StainedGlass',
   oak_trapdoor: 'Trapdoor',
   infested_stone: 'InfestedStone',
-  mushroom_stem: 'MushroomBlock',
+  mushroom_stem: 'Mushroom',
   iron_bars: 'IronBars',
   glass_pane: 'GlassPane',
   attached_pumpkin_stem: 'AttachedStem',
@@ -152,7 +160,7 @@ export const BLOCK_CLASS_NAMES = {
   vine: 'Vine',
   oak_fence_gate: 'FenceGate',
   mycelium: 'Mycelium',
-  lily_pad: 'LilyPad',
+  lily_pad: 'Waterlily',
   nether_wart: 'NetherWart',
   enchanting_table: 'EnchantingTable',
   brewing_stand: 'BrewingStand',
@@ -165,13 +173,13 @@ export const BLOCK_CLASS_NAMES = {
   ender_chest: 'EnderChest',
   tripwire: 'Tripwire',
   beacon: 'Beacon',
-  cobblestone_wall: 'CobblestoneWall',
+  cobblestone_wall: 'Wall',
   flower_pot: 'FlowerPot',
   carrots: 'Carrots',
   potatoes: 'Potatoes',
   oak_button: 'WoodButton',
-  skeleton_wall_skull: 'WallHead',
-  skeleton_skull: 'NormalHead',
+  skeleton_wall_skull: 'WallSkull',
+  skeleton_skull: 'Skull',
   wither_skeleton_wall_skull: 'WitherSkeletonWallSkull',
   wither_skeleton_skull: 'WitherSkeletonSkull',
   player_wall_head: 'PlayerWallHead',
@@ -181,28 +189,28 @@ export const BLOCK_CLASS_NAMES = {
   trapped_chest: 'TrappedChest',
   comparator: 'BlockComparator',
   daylight_detector: 'DaylightDetector',
-  redstone_block: 'RedstoneBlock',
+  redstone_block: 'Redstone',
   hopper: 'Hopper',
   dropper: 'Dropper',
   white_stained_glass_pane: 'StainedGlassPane',
-  slime_block: 'SlimeBlock',
+  slime_block: 'Slime',
   barrier: 'Barrier',
   prismarine_slab: 'Slab',
   sea_lantern: 'SeaLantern',
-  hay_block: 'HayBlock',
+  hay_block: 'Hay',
   white_carpet: 'Carpet',
   packed_ice: 'PackedIce',
   sunflower: 'TallFlower',
-  tall_grass: 'TallGrass',
+  tall_grass: 'TallPlant',
   white_banner: 'StandingBanner',
   white_wall_banner: 'WallBanner',
   end_rod: 'EndRod',
   chorus_flower: 'ChorusFlower',
   beetroots: 'Beetroots',
   end_gateway: 'EndGateway',
-  repeating_command_block: 'CommandBlock',
+  repeating_command_block: 'Command',
   frosted_ice: 'FrostedIce',
-  magma_block: 'MagmaBlock',
+  magma_block: 'Magma',
   structure_void: 'StructureVoid',
   observer: 'Observer',
   shulker_box: 'ShulkerBox',
@@ -219,11 +227,11 @@ export const BLOCK_CLASS_NAMES = {
   tube_coral_fan: 'CoralFan',
   dead_tube_coral_fan: 'DeadCoralFan',
   sea_pickle: 'SeaPickle',
-  blue_ice: 'BlueIce',
+  blue_ice: 'Transparent',
   conduit: 'Conduit',
   void_air: 'Air',
   bubble_column: 'BubbleColumn',
-  structure_block: 'StructureBlock',
+  structure_block: 'Structure',
   bamboo: 'Bamboo',
   bamboo_sapling: 'BambooSapling',
   loom: 'Loom',
@@ -238,11 +246,16 @@ export const BLOCK_CLASS_NAMES = {
   stonecutter: 'Stonecutter',
   bell: 'Bell',
   scaffolding: 'Scaffolding',
-  grass: 'Grass',
+  grass: 'Fern',
   dead_bush: 'DeadBush',
   seagrass: 'Seagrass',
   tall_seagrass: 'TallSeagrass',
-  melon: 'Melon'
+  melon: 'Melon',
+  lantern: 'Lantern',
+  campfire: 'Campfire',
+  sweet_berry_bush: 'SweetBerryBush',
+  jigsaw: 'Jigsaw',
+  composter: 'Composter'
 }
 
 export function toStringFieldNamer (methodInfo: MethodInfo) {
@@ -269,11 +282,14 @@ export function anyConstuctorFieldNamer (clsInfo: ClassInfo, names: Array<?strin
 }
 
 export function constructorFieldNamer (methodInfo: MethodInfo, names: Array<?string>) {
-  const { clsInfo } = methodInfo
+  const { clsInfo, argOffsetsInv } = methodInfo
+  methodInfo.argNames = methodInfo.argNames || []
   for (const line of methodInfo.code.lines) {
     if (!line.load) continue
-    const name = names[line.load - 1]
+    const index = argOffsetsInv[line.load]
+    const name = names[index]
     if (!name) continue
+    methodInfo.argNames[index] = name
     const putfield = line.next
     if (putfield.op !== 'putfield') continue
     clsInfo.fields[putfield.field.fieldName].name = name
@@ -283,7 +299,7 @@ export function constructorFieldNamer (methodInfo: MethodInfo, names: Array<?str
 export function nbtFieldNamer (methodInfo: MethodInfo, mappings: {[string]: Array<string>|string} = {}) {
   const { clsInfo, info } = methodInfo
   for (const c of methodInfo.code.constants) {
-    if (c.type !== 'string') continue
+    if (c.type !== 'string' || !c.value) continue
     let mapping = mappings[c.value] || lcFirst(c.value)
     if (!Array.isArray(mapping)) mapping = [mapping]
     let line = c.line.next

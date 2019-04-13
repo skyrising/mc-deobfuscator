@@ -28,7 +28,7 @@ export async function findAnalyzer (name: string): ?Analyzer {
         end()
         return Object.assign(require(file), { file: dir ? dir + '/' + fname : fname })
       } catch (e) {
-        console.error(e.message)
+        console.error(`Error loading analyzer ${file}: ${e}`)
       }
     }
   }
@@ -134,26 +134,41 @@ export async function runAnalyzer (analyzer: Analyzer, clsInfo: ClassInfo, runGe
 async function callAnalyzerClass (analyzer: Analyzer, cls: BCELClass, clsInfo: ClassInfo) {
   if (!analyzer.cls) return false
   const end = perf(`${analyzer.name || analyzer.file || 'unknown'}.cls(${clsInfo.name || clsInfo.obfName})`)
-  const name = analyzer.cls.length === 1 ? await analyzer.cls(clsInfo) : await analyzer.cls(cls, clsInfo, clsInfo.info)
-  if (name) clsInfo.name = name
-  end()
-  return Boolean(name)
+  try {
+    const name = analyzer.cls.length === 1 ? await analyzer.cls(clsInfo) : await analyzer.cls(cls, clsInfo, clsInfo.info)
+    if (name) clsInfo.name = name
+    return Boolean(name)
+  } catch (e) {
+    console.error(`Error analyzing ${clsInfo.name || clsInfo.obfName}: ${e}`)
+  } finally {
+    end()
+  }
 }
 
 async function callAnalyzerMethod (analyzer: Analyzer, method: BCELMethod, methodInfo: MethodInfo) {
   if (!analyzer.method) return false
   const end = perf(`${analyzer.name || analyzer.file || 'unknown'}.method(${methodInfo.clsInfo.name || methodInfo.clsInfo.obfName}.${methodInfo.name || methodInfo.obfName}:${methodInfo.sig})`)
-  const name = analyzer.method.length === 1 ? await analyzer.method(methodInfo) : await analyzer.method((methodInfo.clsInfo: any).bin, method, methodInfo.code, methodInfo, methodInfo.clsInfo, methodInfo.info)
-  if (name) methodInfo.name = name
-  end()
-  return Boolean(name)
+  try {
+    let name = analyzer.method.length === 1 ? await analyzer.method(methodInfo) : await analyzer.method((methodInfo.clsInfo: any).bin, method, methodInfo.code, methodInfo, methodInfo.clsInfo, methodInfo.info)
+    if (name) methodInfo.name = name
+    return Boolean(name)
+  } catch (e) {
+    console.error(`Error analyzing ${methodInfo.clsInfo.name || methodInfo.clsInfo.obfName}.${methodInfo.obfName}${methodInfo.sig}: ${e}`)
+  } finally {
+    end()
+  }
 }
 
 async function callAnalyzerField (analyzer: Analyzer, field: BCELField, fieldInfo: FieldInfo) {
   if (!analyzer.field) return false
   const end = perf(`${analyzer.name || analyzer.file || 'unknown'}.field(${fieldInfo.clsInfo.name || fieldInfo.clsInfo.obfName}.${fieldInfo.name || fieldInfo.obfName}:${fieldInfo.sig})`)
-  const name = analyzer.field.length === 1 ? await analyzer.field(fieldInfo) : await analyzer.field(field, fieldInfo.clsInfo, fieldInfo.info, (fieldInfo.clsInfo: any).bin)
-  if (name) fieldInfo.name = name
-  end()
-  return Boolean(name)
+  try {
+    const name = analyzer.field.length === 1 ? await analyzer.field(fieldInfo) : await analyzer.field(field, fieldInfo.clsInfo, fieldInfo.info, (fieldInfo.clsInfo: any).bin)
+    if (name) fieldInfo.name = name
+    return Boolean(name)
+  } catch (e) {
+    console.error(`Error analyzing ${fieldInfo.clsInfo.name || fieldInfo.clsInfo.obfName}.${fieldInfo.obfName}:${fieldInfo.sig}: ${e}`)
+  } finally {
+    end()
+  }
 }

@@ -36,7 +36,7 @@ export function method (methodInfo: MethodInfo) {
           if (ids.includes('looting')) name = 'loot_bonus'
           else if (ids.includes('sharpness')) name = 'damage_bonus'
         }
-        if (name) cls.name = PKG.ENCHANTMENT + '.' + toUpperCamelCase(name)
+        if (name) cls.name = PKG.ENCHANTMENT + '.' + toUpperCamelCase(name) + 'Enchantment'
         for (const md of ((Object.values(cls.method): any): Array<MethodInfo>)) {
           if (md.sig !== '(I)I' && md.sig !== '()I') continue
           try {

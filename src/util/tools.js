@@ -5,8 +5,9 @@ import { sync as rmrf } from 'rimraf'
 
 import { generateOutput } from './output'
 
-export function specialSource (inFile, outFile, info, format = 'tsrg') {
-  const mapping = generateOutput(info)[format]
+export async function specialSource (inFile, outFile, info, format = 'tsrg') {
+  const mapping = (await generateOutput(info))[format]
+  console.log('Mapping: ' + mapping)
   console.log('Deobfuscating with SpecialSource')
   cp.spawnSync('java', ['-jar', 'work/lib/specialsource.jar', '-i', inFile, '-o', outFile, '-m', mapping, '--kill-lvt'], {
     stdio: ['ignore', 'inherit', fs.openSync('./temp/specialsource.warn', 'w')]
@@ -90,7 +91,7 @@ export async function cfr (jar, to, cp) {
   fs.mkdirSync(to)
   console.log('Decompiling with CFR')
   const cfrJar = 'work/lib/cfr.jar'
-  const args = [jar, '--showversion', 'false', '--silent', 'true', '--extraclasspath', cp.join(':'), '--outputdir', to]
-  if (fs.existsSync(cfrJar)) return spawn('java', ['-jar', cfrJar].concat(args), { stdio: 'inherit' })
+  const args = [jar, '--showversion', 'false', '--silent', 'false', '--extraclasspath', cp.join(':'), '--outputdir', to]
+  if (fs.existsSync(cfrJar)) return spawn('java', ['-Xmx4G', '-jar', cfrJar].concat(args), { stdio: 'inherit' })
   return spawn('cfr', args, { stdio: 'inherit' })
 }

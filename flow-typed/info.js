@@ -247,6 +247,7 @@ declare type ClassInfo = {
     isInnerClass: true;
     outerClassName: string;
   |});
+  innerClasses: Set<ClassInfo>;
   enumNames: Array<string>;
   attributes: {[string]: any};
   rawGenericSignature: string;

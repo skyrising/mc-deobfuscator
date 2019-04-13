@@ -3,6 +3,7 @@ import util from 'util'
 import { readConstantPool } from './index'
 import * as CONSTS from './constants'
 import { getMappedClassName } from '../index'
+import { parseCode } from './code'
 
 type Mapper = {
   [string]: (Expression, Mapper) => Expression;
@@ -19,7 +20,8 @@ function deobfuscate (info: FullInfo) {
       return new Cast(this.a.map(m), type)
     },
     Call (call, m) {
-      const md = this.className in info.class && info.class[this.className].method[this.name + ':' + this.sig]
+      const key = this.name + ':' + this.sig
+      const md = this.className in info.class && key in info.class[this.className].method && info.class[this.className].method[key]
       return new Call(this.type, getMappedClassName(info, this.className), md ? md.bestName : this.name, this.sig, this.args.map(arg => arg.map(m)))
     },
     JObject (obj, m) {
@@ -41,11 +43,11 @@ export class Expression {
 
   map (m: Mapper) {
     if (m[this.constructor.name]) return m[this.constructor.name].call(this, this)
-    throw Error('not supported')
+    throw Error(this.constructor.name + '.map not supported')
   }
 
   toString (parentPrecedence: number = 0) {
-    throw Error('not implemented')
+    throw Error(this.constructor.name + '.toString not implemented')
   }
 
   deobfuscate (info: FullInfo): Expression {
@@ -69,6 +71,10 @@ export class Constant extends Expression {
   toString () {
     return JSON.stringify(this.value)
   }
+  
+  toJSON () {
+    return this.value
+  }
 }
 
 export class LocalVariable extends Expression {
@@ -91,11 +97,11 @@ export class LocalVariable extends Expression {
 
 export class Operation extends Expression {
   getPrecedence (): number {
-    throw Error('not implemented')
+    throw Error(this.constructor.name + '.getPrecedence not implemented')
   }
 
   _toString (): string {
-    throw Error('not implemented')
+    throw Error(this.constructor.name + '._toString not implemented')
   }
 
   toString (parentPrecedence: number = 0) {
@@ -283,6 +289,14 @@ export class JObject extends Expression {
     for (const key in this.fields) fields[key] = this.fields[key].map(m)
     return new JObject(this.type, fields)
   }
+  
+  toString() {
+    return `[${this.type} ${JSON.stringify(this.fields, null, 2)}]`
+  }
+  
+  toJSON () {
+    return this.fields
+  }
 }
 
 export default class Interpreter {
@@ -353,7 +367,10 @@ export default class Interpreter {
       args.push(this.stack.pop())
       if (argLengths[i] === 2) this.stack.pop()
     }
-    const ret = new Call(type, className, name, sig, args.reverse())
+    let ret = new Call(type, className, name, sig, args.reverse())
+    if (type in this.handlers) {
+      ret = this.handlers[type](this, ret) || ret
+    }
     this.stack.push(ret)
     if (retType === 'J' || retType === 'D') this.stack.push(ret)
   }
@@ -363,7 +380,9 @@ export default class Interpreter {
     const code = this.code.slice(8, 8 + codeLength)
     while (this.pc < code.length) {
       const op = code[this.pc++]
-      if (op === CONSTS.OP_ACONST_NULL) {
+      if (op === CONSTS.OP_NOP) {
+        // nop...
+      } else if (op === CONSTS.OP_ACONST_NULL) {
         this.stack.push(new Constant(null))
       } else if (op >= CONSTS.OP_ICONST_M1 && op <= CONSTS.OP_ICONST_5) {
         this.stack.push(new Constant(op - CONSTS.OP_ICONST_0))
@@ -475,7 +494,14 @@ export default class Interpreter {
       } else if (op === CONSTS.OP_GETFIELD) {
         const field = this.cp[code.readInt16BE(this.pc)]
         this.pc += 2
-        const result = new ObjectMember(this.stack.pop(), field.class.value.value, field.nameAndType.name.value)
+        const obj = this.stack.pop()
+        const fieldName = field.class.value.value
+        let result
+        if (fieldName in obj.fields) {
+          result = obj.fields[fieldName]
+        } else {
+          const result = new ObjectMember(obj, field.class.value.value, field.nameAndType.name.value)
+        }
         this.stack.push(result)
         const sig = field.nameAndType.descriptor.value
         if (sig === 'L' || sig === 'D') this.stack.push(result)
@@ -486,7 +512,11 @@ export default class Interpreter {
         this._call(CONSTS.OP_NAMES[op], md)
       } else if (op === CONSTS.OP_NEW) {
         this.stack.push(new JObject(this.cp[code.readInt16BE(this.pc)].value.value))
-      } else throw Error(`${CONSTS.OP_NAMES[op]} is not implemented`)
+        this.pc += 2
+      } else {
+        console.error(parseCode(this.code, this.cp))
+        throw Error(`${this.pc}: ${CONSTS.OP_NAMES[op] || ('op code ' + op)} is not implemented`)
+      }
     }
     throw Error('Ran out of code')
   }

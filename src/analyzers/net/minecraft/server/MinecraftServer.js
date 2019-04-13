@@ -35,7 +35,7 @@ export function method (methodInfo: MethodInfo) {
       info.method[line.previous.call.fullSig].name = 'getGameRules'
     } else if (line.const === 'whitelist_enabled') {
       const addStat = line.next.next.next.call
-      info.class[addStat.fullClassName].name = 'net.minecraft.profiler.Snooper'
+      info.class[addStat.fullClassName].name = CLASS.SNOOPER
       info.method[addStat.fullSig].name = 'addStat'
       return 'addStatsToSnooper'
     } else if (line.const.startsWith('menu.') && line.next.call) {

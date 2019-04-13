@@ -153,8 +153,8 @@ export function getMappedClassName (infoIn: FullInfo | ClassInfo, from?: string)
   if (!(from in info.class)) return from
   const to = info.class[from]
   if (from.indexOf('$') < 0) {
-    if (to.name) return to.name.replace(/\./g, '/')
-    if (from.length >= 6) return from.replace(/\./g, '/')
+    const best = to.bestName
+    if (best !== from || from.length >= 6) return best.replace(/\./g, '/')
     console.debug('Mapping class name ' + to.obfName + ' with package ' + (to.package || PKG.DEFAULT) + ' -> ' + (to.package || PKG.DEFAULT).replace(/\./g, '/') + '/' + getDefaultName(to))
     return (to.package || PKG.DEFAULT).replace(/\./g, '/') + '/' + getDefaultName(to)
   }

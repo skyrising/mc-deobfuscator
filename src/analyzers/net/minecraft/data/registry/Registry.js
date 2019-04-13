@@ -3,36 +3,48 @@ import * as CLASS from '../../../../../ClassNames'
 import { signatureTag as s } from '../../../../../util/code'
 import { registryMethod } from '../../../../sharedLogic'
 
+const REGISTRY_CLASSES = {
+  menu: CLASS.CONTAINER_TYPE,
+  menus: CLASS.CONTAINER_TYPE,
+  recipe_type: CLASS.RECIPE_TYPE,
+  recipe_serializers: CLASS.RECIPE_SERIALIZER
+}
+
 export function method (methodInfo: MethodInfo) {
   const { clsInfo, info } = methodInfo
   const { lines } = methodInfo.code
-  if (registryMethod(methodInfo, '', {
+  if (registryMethod(methodInfo, 'registries', {
     eval (id, line, field) {
       if (id === 'custom_stat') return
-      const typeName = CLASS[field.name]
-      if (typeName) {
+      let typeClass
+      try {
         const genericTypeArgument = field.genericSignature.simple[0].typeArguments.value[0]
-        try {
-          info.class[genericTypeArgument.value.simple[0].identifier].name = typeName
-        } catch (e) {
-          console.error(e)
-        }
+        typeClass = info.class[genericTypeArgument.value.simple[0].identifier]
+        const typeName = REGISTRY_CLASSES[id] || CLASS[field.name]
+        if (typeName) typeClass.name = typeName
+      } catch (e) {
+        console.error(e)
       }
-      const listName = CLASS[(id + 's').toUpperCase()]
-      if (listName) {
-        try {
-          const supplierNameAndType = line.nextOp('invokedynamic').invokeDynamic.bootstrapMethod.args[1].ref.nameAndType
-          const supplier = clsInfo.method[supplierNameAndType.name + ':' + supplierNameAndType.descriptor]
-          const supplierLines = supplier.code.lines
-          if (supplierLines[0].op === 'getstatic') {
-            const field = supplierLines[0].field
-            if (field.type !== `L${field.fullClassName};`) {
-              info.class[field.fullClassName].name = listName
-            }
+      let registryClass
+      try {
+        const supplierNameAndType = line.nextOp('invokedynamic').invokeDynamic.bootstrapMethod.args[1].ref.nameAndType
+        const supplier = clsInfo.method[supplierNameAndType.name + ':' + supplierNameAndType.descriptor]
+        const supplierLines = supplier.code.lines
+        if (supplierLines[0].op === 'getstatic') {
+          const field = supplierLines[0].field
+          if (field.type !== `L${field.fullClassName};`) {
+            registryClass = info.class[field.fullClassName]
+            const pluralId = id + 's'
+            const listName = REGISTRY_CLASSES[pluralId] || CLASS[pluralId.toUpperCase()]
+            if (listName) registryClass.name = listName
           }
-        } catch (e) {
-          console.error(e)
         }
+      } catch (e) {
+        console.error(e)
+      }
+      return {
+        type: typeClass,
+        registry: registryClass
       }
     }
   })) return

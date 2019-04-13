@@ -1,5 +1,5 @@
 // @flow
-import * as CLASS from '../../../../../ClassNames'
+import * as CLASS from '../../../../ClassNames'
 import { signatureTag as s } from '../../../../../util/code'
 
 export function field (fieldInfo: FieldInfo) {

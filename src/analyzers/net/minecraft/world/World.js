@@ -21,7 +21,11 @@ export function field (fieldInfo: FieldInfo) {
 }
 
 export function method (methodInfo: MethodInfo) {
-  const { sig, code, info } = methodInfo
+  const { sig, code, info, clsInfo } = methodInfo
+  if (s`${CLASS.BIOME}`.matches(methodInfo)) {
+    info.class[methodInfo.argSigs[0].slice(1, -1)].name = CLASS.BLOCK_POS
+    return 'getBiome'
+  }
   if (s`(${CLASS.BLOCK_POS})${CLASS.BLOCK_STATE}`.matches(methodInfo)) return 'getBlockState'
   if (s`(${CLASS.BLOCK_POS}${CLASS.BLOCK_STATE}I)Z`.matches(methodInfo)) return 'setBlockState'
   if (sig.startsWith('(L') && sig.endsWith(')Z') && code.consts.includes(0.014)) {
@@ -57,5 +61,12 @@ export function method (methodInfo: MethodInfo) {
   if (methodInfo.obfName === '<init>' && methodInfo.args.length === 5) {
     info.class[methodInfo.argSigs[0].slice(1, -1)].name = CLASS.SAVE_HANDLER
     info.class[methodInfo.argSigs[2].slice(1, -1)].name = CLASS.WORLD_PROVIDER
+  }
+  if (methodInfo.obfName === '<init>') {
+    for (const line of code.lines) {
+      if (line.op === 'invokevirtual' && line.call.fullSig === 'java.util.Random:nextInt()I'&& line.next && line.next.op === 'putfield') {
+        clsInfo.fields[line.next.field.fieldName].name = 'randValue'
+      }
+    }
   }
 }

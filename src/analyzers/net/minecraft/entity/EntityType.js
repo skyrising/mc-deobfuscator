@@ -11,13 +11,13 @@ const ENTITY_PKG = {
   Arrow: PKG.ENTITY_PROJECTILE,
   Bat: PKG.ENTITY_PASSIVE,
   Blaze: PKG.ENTITY_MONSTER,
-  Boat: PKG.ENTITY_ITEM,
+  Boat: PKG.ENTITY_VEHICLE,
   CaveSpider: PKG.ENTITY_MONSTER,
-  ChestMinecart: PKG.ENTITY_ITEM,
+  ChestMinecart: PKG.ENTITY_VEHICLE,
   Chicken: PKG.ENTITY_PASSIVE,
-  CommandblockMinecart: PKG.ENTITY_ITEM,
-  CommandBlockMinecart: PKG.ENTITY_ITEM,
-  Cod: PKG.ENTITY_WATER,
+  CommandblockMinecart: PKG.ENTITY_VEHICLE,
+  CommandBlockMinecart: PKG.ENTITY_VEHICLE,
+  Cod: PKG.ENTITY_PASSIVE,
   Cow: PKG.ENTITY_PASSIVE,
   Creeper: PKG.ENTITY_MONSTER,
   Dolphin: PKG.ENTITY_PASSIVE,
@@ -46,6 +46,7 @@ const ENTITY_PKG = {
   FireworkRocket: PKG.ENTITY_PROJECTILE,
   FireworksRocketEntity: PKG.ENTITY_PROJECTILE,
   FishingBobber: PKG.ENTITY_ITEM,
+  Fox: PKG.ENTITY_PASSIVE,
   Ghast: PKG.ENTITY_MONSTER,
   Giant: PKG.ENTITY_MONSTER,
   Guardian: PKG.ENTITY_MONSTER,
@@ -63,7 +64,7 @@ const ENTITY_PKG = {
   Llama: PKG.ENTITY_PASSIVE,
   LlamaSpit: PKG.ENTITY_PROJECTILE,
   MagmaCube: PKG.ENTITY_MONSTER,
-  Minecart: PKG.ENTITY_ITEM,
+  Minecart: PKG.ENTITY_VEHICLE,
   Mooshroom: PKG.ENTITY_PASSIVE,
   Mule: PKG.ENTITY_PASSIVE,
   MushroomCow: PKG.ENTITY_PASSIVE,
@@ -76,17 +77,17 @@ const ENTITY_PKG = {
   Pig: PKG.ENTITY_PASSIVE,
   PigZombie: PKG.ENTITY_MONSTER,
   Pillager: PKG.ENTITY_MONSTER,
-  PolarBear: PKG.ENTITY_MONSTER,
+  PolarBear: PKG.ENTITY_PASSIVE,
   PrimedTnt: PKG.ENTITY_ITEM,
-  Pufferfish: PKG.ENTITY_WATER,
+  Pufferfish: PKG.ENTITY_PASSIVE,
   Rabbit: PKG.ENTITY_PASSIVE,
-  Salmon: PKG.ENTITY_WATER,
+  Salmon: PKG.ENTITY_PASSIVE,
   Sheep: PKG.ENTITY_PASSIVE,
   Shulker: PKG.ENTITY_MONSTER,
   ShulkerBullet: PKG.ENTITY_PROJECTILE,
   Silverfish: PKG.ENTITY_MONSTER,
   Skeleton: PKG.ENTITY_MONSTER,
-  SkeletonHorse: PKG.ENTITY_PASSIVE,
+  SkeletonHorse: PKG.ENTITY_MONSTER,
   Slime: PKG.ENTITY_MONSTER,
   SmallFireball: PKG.ENTITY_PROJECTILE,
   Snowball: PKG.ENTITY_PROJECTILE,
@@ -94,21 +95,23 @@ const ENTITY_PKG = {
   SnowMan: PKG.ENTITY_PASSIVE,
   SpectralArrow: PKG.ENTITY_PROJECTILE,
   Spider: PKG.ENTITY_MONSTER,
-  Squid: PKG.ENTITY_WATER,
+  Squid: PKG.ENTITY_PASSIVE,
   Stray: PKG.ENTITY_MONSTER,
   ThrownEgg: PKG.ENTITY_PROJECTILE,
   ThrownEnderpearl: PKG.ENTITY_PROJECTILE,
   ThrownExpBottle: PKG.ENTITY_PROJECTILE,
   ThrownPotion: PKG.ENTITY_PROJECTILE,
   Tnt: PKG.ENTITY_ITEM,
+  TraderLlama: PKG.ENTITY_PASSIVE,
   Trident: PKG.ENTITY_PROJECTILE,
-  TropicalFish: PKG.ENTITY_WATER,
+  TropicalFish: PKG.ENTITY_PASSIVE,
   Turtle: PKG.ENTITY_PASSIVE,
   Vex: PKG.ENTITY_MONSTER,
   Villager: PKG.ENTITY_PASSIVE,
   VillagerGolem: PKG.ENTITY_PASSIVE,
   VindicationIllager: PKG.ENTITY_MONSTER,
   Vindicator: PKG.ENTITY_MONSTER,
+  WanderingTrader: PKG.ENTITY_PASSIVE,
   Witch: PKG.ENTITY_MONSTER,
   Wither: PKG.ENTITY_BOSS,
   WitherBoss: PKG.ENTITY_BOSS,
@@ -116,7 +119,7 @@ const ENTITY_PKG = {
   WitherSkull: PKG.ENTITY_ITEM,
   Wolf: PKG.ENTITY_PASSIVE,
   Zombie: PKG.ENTITY_MONSTER,
-  ZombieHorse: PKG.ENTITY_PASSIVE,
+  ZombieHorse: PKG.ENTITY_MONSTER,
   ZombiePigman: PKG.ENTITY_MONSTER,
   ZombieVillager: PKG.ENTITY_MONSTER,
   XPOrb: PKG.ENTITY_ITEM
@@ -134,13 +137,24 @@ export function method (methodInfo: MethodInfo) {
       if (name === 'VillagerGolem') name = 'IronGolem'
       if (name === 'Potion') name = 'ThrownPotion'
       if (name === 'ThrownEnderpearl') name = 'EnderPearl'
-      if (name === 'Item' || name === 'Tnt') name += 'Entity'
       const fieldName = (flat ? line.const : toUnderScoreCase(line.const)).toUpperCase()
       clsInfo.fields[line.nextOp('putstatic').field.fieldName].name = fieldName
-      const entClass = flat ? line.next.const : line.previous.const
+      let entClassName = flat ? line.next.const : line.previous.const
+      if (!entClassName) {
+        const indy = line.nextOp('invokedynamic')
+        if (indy) {
+          const constrRef = indy.invokeDynamic.bootstrapMethod.args[1].ref
+          if (constrRef.nameAndType.name === '<init>') entClassName = constrRef.class
+        }
+      }
       const pkg = name in ENTITY_PKG ? ENTITY_PKG[name] : PKG.ENTITY
-      info.class[entClass].name = pkg + '.' + name
-      info.data.entities[line.const] = { name, class: pkg + '.' + name }
+      const entInfo = info.data.entities[line.const] = { name }
+      if (entClassName) {
+        const entClass = info.class[entClassName]
+        entClass.name = pkg + '.' + name + 'Entity'
+        entInfo.class = entClass
+      }
+      info.data.entities[line.const] = entInfo
     }
   }
   const { sig } = methodInfo
@@ -152,7 +166,7 @@ export function method (methodInfo: MethodInfo) {
   // if (sig.startsWith('(Ljava/lang/String;L') && methodInfo.flags.static) return 'createEntity'
   for (const c of code.consts) {
     if (typeof c === 'string' && c.startsWith('Skipping Entity with id ')) {
-      if (!sig.startsWith('(IL')) {
+      if (!sig.startsWith('(IL') && methodInfo.argSigs.length >= 2) {
         info.class[methodInfo.argSigs[0].slice(1, -1)].name = CLASS.NBT_COMPOUND
         info.class[methodInfo.argSigs[1].slice(1, -1)].name = CLASS.WORLD
       }

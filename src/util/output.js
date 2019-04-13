@@ -1,34 +1,46 @@
 // @flow
 import * as PKG from '../PackageNames'
-import fs from 'fs'
+import fs from 'fs-extra'
 import path from 'path'
 import { Expression } from './class-reader/interpreter'
 import { getMappedClassName, sortObfClassName, slash, toUnderScoreCase } from './index'
 import { digraph } from './graphviz'
 
-export function generateOutput (info: FullInfo) {
+process.on('exit', console.log)
+
+export async function generateOutput (info: FullInfo) {
+  console.log('Generating output')
   const dataDir = path.resolve('data')
+  const ps = []
   if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir)
   const versionDir = path.resolve(dataDir, info.version.toString())
   if (!fs.existsSync(versionDir)) fs.mkdirSync(versionDir)
   const version = path.resolve(versionDir, 'version.json')
-  fs.writeFileSync(version, JSON.stringify(info.version, null, 2))
+  ps.push(fs.writeFile(version, JSON.stringify(info.version, null, 2)))
   const sideDir = path.resolve(versionDir, info.side)
   if (!fs.existsSync(sideDir)) fs.mkdirSync(sideDir)
   const srg = path.resolve(sideDir, 'mapping.srg')
-  generateSrg(info, srg)
+  ps.push(generateSrg(info, srg))
   const tsrg = path.resolve(sideDir, 'mapping.tsrg')
-  generateTsrg(info, tsrg)
+  ps.push(generateTsrg(info, tsrg))
+  const enigma = path.resolve(sideDir, 'enigma/')
+  ps.push(generateEnigmaMappings(info, enigma))
+  const tiny = path.resolve(sideDir, 'mapping.tiny')
+  ps.push(generateTinyMappings(info, tiny))
   const obfClasses = path.resolve(sideDir, 'classes-obf.txt')
   const deobfClasses = path.resolve(sideDir, 'classes-deobf.txt')
   const hashClasses = path.resolve(sideDir, 'class-hashes.txt')
-  generateClassLists(info, obfClasses, deobfClasses, hashClasses)
+  ps.push(generateClassLists(info, obfClasses, deobfClasses, hashClasses))
   const inheritanceGraph = path.resolve(sideDir, 'inheritance.dot')
-  renderGraph(info, inheritanceGraph)
-  const dataFiles = generateDataFiles(info, sideDir)
+  ps.push(renderGraph(info, inheritanceGraph))
+  const dataFilesP = generateDataFiles(info, sideDir)
+  ps.push(dataFilesP)
+  await Promise.all(ps)
+  const dataFiles = await dataFilesP
   console.log(version)
   console.log(srg)
   console.log(tsrg)
+  console.log(tiny)
   console.log(obfClasses)
   console.log(deobfClasses)
   console.log(hashClasses)
@@ -37,7 +49,7 @@ export function generateOutput (info: FullInfo) {
   return { version, srg, tsrg, obfClasses, deobfClasses, hashClasses, dataFiles, inheritanceGraph }
 }
 
-export function generateClassLists (info: FullInfo, obfFile: string, deobfFile: string, hashFile: string) {
+export async function generateClassLists (info: FullInfo, obfFile: string, deobfFile: string, hashFile: string) {
   const obfClasses = info.classNames.sort(sortObfClassName)
   const deobfClasses = obfClasses.map(cls => getMappedClassName(info, cls)).filter(Boolean)
   const hashCount = {}
@@ -51,12 +63,14 @@ export function generateClassLists (info: FullInfo, obfFile: string, deobfFile: 
     const hash = info.class[cls].fullHashBase26
     return hashCount[hash] > 1 ? hash + hashIndex[hash]++ : hash
   })
-  fs.writeFileSync(obfFile, obfClasses.map(cls => cls + '\n').join(''))
-  fs.writeFileSync(deobfFile, deobfClasses.map(cls => cls + '\n').join(''))
-  fs.writeFileSync(hashFile, hashClasses.map(cls => cls + '\n').join(''))
+  await Promise.all([
+    fs.writeFile(obfFile, obfClasses.map(cls => cls + '\n').join('')),
+    fs.writeFile(deobfFile, deobfClasses.map(cls => cls + '\n').join('')),
+    fs.writeFile(hashFile, hashClasses.map(cls => cls + '\n').join(''))
+  ])
 }
 
-export function generateSrg (info: FullInfo, srgFile: string, sort: boolean = false) {
+export async function generateSrg (info: FullInfo, srgFile: string, sort: boolean = false) {
   let srg = [
     'PK: . ' + slash(PKG.DEFAULT),
     'PK: net net',
@@ -93,7 +107,7 @@ export function generateSrg (info: FullInfo, srgFile: string, sort: boolean = fa
       return 0
     })
   }
-  fs.writeFileSync(srgFile, srg.join('\n'))
+  await fs.writeFile(srgFile, srg.join('\n'))
 }
 
 export function generateTsrg (info: FullInfo, tsrgFile: string) {
@@ -111,8 +125,72 @@ export function generateTsrg (info: FullInfo, tsrgFile: string) {
   fs.writeFileSync(tsrgFile, lines.join('\n'))
 }
 
-export function generateDataFiles (info: FullInfo, dir: string) {
+export async function generateEnigmaMappings (info: FullInfo, mappingsDir: string) {
+  const mappingsForClass = (clsInfo: ClassInfo) => {
+    let clsName = getMappedClassName(clsInfo)
+    clsName = clsName.slice(clsName.lastIndexOf('$') + 1)
+    const lines = clsName != clsInfo.obfName ? ['CLASS ' + slash(clsInfo.obfName) + ' ' + clsName] : ['CLASS ' + clsInfo.obfName]
+    for (const icInfo of clsInfo.innerClasses) {
+      const icLines = mappingsForClass(icInfo)
+      lines.push(...icLines.map(line => '\t' + line))
+    }
+    for (const fdFrom of Object.keys(clsInfo.fields).sort()) {
+      const fd = clsInfo.fields[fdFrom]
+      const name = fd.bestName
+      if (name === fd.obfName) continue
+      lines.push(`\tFIELD ${fdFrom} ${fd.bestName} ${fd.sig}`)
+    }
+    for (const mdFrom of Object.keys(clsInfo.method).sort()) {
+      const md = clsInfo.method[mdFrom]
+      const name = md.bestName
+      if (name === md.obfName && !md.argNames) continue
+      if (name !== md.obfName) lines.push(`\tMETHOD ${md.obfName} ${name} ${md.sig}`)
+      else lines.push(`\tMETHOD ${md.obfName} ${md.sig}`)
+      if (md.argNames) {
+        for (let i = 0; i < md.argNames.length; i++) {
+          if (!md.argNames[i]) continue
+          lines.push(`\t\tARG ${md.argOffsets[i]} ${md.argNames[i]}`)
+        }
+      }
+    }
+    return lines
+  }
+  const ps = []
+  for (const obfName of info.classNames) {
+    const clsInfo = info.class[obfName]
+    if (clsInfo.isInnerClass) continue
+    const mappedName = getMappedClassName(clsInfo)
+    const file = path.resolve(mappingsDir, mappedName + '.mapping')
+    const lines = mappingsForClass(clsInfo)
+    ps.push(fs.outputFile(file, lines.map(l => l + '\n').join('')))
+  }
+  return Promise.all(ps)
+}
+
+export async function generateTinyMappings (info: FullInfo, file: string) {
+  const lines = ['v1\tofficial\tnamed']
+  for (const obfName of info.classNames) {
+    const clsInfo = info.class[obfName]
+    lines.push('CLASS\t' + slash(obfName) + '\t' + getMappedClassName(clsInfo))
+    for (const fdFrom in clsInfo.fields) {
+      const fd = clsInfo.fields[fdFrom]
+      const bestName = fd.bestName
+      if (bestName === fdFrom) continue
+      lines.push(`FIELD\t${obfName}\t${fd.sig}\t${fdFrom}\t${bestName}`)
+    }
+    for (const mdFrom in clsInfo.method) {
+      const md = clsInfo.method[mdFrom]
+      const bestName = md.bestName
+      if (bestName === md.obfName) continue
+      lines.push(`METHOD\t${obfName}\t${md.sig}\t${md.obfName}\t${bestName}`)
+    }
+  }
+  return fs.outputFile(file, lines.map(l => l + '\n').join(''))
+}
+
+export async function generateDataFiles (info: FullInfo, dir: string) {
   const files = []
+  const ps = []
   for (const basename in info.data) {
     let data
     if (typeof info.data[basename].post === 'function') {
@@ -126,19 +204,20 @@ export function generateDataFiles (info: FullInfo, dir: string) {
       for (const key of Object.keys(info.data[basename]).sort()) data[key] = info.data[basename][key]
     }
     const file = path.resolve(dir, basename + '.json')
-    fs.writeFileSync(file, JSON.stringify(data, function (key, value) {
+    ps.push(fs.writeFile(file, JSON.stringify(data, function (key, value) {
       const rawValue = this[key]
       if (rawValue instanceof Expression) return rawValue.deobfuscate(info).toString()
       if (typeof rawValue === 'object' && rawValue.type === 'class') return getMappedClassName(rawValue)
       if (typeof rawValue === 'object' && rawValue.type === 'field') return toUnderScoreCase(rawValue.bestName).toLowerCase()
       return value
-    }, 2))
+    }, 2)))
     files.push(file)
   }
+  await Promise.all(ps)
   return files
 }
 
-export function renderGraph (info: FullInfo, file: string) {
+export async function renderGraph (info: FullInfo, file: string) {
   const g = digraph({
     fontname: 'sans-serif',
     overlap: false,
@@ -199,5 +278,5 @@ export function renderGraph (info: FullInfo, file: string) {
     for (const sc of inheritsFrom) g.edge(JSON.stringify(obfName), JSON.stringify(sc), {})
   }
   // g.killOrphans()
-  fs.writeFileSync(file, g.toString())
+  await fs.writeFile(file, g.toString())
 }

@@ -5,11 +5,13 @@ import EventEmitter from 'events'
 import { perf } from './index'
 import { getExtendedVersionInfo } from './version'
 import { printStatus } from './status'
-import { getMethodInheritance } from './code'
+import { getMethodInheritance, parseSignature } from './code'
 
 const MAX_GENERIC_PASSES = 3
 const MAX_SPECIAL_PASSES = 3
 const MAX_TOTAL_PASSES = 8
+
+const METHOD_WITH_ARGS = /(.+)\(((?:.+,)*(?:.+))\)/
 
 const debugMd = require('debug')('deobf:md')
 const debugCl = require('debug')('deobf:cl')
@@ -77,7 +79,7 @@ class Info extends EventEmitter {
         if (typeof clsObfName !== 'string') return classes[clsObfName]
         clsObfName = clsObfName.replace(/\//g, '.')
         if (!classes[clsObfName]) {
-          if (info.enriched) console.warn('Too late to create new skeleton class')
+          if (info.enriched) console.warn(Error('Too late to create new skeleton class ' + clsObfName))
           const clsInfo: ClassInfo = classes[clsObfName] = ({
             [util.inspect.custom] (depth, opts) {
               return opts.stylize('[Class ', 'special') +
@@ -106,16 +108,18 @@ class Info extends EventEmitter {
               return info.class[this.outerClassName]
             },
             isInnerClass: clsObfName.indexOf('$') > 0,
+            innerClasses: new Set(),
             set name (deobfName: string) {
               this.setName(deobfName, Error().stack.split('\n')[2])
             },
             setName (deobfName: string, by?: string) {
-              if (clsObfName.startsWith('java.')) {
+              if (!deobfName) return
+              deobfName = deobfName.replace(/\//g, '.')
+              if ((clsObfName.startsWith('java.') || clsObfName.startsWith('net.minecraft.')) && deobfName !== clsObfName) {
                 this.namedBy = by
                 console.warn(new NamingError(this, deobfName))
                 return
               }
-              deobfName = deobfName.replace(/\//g, '.')
               const fullDeobfName = deobfName
               if (info.classReverse[deobfName] && info.classReverse[deobfName] !== slash(clsObfName)) {
                 this.namedBy = by
@@ -144,6 +148,19 @@ class Info extends EventEmitter {
                 for (const sc of this.subClasses) info.class[sc].done = false
               }
               this._name = deobfName
+            },
+            get bestName () {
+              if (this.name) return this.name
+              if (this.depends) {
+                if (typeof this.depends === 'function') {
+                  const dependentName = this.depends()
+                  if (dependentName) return dependentName
+                } else {
+                  const dependentName = this.depends !== this && this.depends.bestName
+                  if (dependentName) return dependentName
+                }
+              }
+              return this.obfName
             },
             get name (): ?string {
               return this._name
@@ -286,6 +303,7 @@ class Info extends EventEmitter {
     const key = obfName + ':' + sig
     const info = this
     const clsInfo = this.class[clsName]
+    const parsedSig = parseSignature(sig)
     return {
       [util.inspect.custom] (depth, opts) {
         return opts.stylize('[Method ', 'special') +
@@ -300,6 +318,22 @@ class Info extends EventEmitter {
       clsInfo,
       obfName,
       sig,
+      get argOffsets() {
+        if (this.flags.static) return parsedSig.argOffsets
+        return parsedSig.argOffsets.map(x => x + 1)
+      },
+      get argOffsetsInv () {
+        if (this._argOffsetsInv) return this._argOffsetsInv
+        const offsets = this.argOffsets
+        const inv = []
+        for (let i = 0; i < offsets.length; i++) {
+          inv[offsets[i]] = i
+          const type = parsedSig.args[i]
+          if (type === 'D' || type === 'J') inv[offsets[i] + 1] = i
+        }
+        this._argOffsetsInv = inv
+        return inv
+      },
       get base () {
         if (this._base) return this._base
         if (this.flags.static) return this
@@ -316,11 +350,14 @@ class Info extends EventEmitter {
         return this._base
       },
       set name (deobfName) {
+        if (!deobfName) return
         if (this.base !== this) {
           this.base.name = deobfName
           console.debug('renaming super(' + this.base.clsInfo.name + ') ' + key + ' -> ' + deobfName)
           return
         }
+        const argsMatch = deobfName.match(METHOD_WITH_ARGS)
+        if (argsMatch) deobfName = argsMatch[1]
         const argSig = sig + (this.flags.static ? ':static' : '')
         const objectMethods = ['toString', 'clone', 'equals', 'hashCode', '<clinit>', '<init>']
         if (clsInfo.superClassName === 'java/lang/Enum') objectMethods.push('values', 'valueOf')
@@ -347,6 +384,7 @@ class Info extends EventEmitter {
           debugMd('MD: %s/%s %s %s/%s %s', slash(clsName), obfName, sig, slash(clsInfo.name || clsName), deobfName, sig)
         }
         this._name = deobfName
+        if (argsMatch) this.argNames = argsMatch[2].split(',')
         clsInfo.reverseMethod[deobfName] = clsInfo.reverseMethod[deobfName] || []
         clsInfo.reverseMethod[deobfName][argSig] = obfName
       },

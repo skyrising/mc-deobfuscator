@@ -1,6 +1,6 @@
 // @flow
 
-import * as PKG from '../../../../../PackageNames'
+import * as PKG from '../../../../PackageNames'
 
 export function method (methodInfo: MethodInfo) {
   const { info } = methodInfo

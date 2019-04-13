@@ -48,7 +48,9 @@ function printChange (oldName, oldHash, newName, newHash) {
     }
   }
   diffRanges.push(lastRangeStart === lastRangeEnd ? lastRangeStart.toString() : `${lastRangeStart}-${lastRangeEnd}`)
-  console.log(`${oldName} (${oldCompressed}) -> ${newName} (${newCompressed}) diffs: ${diffRanges}`)
+  console.log(`@@ ${diffRanges} @@`)
+  console.log(`-${oldName} (${oldCompressed})`)
+  console.log(`+${newName} (${newCompressed})`)
 }
 
 console.log(hashesOld.length + ' -> ' + hashesNew.length)

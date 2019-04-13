@@ -48,19 +48,20 @@ function enableDebugLog () {
 if (require.main === module) {
   enableDebugLog()
   const version = process.argv[2] || '1.12'
+  const mappingsOnly = false
   const options: {...Options, version: string} = {
-    specialSource: true,
-    extractJar: true,
+    specialSource: !mappingsOnly,
+    extractJar: !mappingsOnly,
     debugLog: true,
     errorLog: true,
     classNameLog: true,
     status: true,
-    
-    decompile: 'cfr',
+
+    decompile: mappingsOnly ? false : 'cfr',
     ide: {
-      idea: true
+      idea: !mappingsOnly
     },
-    
+
     version
   }
   if (version.endsWith('.jar')) analyzeJar(path.resolve(version), [], options).catch(console.error)
@@ -108,9 +109,9 @@ export async function analyzeJar (jarFile: string, libraries: Array<{id: string,
   global.info = info
   const genericPasses = []
   const passClsInfo = info.newPass('reading classes', { weight: 13.5 })
-  const genericWeights = [5.7, 4.1, 1.8]
+  const genericWeights = [5.7, 4.1, 1.8, 1]
   // TODO: figure out if unknown fields e.g. in World are caused by not enough passes
-  for (let i = 0; i < 3; i++) genericPasses.push(info.newPass('generic[' + i + ']', { weight: genericWeights[i] }))
+  for (let i = 0; i < genericWeights.length; i++) genericPasses.push(info.newPass('generic[' + i + ']', { weight: genericWeights[i] }))
   const passHierarchy = info.newPass('hierarchy', { weight: 1.4 })
   const passGetterSetter = info.newPass('getters & setters', { weight: 2.2 })
   if (status) startStatus(info)

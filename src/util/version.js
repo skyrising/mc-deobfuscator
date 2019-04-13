@@ -91,6 +91,7 @@ export function getLibraries (meta) {
 export function getLibraries (meta: {libraries: Array<{name: string, downloads: {artifact: {path: string}}}>}): Array<{id: string, path: string}> {
   const libDir = path.resolve(getMinecraftHome(), 'libraries')
   return meta.libraries.filter(lib => {
+    if (!lib.downloads.artifact || !lib.downloads.artifact.path) return false
     if (!lib.rules) return true
     for (const rule of lib.rules) {
       const result = testRule(rule)

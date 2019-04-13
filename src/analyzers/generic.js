@@ -246,6 +246,7 @@ const simpleConstToClass: {[string]: string | SimpleHandler | Array<SimpleHandle
   'Plains': CLASS.BIOME,
   'STRIKETHROUGH': CLASS.TEXT_FORMATTING,
   'mobBaseTick': CLASS.ENTITY_MOB,
+  'entityBaseTick': CLASS.ENTITY,
   'X-Minecraft-Username': {
     name: CLASS.RESOURCE_PACK_REPOSITORY,
     method: 'getDownloadHeaders'
@@ -322,9 +323,9 @@ const simpleConstToClass: {[string]: string | SimpleHandler | Array<SimpleHandle
     return: CLASS.MOB_EFFECT
   },
   'Invalid Sound requested: ': {
-    name: CLASS.SOUNDS,
+    name: CLASS.SOUND_EVENTS,
     method: 'getRegisteredSound',
-    return: CLASS.SOUND
+    return: CLASS.SOUND_EVENT
   },
   'Invalid Fluid requested: ': {
     name: CLASS.FLUIDS,
@@ -763,16 +764,27 @@ const simpleConstToClass: {[string]: string | SimpleHandler | Array<SimpleHandle
   'enderman_holdable': {
     name: CLASS.BLOCK_TAGS,
     method: 'register',
-    return: CLASS.TAG
+    eval ({ methodInfo, info }) {
+      if (methodInfo.obfName === '<clinit>') return
+      const retClass = info.class[methodInfo.retSig.slice(1, -1)]
+      if (retClass && !retClass.isInnerClass) retClass.name = CLASS.TAG
+    }
   },
   'music_discs': {
     name: CLASS.ITEM_TAGS,
     method: 'register',
-    return: CLASS.TAG
+    eval ({ methodInfo, info }) {
+      if (methodInfo.obfName === '<clinit>') return
+      const retClass = info.class[methodInfo.retSig.slice(1, -1)]
+      if (retClass && !retClass.isInnerClass) retClass.name = CLASS.TAG
+    }
   },
   'Couldn\'t read {} tag list {} from {}': CLASS.TAG_LIST,
   'Exception initializing level': {
     name: CLASS.SERVER_WORLD,
+    predicate ({ clsInfo }) {
+      return !clsInfo.obfName.endsWith('MinecraftServer')
+    },
     method: 'initialize',
     args: [CLASS.WORLD_SETTINGS]
   },
@@ -850,7 +862,110 @@ const simpleConstToClass: {[string]: string | SimpleHandler | Array<SimpleHandle
     eval ({ methodInfo }) {
       nbtFieldNamer(methodInfo)
     }
-  }
+  },
+  '~~ERROR~~': CLASS.CRASH_REPORT_CATEGORY$ELEMENT,
+  'Ticket[': CLASS.CHUNK_TICKET,
+  'forced': {
+    name: CLASS.CHUNK_TICKET_TYPE,
+    predicate ({ code }) {
+      return code.consts.includes('start') && code.consts.includes('player') && code.consts.includes('unknown')
+    }
+  },
+  'player ticket throttler': CLASS.CHUNK_TICKET_MANAGER,
+  'chunk priority sorter around ': CLASS.CHUNK_TASK_PRIORITY_SYSTEM,
+  'Unloaded ticket level ': {
+    outerClass: CLASS.CHUNK_HOLDER
+  },
+  'No chunk holder while trying to convert to full chunk: ': CLASS.CHUNK_HOLDER_MANAGER,
+  'North Carolina': {
+    name: CLASS.SERVER_DEMO_WORLD,
+    predicate ({ clsInfo }) {
+      return !clsInfo.obfName.endsWith('MinecraftServer')
+    }
+  },
+  'TickNextTick list out of synch': {
+    name: CLASS.SERVER_TICK_SCHEDULER,
+    predicate ({ clsInfo }) {
+      return !clsInfo.consts.has('village')
+    }
+  },
+  'Ran authomatically on a different thread!': CLASS.SERVER_LIGHTING_PROVIDER,
+  'banned-players.json': CLASS.PLAYER_MANAGER,
+  'favicon': CLASS.SERVER_STATUS_RESPONSE$JSON_ADAPTER,
+  'player[': CLASS.SERVER_STATUS_RESPONSE$PLAYERS$JSON_ADAPTER,
+  'protocol': {
+    name: CLASS.SERVER_STATUS_RESPONSE$VERSION$JSON_ADAPTER,
+    predicate ({ code }) {
+      return code.consts.includes('version') && code.consts.includes('name')
+    }
+  },
+  'Container data count ': CLASS.CONTAINER,
+  'Duplicate recipe ignored with ID ': {
+    name: CLASS.RECIPE_MANAGER,
+    method: 'add(recipe)',
+    args: [CLASS.RECIPE]
+  },
+  'Cannot build unresolved tag entry': {
+    name: CLASS.TAG$TAG_ENTRY,
+    interfaces: [CLASS.TAG$ENTRY]
+  },
+  'Unable to serialize an anonymous value to json!': {
+    name: CLASS.TAG$COLLECTION_ENTRY,
+    interfaces: [CLASS.TAG$ENTRY]
+  },
+  'Unknown value \'': {
+    name: CLASS.TAG$BUILDER
+  },
+  'Caught previously unhandled exception :': [{
+    name: CLASS.UNCAUGHT_EXCEPTION_LOGGER,
+    predicate ({ line }) {
+      return line.next.op === 'aload_2'
+    }
+  }, {
+    name: CLASS.UNCAUGHT_EXCEPTION_HANDLER,
+    predicate ({ line }) {
+      return line.next.op === 'invokeinterface'
+    }
+  }],
+  '/version.json': CLASS.MINECRAFT_VERSION,
+  '47': {
+    name: CLASS.SHARED_CONSTANTS,
+    predicate ({ clsInfo, code }) {
+      const charConsts = code.consts.filter(c => typeof c === 'number' && c >= 9 && c < 128)
+      const chars = '/\n\r\t`?*\\<>|":'
+      for (let i = 0; i < chars.length; i++) if (!charConsts.includes(chars.charCodeAt(i))) return false
+      if (charConsts.includes('0'.charCodeAt(0))) return false
+      return true
+    }
+  },
+  'ask future procesor handle': CLASS.ACTOR,
+  'Cound not schedule mailbox': CLASS.MAILBOX_PROCESSOR,
+  'Error executing task': {
+    name: CLASS.THREAD_TASK_QUEUE,
+    predicate ({ clsInfo }) {
+      return !clsInfo.obfName.endsWith('MinecraftServer')
+    }
+  },
+  'PriceRange({}, {}) invalid, {} smaller than {}': {
+    name: CLASS.VILLAGER_TRADES$PRICE_RANGE,
+    predicate ({ clsInfo }) {
+      return clsInfo.outerClass.superClassName === 'java.lang.Object'
+    }
+  },
+  'flySpeed': CLASS.PLAYER_ABILITIES,
+  '48000': {
+    name: CLASS.WANDERING_TRADER_SPAWNER,
+    predicate ({ code }) {
+      return code.consts.includes(48)
+    }
+  },
+  '(': {
+    name: CLASS.VEC_3D,
+    predicate ({ code }) {
+      return code.consts.includes(', ') && code.consts.includes(')')
+    }
+  },
+  'Rendering entity in world': CLASS.ENTITY_RENDER_DISPATCHER
 })
 
 function handleSimple (obj: ?(string | SimpleHandler | Array<SimpleHandler>), params: HandleFuncArg) {
@@ -867,21 +982,21 @@ function handleSimple (obj: ?(string | SimpleHandler | Array<SimpleHandler>), pa
     return
   }
   if (obj.predicate && !obj.predicate(params)) return
-  if (obj.return) info.class[methodInfo.retSig.slice(1, -1)].name = obj.return
+  if (obj.return) info.class[methodInfo.retSig.slice(1, -1)].setName(obj.return, `${JSON.stringify(obj)}.return`)
   if (obj.args) {
     obj.args.forEach((name, i) => {
-      info.class[methodInfo.argSigs[i].slice(1, -1)].name = name
+      info.class[methodInfo.argSigs[i].slice(1, -1)].setName(name, `${JSON.stringify(obj)}.args[${i}]`)
     })
   }
   if (obj.method) methodInfo.name = obj.method
-  if (obj.superClass) info.class[clsInfo.superClassName].name = obj.superClass
+  if (obj.superClass) info.class[clsInfo.superClassName].setName(obj.superClass, `${JSON.stringify(obj)}.superClass`)
   if (obj.baseClass) {
     const scs = cls.getSuperClasses()
-    if (scs.length >= 2) info.class[scs[scs.length - 2].getClassName()].name = obj.baseClass
+    if (scs.length >= 2) info.class[scs[scs.length - 2].getClassName()].setName(obj.baseClass, `${JSON.stringify(obj)}.baseClass`)
     else console.log((obj.name || clsInfo.obfName) + ' does not have enough superclasses')
   }
   if (obj.outerClass) {
-    if (clsInfo.isInnerClass) info.class[clsInfo.outerClassName].name = obj.outerClass
+    if (clsInfo.isInnerClass) info.class[clsInfo.outerClassName].setName(obj.outerClass, `${JSON.stringify(obj)}.outerClass`)
     else console.log((obj.name || clsInfo.obfName) + ' is not an inner class')
   }
   if (obj.call) {
@@ -890,7 +1005,7 @@ function handleSimple (obj: ?(string | SimpleHandler | Array<SimpleHandler>), pa
     else call = (line.next || {}).call
     if (call) {
       if (obj.call.method) info.method[call.fullSig].name = obj.call.method
-      if (obj.call.class) info.class[call.className].name = obj.call.class
+      if (obj.call.class) info.class[call.className].setName(obj.call.class, `${JSON.stringify(obj)}.call.class`)
     }
   }
   if (obj.field) {
@@ -902,7 +1017,7 @@ function handleSimple (obj: ?(string | SimpleHandler | Array<SimpleHandler>), pa
     const ifn = clsInfo.interfaceNames
     if (obj.interfaces.length === ifn.length) {
       for (let i = 0; i < obj.interfaces.length; i++) {
-        if (obj.interfaces[i]) info.class[ifn[i]].name = obj.interfaces[i]
+        if (obj.interfaces[i]) info.class[ifn[i]].setName(obj.interfaces[i], `${JSON.stringify(obj)}.interfaces[${i}]`)
       }
     } else {
       console.log('Number of interfaces for ' + (obj.name || clsInfo.obfName) + ' mismatch: expected ' + obj.interfaces.length + ' got ' + ifn.length)
@@ -1009,7 +1124,25 @@ function getClassNameForConstant (c: string, line: CodeLineLoadConst | CodeLineN
     return CLASS.WORLD_GEN_FOSSILS
   }
   if (c.startsWith('Starting integrated minecraft server version')) return CLASS.INTEGRATED_SERVER
-  if (c.endsWith('Fix') && hasSuperClass(clsInfo, 'com.mojang.datafixers.DataFix')) return PKG.DATAFIX + '.' + c
+  if (c.endsWith('Fix') && hasSuperClass(clsInfo, 'com.mojang.datafixers.DataFix')) return PKG.DATAFIXER_FIXES + '.' + c
+}
+
+export function cls (clsInfo: ClassInfo) {
+  if (clsInfo.superClassName === 'java.util.concurrent.Callable') return CLASS.CRASH_REPORT_DETAIL
+  if (clsInfo.superClassName === 'java.util.AbstractList' && !clsInfo.flags.abstract) {
+    const addSig = 'add:(ILjava/lang/Object;)V'
+    const addMethod = addSig in clsInfo.method && clsInfo.method[addSig]
+    if (addMethod) {
+      const invokeNotNull = addMethod.code.lines[1]
+      if (invokeNotNull && invokeNotNull.op === 'invokestatic' && invokeNotNull.call.methodName === 'notNull') {
+        return CLASS.NON_NULL_LIST
+      }
+    }
+  }
+  if (clsInfo.superClassName === 'java.lang.RuntimeException') {
+    const fields = Object.values(clsInfo.fields)
+    if (fields.length === 1 && s`${CLASS.CRASH_REPORT}`.matches(fields[0])) return CLASS.CRASH_EXCEPTION
+  }
 }
 
 export function method (methodInfo: MethodInfo) {
@@ -1075,100 +1208,91 @@ function enumClinit (methodInfo: MethodInfo) {
 
 function getEnumName (names: Array<string>, methodInfo: MethodInfo) {
   const { clsInfo, info } = methodInfo
-  const innerClass = (inner, outer = inner.slice(0, inner.lastIndexOf('$'))) => {
-    if (!clsInfo.isInnerClass) return
-    info.class[clsInfo.outerClassName].name = outer
-    return inner
-  }
   switch (names.slice(0, 5).join(',')) {
-    case 'PEACEFUL,EASY,NORMAL,HARD': return CLASS.DIFFICULTY
-    case 'NOT_SET,SURVIVAL,CREATIVE,ADVENTURE,SPECTATOR': return CLASS.GAME_MODE
-    case 'BLOCKED,OPEN,WALKABLE,TRAPDOOR,FENCE': return CLASS.PATH_NODE_TYPE
-    case 'OVERWORLD,NETHER,THE_END': return CLASS.DIMENSION_TYPE
-    case 'SUCCESS,PASS,FAIL': return CLASS.ACTION_RESULT
-    case 'TASK,CHALLENGE,GOAL': return CLASS.ADVANCEMENT_FRAME_TYPE
-    case 'BASE,SQUARE_BOTTOM_LEFT,SQUARE_BOTTOM_RIGHT,SQUARE_TOP_LEFT,SQUARE_TOP_RIGHT': return CLASS.BANNER_PATTERN
-    case 'MASTER,MUSIC,RECORDS,WEATHER,BLOCKS': return CLASS.SOUND_CATEGORY
-    case 'NORTH_SOUTH,EAST_WEST,ASCENDING_EAST,ASCENDING_WEST,ASCENDING_NORTH':
-      return clsInfo.isInnerClass ? CLASS.BLOCK_RAIL_BASE$DIRECTION : CLASS.RAIL_DIRECTION
-    case 'SOLID,BOWL,CENTER_SMALL,MIDDLE_POLE_THIN,CENTER': return CLASS.BLOCK_FACE_SHAPE
-    case 'NONE,CLOCKWISE_90,CLOCKWISE_180,COUNTERCLOCKWISE_90': return CLASS.ROTATION
     case 'ABOVE,BELOW,LEFT,RIGHT': return CLASS.ADVANCEMENT_TAB_TYPE
-    case 'COMMON,UNCOMMON,RARE,EPIC': return CLASS.RARITY
-    case 'NONE,IRON,GOLD,DIAMOND': return CLASS.HORSE_ARMOR_TYPE
-    case 'LEATHER,CHAIN,IRON,GOLD,DIAMOND': return CLASS.HORSE_ARMOR_TYPE
-    case 'WOOD,STONE,IRON,DIAMOND,GOLD': return clsInfo.isInnerClass ? CLASS.ITEM$TOOL_MATERIAL : CLASS.TOOL_MATERIAL
-    case 'MONSTER,CREATURE,AMBIENT,WATER_CREATURE': {
-      anyConstuctorFieldNamer(clsInfo, ['mobClass', 'mobCap', 'material', 'peaceful', 'animal'])
-      anyConstuctorFieldNamer(clsInfo, ['name', 'mobClass', 'mobCap', 'peaceful', 'animal'])
-      return CLASS.CREATURE_TYPE
-    }
-    case 'FLYING,HOOKED_IN_ENTITY,BOBBING': return CLASS.FISHING_BOBBER$STATE
-    case 'WHITE,ORANGE,MAGENTA,LIGHT_BLUE,YELLOW': return CLASS.DYE_COLOR
-    case 'HARP,BASEDRUM,SNARE,HAT,BASS': return CLASS.NOTE_BLOCK_INSTRUMENT
-    case 'MAINHAND,OFFHAND,FEET,LEGS,CHEST': return CLASS.EQUIPMENT_SLOT
-    case 'CAPE,JACKET,LEFT_SLEEVE,RIGHT_SLEEVE,LEFT_PANTS_LEG': return CLASS.PLAYER_MODEL_PART
-    case 'EMPTY,BASE,CARVED,LIQUID_CARVED,LIGHTED': // TODO: why?
-    case 'EMPTY,BASE,CARVED,LIQUID_CARVED,DECORATED': return CLASS.CHUNK_STAGE
     case 'ALL,ARMOR,ARMOR_FEET,ARMOR_LEGS,ARMOR_CHEST': return CLASS.ENCHANTMENT_TYPE
-    case 'PICKUP,QUICK_MOVE,SWAP,CLONE,THROW': return CLASS.CLICK_TYPE
-    case 'EXTREMELY_HIGH,VERY_HIGH,HIGH,NORMAL,LOW': return CLASS.TICK_PRIORITY
-    case 'NORMAL,DESTROY,BLOCK,IGNORE,PUSH_ONLY': return CLASS.PISTON_BEHAVIOR
-    case 'GROWING,SHRINKING,STATIONARY': return CLASS.BORDER_STATUS
-    case 'SAVE,LOAD,CORNER,DATA': return CLASS.STRUCTURE_BLOCK_MODE
-    case 'SOLID,CUTOUT_MIPPED,CUTOUT,TRANSLUCENT': return CLASS.BLOCK_RENDER_LAYER
-    case 'INVISIBLE,ENTITYBLOCK_ANIMATED,MODEL': return CLASS.BLOCK_RENDER_TYPE
-    case 'NATURAL,CHUNK_GENERATION,SPAWNER,STRUCTURE,BREEDING': return CLASS.SPAWN_REASON
-    case 'COMMON,UNCOMMON,RARE,VERY_RARE': return CLASS.ENCHANTMENT$RARITY
     case 'ALL,FIRE,FALL,EXPLOSION,PROJECTILE': return CLASS.ENCHANTMENT_PROTECTION$TYPE
-    case 'NATURAL_STONE,NETHERRACK': return CLASS.ORE_CONFIG$TARGET
+    case 'AND,AND_INVERTED,AND_REVERSE,CLEAR,COPY': return CLASS.GL_STATE_MANAGER$LOGIC_OP
+    case 'BASE,SQUARE_BOTTOM_LEFT,SQUARE_BOTTOM_RIGHT,SQUARE_TOP_LEFT,SQUARE_TOP_RIGHT': return CLASS.BANNER_PATTERN
     case 'BITMAP,TTF,LEGACY_UNICODE': return CLASS.FONT_TYPE
+    case 'BLOCKED,OPEN,WALKABLE,TRAPDOOR,FENCE': return CLASS.PATH_NODE_TYPE
+    case 'CAPE,JACKET,LEFT_SLEEVE,RIGHT_SLEEVE,LEFT_PANTS_LEG': return CLASS.PLAYER_MODEL_PART
     case 'CHAT,SYSTEM,GAME_INFO': return CLASS.CHAT_TYPE
-    case 'NEVER,SOURCE_ONLY,ALWAYS': return CLASS.RAY_TRACE_FLUID_MODE
-    case 'PROTOCHUNK,LEVELCHUNK': return CLASS.CHUNK_STAGE$TYPE
-    case 'DEFAULT,STICKY': return CLASS.PISTON_TYPE
-    case 'SKY,BLOCK': return CLASS.LIGHT_TYPE
-    case 'MAIN_HAND,OFF_HAND': return CLASS.HAND
-    case 'DOWN,UP,NORTH,SOUTH,WEST':
-      if (clsInfo.isInnerClass) return
-      if (clsInfo.interfaceNames.length) return CLASS.FACING
-      return
-    case 'NONE,TAIGA,EXTREME_HILLS,JUNGLE,MESA':
-      return CLASS.BIOME$CATEGORY
-    case 'NONE,RAIN,SNOW':
-      return CLASS.BIOME$PRECIPITATION
-    case 'OCEAN,COLD,MEDIUM,WARM':
-      return CLASS.BIOME$CLIMATE
-    case 'PINK,BLUE,RED,GREEN,YELLOW':
-      return CLASS.BOSS_INFO$COLOR
-    case 'PROGRESS,NOTCHED_6,NOTCHED_10,NOTCHED_12,NOTCHED_20':
-      return CLASS.BOSS_INFO$OVERLAY
-    case 'WORLD_SURFACE_WG,OCEAN_FLOOR_WG,LIGHT_BLOCKING,MOTION_BLOCKING,MOTION_BLOCKING_NO_LEAVES':
-    case 'WORLD_SURFACE_WG,OCEAN_FLOOR_WG,MOTION_BLOCKING,MOTION_BLOCKING_NO_LEAVES,OCEAN_FLOOR':
-      return CLASS.HEIGHTMAP$TYPE
-    case 'WORLDGEN,LIVE_WORLD':
-    case 'WORLDGEN,LIVE_WORLD,CLIENT':
-      return CLASS.HEIGHTMAP$WORLD_STATE
-    case 'LINUX,SOLARIS,WINDOWS,OSX,UNKNOWN':
-      return CLASS.UTILS$OS
-    case 'MISS,BLOCK,ENTITY':
-      return CLASS.HIT_RESULT$TYPE
-    case 'ON_GROUND,IN_WATER':
-      return CLASS.SPAWN_CONDITIONS$PLACE
-    case 'AND,AND_INVERTED,AND_REVERSE,CLEAR,COPY': return innerClass(CLASS.GL_STATE_MANAGER$LOGIC_OP)
+    case 'COMMON,UNCOMMON,RARE,EPIC': return CLASS.RARITY
+    case 'COMMON,UNCOMMON,RARE,VERY_RARE': return CLASS.ENCHANTMENT$RARITY
     case 'CONSTANT_ALPHA,CONSTANT_COLOR,DST_ALPHA,DST_COLOR,ONE':
       return innerClass(names.includes('SRC_ALPHA_SATURATE')
         ? CLASS.GL_STATE_MANAGER$SOURCE_FACTOR
         : CLASS.GL_STATE_MANAGER$DEST_FACTOR)
-    case 'DEFAULT,PLAYER_SKIN,TRANSPARENT_MODEL': return innerClass(CLASS.GL_STATE_MANAGER$PROFILE)
-    case 'S,T,R,Q': return innerClass(CLASS.GL_STATE_MANAGER$TEX_GEN_COORD)
-    case 'LINEAR,EXP,EXP2': return innerClass(CLASS.GL_STATE_MANAGER$FOG_MODE)
-    case 'FRONT,BACK,FRONT_AND_BACK': return innerClass(CLASS.GL_STATE_MANAGER$CULL_FACE)
+    case 'DEFAULT,PLAYER_SKIN,TRANSPARENT_MODEL': return CLASS.GL_STATE_MANAGER$PROFILE
+    case 'DEFAULT,STICKY': return CLASS.PISTON_TYPE
+    case 'DOWN,UP,NORTH,SOUTH,WEST':
+      if (clsInfo.isInnerClass) return
+      if (clsInfo.interfaceNames.length) return CLASS.FACING
+      return
+    case 'EMPTY,BASE,CARVED,LIQUID_CARVED,LIGHTED': // TODO: why?
+    case 'EMPTY,BASE,CARVED,LIQUID_CARVED,DECORATED': return CLASS.CHUNK_STAGE
+    case 'EXTREMELY_HIGH,VERY_HIGH,HIGH,NORMAL,LOW': return CLASS.TICK_PRIORITY
+    case 'FLYING,HOOKED_IN_ENTITY,BOBBING': return CLASS.FISHING_BOBBER$STATE
+    case 'FRONT,BACK,FRONT_AND_BACK': return CLASS.GL_STATE_MANAGER$CULL_FACE
+    case 'GROWING,SHRINKING,STATIONARY': return CLASS.BORDER_STATUS
+    case 'HARP,BASEDRUM,SNARE,HAT,BASS': return CLASS.NOTE_BLOCK_INSTRUMENT
     case 'INSTANCE': {
       if (clsInfo.isInnerClass && info.classReverse[clsInfo.outerClassName] === CLASS.GL_STATE_MANAGER) {
         return CLASS.GL_STATE_MANAGER$VIEWPORT
       }
+      break
     }
+    case 'INVISIBLE,ENTITYBLOCK_ANIMATED,MODEL': return CLASS.BLOCK_RENDER_TYPE
+    case 'LEATHER,CHAIN,IRON,GOLD,DIAMOND': return CLASS.HORSE_ARMOR_TYPE
+    case 'LINEAR,EXP,EXP2': return CLASS.GL_STATE_MANAGER$FOG_MODE
+    case 'LINUX,SOLARIS,WINDOWS,OSX,UNKNOWN': return CLASS.UTILS$OS
+    case 'MAINHAND,OFFHAND,FEET,LEGS,CHEST': return CLASS.EQUIPMENT_SLOT
+    case 'MAIN_HAND,OFF_HAND': return CLASS.HAND
+    case 'MASTER,MUSIC,RECORDS,WEATHER,BLOCKS': return CLASS.SOUND_CATEGORY
+    case 'MAJOR_NEGATIVE,MINOR_NEGATIVE,MINOR_POSITIVE,MAJOR_POSITIVE,TRADING': return CLASS.GOSSIP_TYPE
+    case 'MISS,BLOCK,ENTITY': return CLASS.HIT_RESULT$TYPE
+    case 'MONSTER,CREATURE,AMBIENT,WATER_CREATURE':
+    case 'MONSTER,CREATURE,AMBIENT,WATER_CREATURE,MISC': {
+      anyConstuctorFieldNamer(clsInfo, ['mobClass', 'mobCap', 'material', 'peaceful', 'animal'])
+      anyConstuctorFieldNamer(clsInfo, ['name', 'mobClass', 'mobCap', 'peaceful', 'animal'])
+      return CLASS.CREATURE_TYPE
+    }
+    case 'NATURAL,CHUNK_GENERATION,SPAWNER,STRUCTURE,BREEDING': return CLASS.SPAWN_REASON
+    case 'NATURAL_STONE,NETHERRACK': return CLASS.ORE_CONFIG$TARGET
+    case 'NEVER,SOURCE_ONLY,ALWAYS': return CLASS.RAY_TRACE_FLUID_MODE
+    case 'NONE,CLOCKWISE_90,CLOCKWISE_180,COUNTERCLOCKWISE_90': return CLASS.ROTATION
+    case 'NONE,IRON,GOLD,DIAMOND': return CLASS.HORSE_ARMOR_TYPE
+    case 'NONE,RAIN,SNOW': return CLASS.BIOME$PRECIPITATION
+    case 'NONE,TAIGA,EXTREME_HILLS,JUNGLE,MESA': return CLASS.BIOME$CATEGORY
+    case 'NORMAL,DESTROY,BLOCK,IGNORE,PUSH_ONLY': return CLASS.PISTON_BEHAVIOR
+    case 'NORTH_SOUTH,EAST_WEST,ASCENDING_EAST,ASCENDING_WEST,ASCENDING_NORTH':
+      return clsInfo.isInnerClass ? CLASS.BLOCK_RAIL_BASE$DIRECTION : CLASS.RAIL_DIRECTION
+    case 'NOT_SET,SURVIVAL,CREATIVE,ADVENTURE,SPECTATOR': return CLASS.GAME_MODE
+    case 'OCEAN,COLD,MEDIUM,WARM': return CLASS.BIOME$CLIMATE
+    case 'ON_GROUND,IN_WATER': return CLASS.SPAWN_CONDITIONS$PLACE
+    case 'OVERWORLD,NETHER,THE_END': return CLASS.DIMENSION_TYPE
+    case 'PEACEFUL,EASY,NORMAL,HARD': return CLASS.DIFFICULTY
+    case 'PICKUP,QUICK_MOVE,SWAP,CLONE,THROW': return CLASS.CLICK_TYPE
+    case 'PINK,BLUE,RED,GREEN,YELLOW': return CLASS.BOSS_INFO$COLOR
+    case 'PROGRESS,NOTCHED_6,NOTCHED_10,NOTCHED_12,NOTCHED_20': return CLASS.BOSS_INFO$OVERLAY
+    case 'PROTOCHUNK,LEVELCHUNK': return CLASS.CHUNK_STAGE$TYPE
+    case 'S,T,R,Q': return CLASS.GL_STATE_MANAGER$TEX_GEN_COORD
+    case 'SAVE,LOAD,CORNER,DATA': return CLASS.STRUCTURE_BLOCK_MODE
+    case 'SELF,PLAYER,PISTON,SHULKER_BOX,SHULKER': return CLASS.MOVEMENT_TYPE
+    case 'SKY,BLOCK': return CLASS.LIGHT_TYPE
+    case 'SOLID,BOWL,CENTER_SMALL,MIDDLE_POLE_THIN,CENTER': return CLASS.BLOCK_FACE_SHAPE
+    case 'SOLID,CUTOUT_MIPPED,CUTOUT,TRANSLUCENT': return CLASS.BLOCK_RENDER_LAYER
+    case 'SUCCESS,PASS,FAIL': return CLASS.ACTION_RESULT
+    case 'TASK,CHALLENGE,GOAL': return CLASS.ADVANCEMENT_FRAME_TYPE
+    case 'WHITE,ORANGE,MAGENTA,LIGHT_BLUE,YELLOW': return CLASS.DYE_COLOR
+    case 'WOOD,STONE,IRON,DIAMOND,GOLD': return clsInfo.isInnerClass ? CLASS.ITEM$TOOL_MATERIAL : CLASS.TOOL_MATERIAL
+    case 'WORLDGEN,LIVE_WORLD':
+    case 'WORLDGEN,LIVE_WORLD,CLIENT':
+      return CLASS.HEIGHTMAP$WORLD_STATE
+    case 'WORLD_SURFACE_WG,OCEAN_FLOOR_WG,LIGHT_BLOCKING,MOTION_BLOCKING,MOTION_BLOCKING_NO_LEAVES':
+    case 'WORLD_SURFACE_WG,OCEAN_FLOOR_WG,MOTION_BLOCKING,MOTION_BLOCKING_NO_LEAVES,OCEAN_FLOOR':
+      return CLASS.HEIGHTMAP$TYPE
   }
 }
 

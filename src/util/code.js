@@ -11,11 +11,13 @@ function resolve (info: FullInfo, raw: string) {
 
 class Signature {
   args: ?Array<string>;
+  argOffsets: ?Array<number>;
   return: string;
 
-  constructor (args: ?Array<string>, ret: string) {
+  constructor (args: ?Array<string>, ret: string, argOffsets?: Array<number>) {
     this.args = args
     this.return = ret
+    this.argOffsets = argOffsets
   }
 
   matches (methodOrField: MethodInfo | FieldInfo) {
@@ -27,7 +29,10 @@ class Signature {
       return false
     }
     if (methodOrField.type === 'method') {
-      if (this.args) return filled === methodOrField.sig
+      if (this.args) {
+        if (!this.return) return methodOrField.sig.startsWith(filled)
+        return filled === methodOrField.sig
+      }
       return filled === methodOrField.retSig
     }
     return methodOrField.sig === filled
@@ -54,10 +59,12 @@ export function parseSignature (sig: string) {
 
 export function signatureTag (strings: Array<string>, ...args: Array<string>) {
   const parsedArgs = []
+  const argOffsets = []
   let parsedReturn = ''
   let startArgs
   let endArgs
   let array = ''
+  let nextOffset = 0
   for (const str of strings) {
     for (let i = 0; i < str.length; i++) {
       const c = str[i]
@@ -78,12 +85,22 @@ export function signatureTag (strings: Array<string>, ...args: Array<string>) {
           const colon = str.indexOf(';', i) + 1
           const cls = str.slice(i, colon)
           i = colon - 1
-          if (!endArgs) parsedArgs.push(array + cls)
-          else parsedReturn = array + cls
+          if (!endArgs) {
+            parsedArgs.push(array + cls)
+            argOffsets.push(nextOffset++)
+          } else {
+            parsedReturn = array + cls
+          }
           array = ''
         } else {
-          if (!endArgs) parsedArgs.push(array + c)
-          else parsedReturn = array + c
+          if (!endArgs) {
+            parsedArgs.push(array + c)
+            argOffsets.push(nextOffset)
+            if (!array && (c === 'D' || c === 'J')) nextOffset += 2
+            else nextOffset++
+          } else {
+            parsedReturn = array + c
+          }
           array = ''
         }
       }
@@ -91,11 +108,15 @@ export function signatureTag (strings: Array<string>, ...args: Array<string>) {
     if (args.length) {
       const next = args.shift()
       if (!next) throw Error(`Invalid parameter for ${!startArgs || endArgs ? 'return type' : 'argument ' + parsedArgs.length}`)
-      if (startArgs && !endArgs) parsedArgs.push(next)
-      else parsedReturn = next
+      if (startArgs && !endArgs) {
+        parsedArgs.push(array + next)
+        argOffsets.push(nextOffset++)
+      } else {
+        parsedReturn = array + next
+      }
     }
   }
-  return new Signature(startArgs ? parsedArgs : null, parsedReturn)
+  return new Signature(startArgs ? parsedArgs : null, parsedReturn, argOffsets)
 }
 
 const methodInheritance = {}

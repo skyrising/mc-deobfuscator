@@ -11,7 +11,7 @@ export function method (methodInfo: MethodInfo) {
       if (!newCarver || newCarver.op !== 'new') return
       const { className } = ((newCarver: any): CodeLineNew)
       const carverClass = info.class[className]
-      carverClass.name = PKG.WORLD_GEN_CARVING + '.' + toUpperCamelCase(id)
+      carverClass.name = PKG.WORLD_GEN_CARVING + '.' + toUpperCamelCase(id) + 'Carver'
       return {
         class: carverClass.name
       }
