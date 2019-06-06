@@ -58,7 +58,7 @@ export function method (methodInfo: MethodInfo) {
   switch (sig) {
     case '(IIIIIIZ)Z': return 'isAreaLoaded'
   }
-  if (methodInfo.obfName === '<init>' && methodInfo.args.length === 5) {
+  if (methodInfo.obfName === '<init>' && methodInfo.argSigs.length === 5) {
     info.class[methodInfo.argSigs[0].slice(1, -1)].name = CLASS.SAVE_HANDLER
     info.class[methodInfo.argSigs[2].slice(1, -1)].name = CLASS.WORLD_PROVIDER
   }

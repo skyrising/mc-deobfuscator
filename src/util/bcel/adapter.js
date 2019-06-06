@@ -6,42 +6,8 @@ import { h2, hsig, base26, compress } from '../hash'
 import { decodeClassAccessFlags, decodeMethodAccessFlags, decodeFieldAccessFlags } from '../class-reader/util'
 import Interpreter from '../class-reader/interpreter'
 import { lcFirst, toUnderScoreCase } from '../index'
-import { parseSignature } from '../code'
+import { parseSignature, makeCode, makeCodeLine } from '../code'
 import * as C from '../class-reader/constants'
-
-const _CodeLine = {
-  nextMatching (predicate: CodeLine => boolean, includeSelf = false) {
-    if (includeSelf && predicate(this)) return this
-    if (!this.next) return
-    return this.next.nextMatching(predicate, true)
-  },
-  nextOp (line: string|Array<string>, includeSelf = false) {
-    line = Array.isArray(line) ? line : [line]
-    for (const candidate of line) {
-      const [op, arg] = candidate.split(' ')
-      if (includeSelf && this.op === op && (!arg || this.arg === arg)) return this
-    }
-    if (!this.next) return
-    return this.next.nextOp(line, true)
-  },
-  prevMatching (predicate: CodeLine => boolean, includeSelf = false) {
-    if (includeSelf && predicate(this)) return this
-    if (!this.next) return
-    return this.next.prevMatching(predicate, true)
-  },
-  prevOp (line: string|Array<string>, includeSelf = false) {
-    line = Array.isArray(line) ? line : [line]
-    for (const candidate of line) {
-      const [op, arg] = candidate.split(' ')
-      if (includeSelf && this.op === op && (!arg || this.arg === arg)) return this
-    }
-    if (!this.previous) return
-    return this.previous.prevOp(line, true)
-  },
-  [util.inspect.custom] () {
-    return this.op + ' ' + this.arg
-  }
-}
 
 const decoders: {[string]: (CodeLine, Code, BCELConstantPool, Array<BCELBootstrapMethod>) => any} = {
   _call (line: CodeLine, parent: Code, cp: BCELConstantPool, bm: Array<BCELBootstrapMethod>) {
@@ -130,10 +96,7 @@ function decodeLine (l: string, parent: Code, cp: BCELConstantPool, bm: Array<BC
   const match = l.match(/^(\d+):\s*([^\t]+)\s*(.*?)(?: \(\d+\))?$/)
   if (!match) return
   const [, offset, op, arg] = match
-  const line: $Shape<CodeLine> = Object.create(_CodeLine)
-  line.offset = +offset
-  line.op = op
-  line.arg = arg
+  const line = makeCodeLine({ offset: +offset, op, arg })
   if (decoders[op]) decoders[op](line, parent, cp, bm)
   if (op === 'ldc_w' || op === 'ldc2_w' || op === 'ldc' || op === 'bipush' || op === 'sipush' || op === 'ipush') {
     const l: CodeLineLoadConst = (line: any)
@@ -248,37 +211,17 @@ function parseConst (c: string): $Shape<Constant> {
 }
 
 export async function getCode (method: BCELMethod, cp: BCELConstantPool, bm: Array<BCELBootstrapMethod>): Promise<Code> {
-  const code: Code & {code: string} = {
-    code: '',
-    lines: [],
-    calls: [],
-    fields: [],
-    consts: [],
-    constants: [],
-    matches (predicates: Array<string | RegExp | (CodeLine => any)>) {
-      if (predicates.length !== this.lines.length) return false
-      for (let i = 0; i < predicates.length; i++) {
-        const predicate = predicates[i]
-        const line = this.lines[i]
-        if (typeof predicate === 'string' && line.op !== predicate) return false
-        if (typeof predicate === 'function' && !predicate(line)) return false
-        if (predicate instanceof RegExp && !predicate.test(line.op)) return false
-      }
-      return true
-    }
-  }
   try {
-    code.code = await method.getCodeAsync().then(c => c.toStringAsync())
-  } catch (error) {
+    const codeStr = await method.getCodeAsync().then(c => c.toStringAsync())
+    const lines = codeStr.split('\n')
+      .filter(l => /^\d+:/.test(l))
+      .map(l => decodeLine(l, code, cp, bm))
+    const code = makeCode(lines)
+    code.code = codeStr
     return code
+  } catch (error) {
+    return makeCode([])
   }
-  code.lines = code.code.split('\n')
-    .filter(l => /^\d+:/.test(l))
-    .map(l => decodeLine(l, code, cp, bm))
-    .filter(Boolean)
-  for (let i = 0; i < code.lines.length - 1; i++) code.lines[i].next = code.lines[i + 1]
-  for (let i = 1; i < code.lines.length; i++) code.lines[i].previous = code.lines[i - 1]
-  return code
 }
 
 async function getClsInfo (cls: BCELClass, clsInfo: ClassInfo) {
@@ -350,6 +293,9 @@ async function getClsInfo (cls: BCELClass, clsInfo: ClassInfo) {
   const visibleFieldsByType = {}
   for (const fd of await cls.getFieldsAsync()) {
     const acc = await fd.getAccessFlagsAsync()
+    const fieldType = await fd.getTypeAsync()
+    // const fieldInfo = info.newField(clsInfo.obfName, await fd.getFieldNameAsync(), await fieldType.getSignatureAsync(), acc)
+    // fieldInfo.fieldType = fieldType
     const fieldInfo: FieldInfo & {defaultNameIndex: number} = ({
       type: 'field',
       clsInfo,
@@ -361,7 +307,7 @@ async function getClsInfo (cls: BCELClass, clsInfo: ClassInfo) {
       getDefaultName () {
         const base = getDefaultNameForFieldType(this)
         const sc = clsInfo.superClassName in info.class && info.class[clsInfo.superClassName]
-        const fotis = (sc && sc.getVisibleFieldsByType && sc.getVisibleFieldsOfType(this.sig)) || []
+        const fotis = (sc && sc.getVisibleFieldsOfType && sc.getVisibleFieldsOfType(this.sig)) || []
         if (fotis.length + fieldsByType[this.sig].length > 1) {
           const index = fotis.length + this.defaultNameIndex
           const b = fieldInfo.flags.static && fieldInfo.flags.final ? toUnderScoreCase(base).toUpperCase() + '_' : base
@@ -418,45 +364,6 @@ export async function enrichClsInfo (cls: BCELClass, info: FullInfo): Promise<Cl
   const clsInfo: ClassInfo = info.class[className]
   if (clsInfo.infoComplete) return clsInfo
   return getClsInfo(cls, clsInfo)
-}
-
-function getDefaultNameForFieldType (fieldInfo: FieldInfo) {
-  const { sig, info } = fieldInfo
-  let baseType = sig
-  let suffix = ''
-  while (baseType[0] === '[') {
-    suffix += 's'
-    baseType = baseType.slice(1)
-  }
-  if (baseType[0] === 'L') {
-    let name = baseType.slice(1, -1)
-    if (name in info.class) {
-      const clsInfo = info.class[name]
-      name = clsInfo.name || name
-    }
-    name = lcFirst(name.slice(Math.max(name.lastIndexOf('/'), name.lastIndexOf('.')) + 1))
-    name = ({
-      boolean: 'aboolean',
-      byte: 'abyte',
-      class: 'clazz',
-      double: 'adouble',
-      float: 'afloat',
-      long: 'along',
-      short: 'ashort'
-    })[name] || name
-    return name + suffix
-  }
-  switch (baseType[0]) {
-    case 'I': return 'i' + suffix
-    case 'J': return 'l' + suffix
-    case 'B': return 'b' + suffix
-    case 'S': return 's' + suffix
-    case 'C': return 'c' + suffix
-    case 'Z': return 'flag' + suffix
-    case 'F': return 'f' + suffix
-    case 'D': return 'd' + suffix
-  }
-  throw Error('invalid state')
 }
 
 async function getAttributes (arg: [ClassInfo, BCELClass] | [FieldInfo, BCELField] | [MethodInfo, BCELMethod]) {

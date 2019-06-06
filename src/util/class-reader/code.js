@@ -26,9 +26,9 @@ export function parseCode (buf, cp) {
       }
       line.op = CONSTS.OP_NAMES[line.opId]
       if (op === CONSTS.OP_BIPUSH) {
-        line.operands.push(line.const = io.r8(pb))
+        line.operands.push(line.const = { type: 'int', value: io.r8(pb)})
       } else if (op === CONSTS.OP_SIPUSH) {
-        line.operands.push(line.const = io.rsb16(pb))
+        line.operands.push(line.const = { type: 'int', value: io.rsb16(pb)})
       } else if (op === CONSTS.OP_LDC) {
         line.operands.push(line.const = cp[line.index = io.r8(pb)])
       } else if (op === CONSTS.OP_LDC_W || op === CONSTS.OP_LDC2_W) {

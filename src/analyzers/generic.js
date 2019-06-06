@@ -2,7 +2,7 @@
 import * as PKG from '../PackageNames'
 import * as CLASS from '../ClassNames'
 import { hasSuperClass, toUpperCamelCase, decodeType, getBaseInterfaces } from '../util'
-import { signatureTag as s } from '../util/code'
+import { signatureTag as s, getSuperClassChain } from '../util/code'
 import { toStringFieldNamer, anyConstuctorFieldNamer, nbtFieldNamer } from './sharedLogic'
 
 export const generic = true
@@ -241,7 +241,17 @@ const simpleConstToClass: {[string]: string | SimpleHandler | Array<SimpleHandle
   "{Name:'minecraft:air'}": CLASS.THE_FLATTENING_BLOCK_STATES,
   'pickaxeDiamond': CLASS.ITEM,
   '6364136223846793005': CLASS.GEN_LAYER,
-  '-559038737': CLASS.CHUNK_POS,
+  '-559038737': [{
+    predicate ({clsInfo}) {
+      return Object.keys(clsInfo.fields).length > 2
+    },
+    name: CLASS.CHUNK_POS
+  }, {
+    predicate ({clsInfo}) {
+      return Object.keys(clsInfo.fields).length === 2
+    },
+    name: CLASS.COLUMN_POS
+  }],
   'RCON Client': CLASS.RCON_CLIENT,
   'Plains': CLASS.BIOME,
   'STRIKETHROUGH': CLASS.TEXT_FORMATTING,
@@ -756,7 +766,9 @@ const simpleConstToClass: {[string]: string | SimpleHandler | Array<SimpleHandle
     name: CLASS.ITEM$BUILDER,
     method: 'setMaxStackSize',
     eval ({ line, clsInfo }) {
-      clsInfo.fields[line.prevOp('getstatic').field.fieldName].name = 'maxDamage'
+      const getstatic = line.prevOp('getstatic')
+      if (!getstatic) return
+      clsInfo.fields[getstatic.field.fieldName].name = 'maxDamage'
       clsInfo.fields[line.nextOp('putstatic').field.fieldName].name = 'maxStackSize'
     }
   },
@@ -991,8 +1003,8 @@ function handleSimple (obj: ?(string | SimpleHandler | Array<SimpleHandler>), pa
   if (obj.method) methodInfo.name = obj.method
   if (obj.superClass) info.class[clsInfo.superClassName].setName(obj.superClass, `${JSON.stringify(obj)}.superClass`)
   if (obj.baseClass) {
-    const scs = cls.getSuperClasses()
-    if (scs.length >= 2) info.class[scs[scs.length - 2].getClassName()].setName(obj.baseClass, `${JSON.stringify(obj)}.baseClass`)
+    const scs = getSuperClassChain(clsInfo)
+    if (scs.length > 0) info.class[scs[scs.length - 1]].setName(obj.baseClass, `${JSON.stringify(obj)}.baseClass`)
     else console.log((obj.name || clsInfo.obfName) + ' does not have enough superclasses')
   }
   if (obj.outerClass) {
@@ -1156,10 +1168,11 @@ export function method (methodInfo: MethodInfo) {
     }
   }
   for (const line of code.lines) {
-    if (line.const === undefined) continue
+    console.debug(line)
+    if (!line.constant) continue
     try {
-      const name = getClassNameForConstant(String(line.const), line, methodInfo)
-      if (name) clsInfo.setName(name, `constant ${line.const}`)
+      const name = getClassNameForConstant(String(line.constant.value), line, methodInfo)
+      if (name) clsInfo.setName(name, `constant ${line.constant.value}`)
     } catch (e) {
       if (e.name === 'DuplicateNamingError') console.error(e.message)
       else console.error(e)

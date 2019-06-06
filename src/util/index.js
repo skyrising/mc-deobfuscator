@@ -165,6 +165,7 @@ export function getMappedClassName (infoIn: FullInfo | ClassInfo, from?: string)
 
 const logged = new Set()
 export function getCallStats (obj: Object) {
+  if (!obj) return obj
   const name = obj.getClass ? obj.getClass().getSimpleName() : (obj[Symbol.toStringTag] || obj.prototype.constructor.name)
   return new Proxy(obj, {
     get (base, key) {
@@ -244,4 +245,9 @@ export function commonWords (arr: Array<Array<string>>, threshold: number = 1): 
     result.push({ word, offsetSum: offsetSum * (arr.length / count) })
   }
   return result.sort((a, b) => a.offsetSum - b.offsetSum).map(o => o.word)
+}
+
+export function v (cpe) {
+  if (cpe.value) return v(cpe.value)
+  return cpe
 }

@@ -14,10 +14,10 @@ export function method (methodInfo: MethodInfo) {
     methodInfo.name = 'getMetaFromState'
     info.class[methodInfo.argSigs[0].slice(1, -1)].name = CLASS.BLOCK_STATE
   }
-  if (methodInfo.obfName === '<init>' && methodInfo.args.length === 2 && sig.startsWith('(L')) {
+  if (methodInfo.obfName === '<init>' && methodInfo.argSigs.length === 2 && sig.startsWith('(L')) {
     info.class[methodInfo.argSigs[0].slice(1, -1)].name = CLASS.MATERIAL
   }
-  if (methodInfo.obfName === '<init>' && methodInfo.args.length === 1) {
+  if (methodInfo.obfName === '<init>' && methodInfo.argSigs.length === 1) {
     const arg0 = methodInfo.argSigs[0].slice(1, -1)
     info.class[arg0].name = arg0.includes('$') ? CLASS.BLOCK$BUILDER : CLASS.MATERIAL
   }

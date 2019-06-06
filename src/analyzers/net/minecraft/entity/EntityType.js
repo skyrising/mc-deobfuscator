@@ -3,7 +3,7 @@
 import { signatureTag as s } from '../../../../util/code'
 import * as CLASS from '../../../../ClassNames'
 import * as PKG from '../../../../PackageNames'
-import { toUpperCamelCase, toUnderScoreCase } from '../../../../util'
+import { toUpperCamelCase, toUnderScoreCase, v } from '../../../../util'
 
 const ENTITY_PKG = {
   AreaEffectCloud: PKG.ENTITY_EFFECT,
@@ -144,7 +144,7 @@ export function method (methodInfo: MethodInfo) {
         const indy = line.nextOp('invokedynamic')
         if (indy) {
           const constrRef = indy.invokeDynamic.bootstrapMethod.args[1].ref
-          if (constrRef.nameAndType.name === '<init>') entClassName = constrRef.class
+          if (v(constrRef.nameAndType.name) === '<init>') entClassName = v(constrRef.class)
         }
       }
       const pkg = name in ENTITY_PKG ? ENTITY_PKG[name] : PKG.ENTITY

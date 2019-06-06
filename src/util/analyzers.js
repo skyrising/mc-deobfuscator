@@ -135,6 +135,7 @@ async function callAnalyzerClass (analyzer: Analyzer, cls: BCELClass, clsInfo: C
   if (!analyzer.cls) return false
   const end = perf(`${analyzer.name || analyzer.file || 'unknown'}.cls(${clsInfo.name || clsInfo.obfName})`)
   try {
+    if (analyzer.cls.length !== 1) console.warn(`${analyzer.name || analyzer.file || 'unknown'}.cls uses deprecated signature`)
     const name = analyzer.cls.length === 1 ? await analyzer.cls(clsInfo) : await analyzer.cls(cls, clsInfo, clsInfo.info)
     if (name) clsInfo.name = name
     return Boolean(name)
@@ -149,6 +150,7 @@ async function callAnalyzerMethod (analyzer: Analyzer, method: BCELMethod, metho
   if (!analyzer.method) return false
   const end = perf(`${analyzer.name || analyzer.file || 'unknown'}.method(${methodInfo.clsInfo.name || methodInfo.clsInfo.obfName}.${methodInfo.name || methodInfo.obfName}:${methodInfo.sig})`)
   try {
+    if (analyzer.method.length !== 1) console.warn(`${analyzer.name || analyzer.file || 'unknown'}.method uses deprecated signature`)
     let name = analyzer.method.length === 1 ? await analyzer.method(methodInfo) : await analyzer.method((methodInfo.clsInfo: any).bin, method, methodInfo.code, methodInfo, methodInfo.clsInfo, methodInfo.info)
     if (name) methodInfo.name = name
     return Boolean(name)
@@ -163,6 +165,7 @@ async function callAnalyzerField (analyzer: Analyzer, field: BCELField, fieldInf
   if (!analyzer.field) return false
   const end = perf(`${analyzer.name || analyzer.file || 'unknown'}.field(${fieldInfo.clsInfo.name || fieldInfo.clsInfo.obfName}.${fieldInfo.name || fieldInfo.obfName}:${fieldInfo.sig})`)
   try {
+    if (analyzer.field.length !== 1) console.warn(`${analyzer.name || analyzer.file || 'unknown'}.field uses deprecated signature`)
     const name = analyzer.field.length === 1 ? await analyzer.field(fieldInfo) : await analyzer.field(field, fieldInfo.clsInfo, fieldInfo.info, (fieldInfo.clsInfo: any).bin)
     if (name) fieldInfo.name = name
     return Boolean(name)

@@ -40,10 +40,12 @@ export function readClass (buf: Buffer, name?: string) {
     }
     const cp = readConstantPool(pb)
     cf.constantPool = cp
+    /*
     if (name === 'crk.class') {
       for (const e of cf.constantPool) console.log(util.inspect(e, { customInspect: false }))
       console.log(io.error(pb, ''))
     }
+    */
     cf.accessFlags = io.rb16(pb)
     cf.thisClass = cp[cf.thisIndex = io.rb16(pb)]
     cf.className = cf.thisClass.value.value
@@ -257,8 +259,31 @@ export function readAttribute (pb, cp, tgt) {
       }
       break
     }
-    case 'SourceFile': {
+    case 'SourceFile':
+    case 'Signature': {
       attr.value = cp[attr.info.readUInt16BE(0)]
+      break
+    }
+    case 'BootstrapMethods': {
+      let offset = 0
+      const num = attr.info.readUInt16BE(offset)
+      offset += 2
+      const bms = []
+      for (let i = 0; i < num; i++) {
+        const bm = {
+          ref: cp[attr.info.readUInt16BE(offset)],
+          arguments: []
+        }
+        offset += 2
+        const numArgs = attr.info.readUInt16BE(offset)
+        offset += 2
+        for (let j = 0; j < numArgs; j++) {
+          bm.arguments.push(cp[attr.info.readUInt16BE(offset)])
+          offset += 2
+        }
+        bms.push(bm)
+      }
+      attr.value = bms
       break
     }
   }

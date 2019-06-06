@@ -1,4 +1,6 @@
 // @flow
+import util from 'util'
+
 function resolve (info: FullInfo, raw: string) {
   if (raw.length === 1 || raw[0] === 'L') return raw
   if (raw[0] === '[') {
@@ -158,4 +160,79 @@ export function classNameTask <C: {[string]: string}> (names: C, task: ($ObjMap<
       return task(mapped)
     }
   }
+}
+
+export function makeCode (lines: Array<CodeLine>) {
+  lines = lines.filter(Boolean)
+  const code: Code & {code: string} = {
+    code: '',
+    lines,
+    calls: lines.map(l => l.call).filter(Boolean),
+    fields: lines.map(l => l.field).filter(Boolean),
+    consts: lines.map(l => l.const).filter(c => c !== undefined),
+    constants: lines.map(l => l.constant).filter(Boolean),
+    matches (predicates: Array<string | RegExp | (CodeLine => any)>) {
+      if (predicates.length !== this.lines.length) return false
+      for (let i = 0; i < predicates.length; i++) {
+        const predicate = predicates[i]
+        const line = this.lines[i]
+        if (typeof predicate === 'string' && line.op !== predicate) return false
+        if (typeof predicate === 'function' && !predicate(line)) return false
+        if (predicate instanceof RegExp && !predicate.test(line.op)) return false
+      }
+      return true
+    }
+  }
+  for (let i = 0; i < code.lines.length - 1; i++) code.lines[i].next = code.lines[i + 1]
+  for (let i = 1; i < code.lines.length; i++) code.lines[i].previous = code.lines[i - 1]
+  return code
+}
+
+const _CodeLine = {
+  nextMatching (predicate: CodeLine => boolean, includeSelf = false) {
+    if (includeSelf && predicate(this)) return this
+    if (!this.next) return
+    return this.next.nextMatching(predicate, true)
+  },
+  nextOp (line: string|Array<string>, includeSelf = false) {
+    line = Array.isArray(line) ? line : [line]
+    for (const candidate of line) {
+      const [op, arg] = candidate.split(' ')
+      if (includeSelf && this.op === op && (!arg || this.arg === arg)) return this
+    }
+    if (!this.next) return
+    return this.next.nextOp(line, true)
+  },
+  prevMatching (predicate: CodeLine => boolean, includeSelf = false) {
+    if (includeSelf && predicate(this)) return this
+    if (!this.next) return
+    return this.next.prevMatching(predicate, true)
+  },
+  prevOp (line: string|Array<string>, includeSelf = false) {
+    line = Array.isArray(line) ? line : [line]
+    for (const candidate of line) {
+      const [op, arg] = candidate.split(' ')
+      if (includeSelf && this.op === op && (!arg || this.arg === arg)) return this
+    }
+    if (!this.previous) return
+    return this.previous.prevOp(line, true)
+  },
+  [util.inspect.custom] () {
+    return this.op + ' ' + this.arg
+  }
+}
+
+export function makeCodeLine (obj: $Shape<CodeLine> = {}): CodeLine {
+  return Object.assign(Object.create(_CodeLine), obj)
+}
+
+export function getSuperClassChain(clsInfo: ClassInfo): Array<string> {
+  if (clsInfo.superClassName === 'java.lang.Object') return []
+  const sc = clsInfo.superClassName in info.class && info.class[clsInfo.superClassName]
+  if (!sc) {
+    return [clsInfo.superClassName]
+  }
+  const chain = getSuperClassChain(sc)
+  chain.splice(0, 0, clsInfo.superClassName)
+  return chain
 }

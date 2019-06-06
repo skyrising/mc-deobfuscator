@@ -2,10 +2,11 @@
 import fs from 'fs'
 import util from 'util'
 import EventEmitter from 'events'
-import { perf } from './index'
+import { perf, lcFirst, toUnderScoreCase } from './index'
 import { getExtendedVersionInfo } from './version'
 import { printStatus } from './status'
 import { getMethodInheritance, parseSignature } from './code'
+import { decodeFieldAccessFlags } from './class-reader/util'
 
 const MAX_GENERIC_PASSES = 3
 const MAX_SPECIAL_PASSES = 3
@@ -188,12 +189,12 @@ class Info extends EventEmitter {
             method: new Proxy({
               [util.inspect.custom] (depth, opts) {
                 return opts.stylize('[Methods: ', 'special') +
-                  opts.stylize(Object.keys(this).filter(name => Boolean(this[name].bin)).length, 'number') +
+                  opts.stylize(Object.keys(this).filter(name => Boolean(this[name].infoComplete)).length, 'number') +
                   opts.stylize(']', 'special')
               }
             }, {
               ownKeys (methods) {
-                return Object.keys(methods).filter(fullSig => Boolean(methods[fullSig].bin))
+                return Object.keys(methods).filter(fullSig => Boolean(methods[fullSig].infoComplete))
               },
               get (mds, fullSig) {
                 if (typeof fullSig !== 'string') return mds[fullSig]
@@ -294,7 +295,52 @@ class Info extends EventEmitter {
     for (const task of this.scheduledTasks) {
       if (all || task.predicate(this)) {
         this.scheduledTasks.delete(task)
-        task.run(this)
+        try {
+          task.run(this)
+        } catch (e) {
+          console.error(e)
+        }
+      }
+    }
+  }
+  
+  newField (clsName: string, obfName: string, sig: string, acc: number) {
+    const info = this
+    return {
+      type: 'field',
+      clsInfo: this.class[clsName],
+      info,
+      obfName,
+      sig,
+      acc,
+      flags: decodeFieldAccessFlags(acc),
+      getDefaultName () {
+        const base = getDefaultNameForFieldType(this)
+        const sc = this.clsInfo.superClassName in this.info.class && this.info.class[this.clsInfo.superClassName]
+        const fotis = (sc && sc.getVisibleFieldsOfType && sc.getVisibleFieldsOfType(this.sig)) || []
+        if (fotis.length + this.clsInfo.fieldsByType[this.sig].length > 1) {
+          const index = fotis.length + this.defaultNameIndex
+          const b = this.flags.static && this.flags.final ? toUnderScoreCase(base).toUpperCase() + '_' : base
+          return b + index
+        } else {
+          return this.flags.static && this.flags.final ? toUnderScoreCase(base).toUpperCase() : base
+        }
+      },
+      get bestName () {
+        if (this.name) return this.name
+        if (this.depends) {
+          if (typeof this.depends === 'function') {
+            const dependentName = this.depends()
+            if (dependentName) return dependentName
+          } else {
+            const dependentName = this.depends !== this && this.depends.bestName
+            if (dependentName) return dependentName
+          }
+        }
+        return this.getDefaultName() || this.obfName
+      },
+      [util.inspect.custom] () {
+        return `[Field ${clsInfo.bestName}.${this.bestName}(${this.obfName})]`
       }
     }
   }
@@ -482,6 +528,45 @@ class Info extends EventEmitter {
       })
     }
   }
+}
+
+function getDefaultNameForFieldType (fieldInfo: FieldInfo) {
+  const { sig, info } = fieldInfo
+  let baseType = sig
+  let suffix = ''
+  while (baseType[0] === '[') {
+    suffix += 's'
+    baseType = baseType.slice(1)
+  }
+  if (baseType[0] === 'L') {
+    let name = baseType.slice(1, -1)
+    if (name in info.class) {
+      const clsInfo = info.class[name]
+      name = clsInfo.name || name
+    }
+    name = lcFirst(name.slice(Math.max(name.lastIndexOf('/'), name.lastIndexOf('.')) + 1))
+    name = ({
+      boolean: 'aboolean',
+      byte: 'abyte',
+      class: 'clazz',
+      double: 'adouble',
+      float: 'afloat',
+      long: 'along',
+      short: 'ashort'
+    })[name] || name
+    return name + suffix
+  }
+  switch (baseType[0]) {
+    case 'I': return 'i' + suffix
+    case 'J': return 'l' + suffix
+    case 'B': return 'b' + suffix
+    case 'S': return 's' + suffix
+    case 'C': return 'c' + suffix
+    case 'Z': return 'flag' + suffix
+    case 'F': return 'f' + suffix
+    case 'D': return 'd' + suffix
+  }
+  throw Error('invalid state')
 }
 
 export class NamingError extends Error {

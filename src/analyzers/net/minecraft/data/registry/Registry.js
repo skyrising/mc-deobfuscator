@@ -2,6 +2,7 @@
 import * as CLASS from '../../../../../ClassNames'
 import { signatureTag as s } from '../../../../../util/code'
 import { registryMethod } from '../../../../sharedLogic'
+import { v } from '../../../../../util'
 
 const REGISTRY_CLASSES = {
   menu: CLASS.CONTAINER_TYPE,
@@ -28,7 +29,7 @@ export function method (methodInfo: MethodInfo) {
       let registryClass
       try {
         const supplierNameAndType = line.nextOp('invokedynamic').invokeDynamic.bootstrapMethod.args[1].ref.nameAndType
-        const supplier = clsInfo.method[supplierNameAndType.name + ':' + supplierNameAndType.descriptor]
+        const supplier = clsInfo.method[v(supplierNameAndType.name) + ':' + v(supplierNameAndType.descriptor)]
         const supplierLines = supplier.code.lines
         if (supplierLines[0].op === 'getstatic') {
           const field = supplierLines[0].field

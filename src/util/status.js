@@ -19,6 +19,7 @@ const perfObs = new PerformanceObserver(list => {
 export function startStatus (info: FullInfo) {
   statusInfo = info
   statusInterval = setInterval(printStatus, 100)
+  statusInterval.unref()
   perfObs.observe({ entryTypes: ['mark', 'measure', 'gc'] })
 }
 
