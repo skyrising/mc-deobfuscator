@@ -37,7 +37,7 @@ async function getMergedMappings(version) {
 
 async function getMergedJar(version) {
   return getFile('merged-' + version.id + '.jar', async filename => {
-    if (!version.download.client || !version.downloads.server) return
+    if (!version.downloads.client || !version.downloads.server) return
     const client = await downloadJar(version, 'client').catch(e => undefined)
     const server = await downloadJar(version, 'server').catch(e => undefined)
     await stitch('mergeJar', client, server, filename)
