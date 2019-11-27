@@ -11,6 +11,7 @@
     "dl-server": "node -r @babel/register src/util/version.js",
     "dl-deps": "node -r @babel/register src/util/dependencies.js",
     "data": "node build/util/mc-data.js",
+    "guardian": "node build/util/guardian.js",
     "add-version": "node -r @babel/register src/util/version.js add",
     "check:eslint": "eslint .",
     "check:flow": "flow"

@@ -60,6 +60,18 @@ export async function downloadJar (version, download = 'server') {
   })
 }
 
+export async function downloadObfMappings (version, download = 'server') {
+  const filename = download + '-' + (version.id || version) + '.txt'
+  const file = path.resolve(process.env.MINECRAFT_JARS_CACHE || 'work/', filename)
+  if (await fs.exists(file)) return file
+  const versionManifest = typeof version === 'object' ? version : await getVersionManifest(version)
+  if (!versionManifest) throw Error('Could not find version ' + version)
+  const out = fs.createWriteStream(file)
+  return new Promise((resolve, reject) => {
+    request0(versionManifest.downloads[download + '_mappings'].url).on('error', reject).on('end', () => resolve(file)).pipe(out)
+  })
+}
+
 export async function addVersion (info) {
   if (typeof info === 'object') {
     const newVersions = info.versions || (Array.isArray(info) ? info : [info])

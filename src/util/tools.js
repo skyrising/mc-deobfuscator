@@ -5,12 +5,15 @@ import { sync as rmrf } from 'rimraf'
 
 import { generateOutput } from './output'
 
+const BASE_DIR = path.resolve(__dirname, '../../')
+const TOOLS_DIR = path.resolve(BASE_DIR, 'work/lib')
+
 export async function specialSource (inFile, outFile, info, format = 'tsrg') {
   const mapping = (await generateOutput(info))[format]
   console.log('Mapping: ' + mapping)
   console.log('Deobfuscating with SpecialSource')
-  cp.spawnSync('java', ['-jar', 'work/lib/specialsource.jar', '-i', inFile, '-o', outFile, '-m', mapping, '--kill-lvt'], {
-    stdio: ['ignore', 'inherit', fs.openSync('./temp/specialsource.warn', 'w')]
+  cp.spawnSync('java', ['-jar', path.resolve(TOOLS_DIR, 'specialsource.jar'), '-i', inFile, '-o', outFile, '-m', mapping, '--kill-lvt'], {
+    stdio: ['ignore', 'inherit', fs.openSync(path.resolve(BASE_DIR, 'temp/specialsource.warn'), 'w')]
   })
 }
 
@@ -64,13 +67,12 @@ export async function extractJar (jar, dir) {
   return spawn('jar', ['xf', jar], { cwd: dir })
 }
 
-export async function fernflower (jar, to, cp, flavor = 'fernflower') {
-  const binDir = path.resolve('work/bin/')
+export async function fernflower (binDir, to, cp, flavor = 'fernflower') {
   rmrf(to)
   fs.mkdirSync(to)
   console.log('Decompiling with ' + flavor)
   const args = ['-din=1', '-rbr=1', '-dgs=1', '-asc=1', '-rsy=1', '-iec=1', '-jvn=1', '-sef=1', '-log=WARN', binDir, to]
-  const decompJar = path.resolve('work/lib', flavor + '.jar')
+  const decompJar = path.resolve(TOOLS_DIR, flavor + '.jar')
   if (fs.existsSync(decompJar)) return spawn('java', ['-jar', decompJar].concat(args), { stdio: 'inherit' })
   return spawn(flavor, args, { stdio: 'inherit' })
 }
@@ -86,12 +88,28 @@ export async function procyon (jar, to, cp) {
   return spawn('procyon-decompiler', ['-v', 0, '-jar', jar, '-r', '-o', to], { stdio: 'inherit' })
 }
 
-export async function cfr (jar, to, cp) {
+export async function cfr (jar, to, cp = [], ...extraArgs) {
   rmrf(to)
   fs.mkdirSync(to)
   console.log('Decompiling with CFR')
-  const cfrJar = 'work/lib/cfr.jar'
-  const args = [jar, '--showversion', 'false', '--silent', 'false', '--extraclasspath', cp.join(':'), '--outputdir', to]
-  if (fs.existsSync(cfrJar)) return spawn('java', ['-Xmx4G', '-jar', cfrJar].concat(args), { stdio: 'inherit' })
+  const cfrJar = path.resolve(TOOLS_DIR, 'cfr.jar')
+  const args = [jar, '--showversion', 'false', '--silent', 'false', '--outputdir', to]
+  if (cp.length) {
+    args.push('--extraclasspath', cp.join(':'))
+  }
+  if (fs.existsSync(cfrJar)) return spawn('java', ['-Xmx4G', '-jar', cfrJar].concat(args).concat(extraArgs), { stdio: 'inherit' })
   return spawn('cfr', args, { stdio: 'inherit' })
+}
+
+export async function stitch (...args) {
+  return spawn('java', ['-jar', path.resolve(TOOLS_DIR, 'stitch.jar'), ...args], { stdio: 'inherit' })
+}
+
+export async function enigma (...args) {
+  return spawn('java', ['-cp', path.resolve(TOOLS_DIR, 'enigma.jar'), 'cuchaz.enigma.CommandMain', ...args], { stdio: 'inherit' })
+}
+
+export async function tinyRemapper (input, output, mappings, from = 'official', to = 'named') {
+  console.log(`Remapping ${input} -> ${output} with ${mappings} (${from} -> ${to})`)
+  return spawn('java', ['-jar', path.resolve(TOOLS_DIR, 'tiny-remapper.jar'), input, output, mappings, from, to], { stdio: 'inherit' })
 }
