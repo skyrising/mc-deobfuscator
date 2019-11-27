@@ -56,8 +56,6 @@ async function work(version) {
     fs.mkdirSync(version.id)
     fs.mkdirSync(path.resolve(version.id, 'main'))
     const javaDir = path.resolve(version.id, 'main', 'java')
-    const resourcesDir = path.resolve(version.id, 'main', 'resources')
-    fs.mkdirSync(resourcesDir)
     // await cfr(jar, javaDir, [], '--obfuscationpath', mappings)
     const tinyMappings = mappings.replace('.txt', '.tiny')
     if (!fs.existsSync(tinyMappings)) {
@@ -77,7 +75,11 @@ async function work(version) {
     rmrf(path.resolve(javaDir, 'javax'))
     rmrf(path.resolve(javaDir, 'joptsimple'))
     rmrf(path.resolve(javaDir, 'org'))
-    fs.renameSync(path.resolve(javaDir, 'version.json'), path.resolve(resourcesDir, 'version.json'))
+    if (fs.existsSync(path.resolve(javaDir, 'version.json'))) {
+      const resourcesDir = path.resolve(version.id, 'main', 'resources')
+      fs.mkdirSync(resourcesDir)
+      fs.renameSync(path.resolve(javaDir, 'version.json'), path.resolve(resourcesDir, 'version.json'))
+    }
     for (const name of fs.readdirSync(javaDir)) {
       const file = path.resolve(javaDir, name)
       if (fs.statSync(file).isFile()) fs.unlinkSync(file)
