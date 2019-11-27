@@ -37,6 +37,7 @@ async function getMergedMappings(version) {
 
 async function getMergedJar(version) {
   return getFile('merged-' + version.id + '.jar', async filename => {
+    if (!version.download.client || !version.downloads.server) return
     const client = await downloadJar(version, 'client').catch(e => undefined)
     const server = await downloadJar(version, 'server').catch(e => undefined)
     await stitch('mergeJar', client, server, filename)
@@ -48,7 +49,9 @@ async function work(version) {
     console.log(process.pid, version.id)
     version = await getExtendedVersionInfo(version)
     const mappings = await getMergedMappings(version)
+    if (!mappings) return
     const jar = await getMergedJar(version)
+    if (!jar) return
     rmrf(version.id)
     fs.mkdirSync(version.id)
     fs.mkdirSync(path.resolve(version.id, 'main'))
