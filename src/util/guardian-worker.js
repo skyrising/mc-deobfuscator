@@ -40,6 +40,10 @@ async function getMergedJar(version) {
     if (!version.downloads.client || !version.downloads.server) return
     const client = await downloadJar(version, 'client').catch(e => undefined)
     const server = await downloadJar(version, 'server').catch(e => undefined)
+    if (!client || !server) {
+      console.error('Failed get jars for merging')
+      return
+    }
     await stitch('mergeJar', client, server, filename, '--removeSnowman', '--syntheticparams')
     return filename
   })
